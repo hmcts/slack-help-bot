@@ -1,4 +1,6 @@
-const { App, LogLevel, SocketModeReceiver } = require('@slack/bolt');
+const {helpRequestRaised} = require("./src/messages");
+const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
+const crypto = require('crypto')
 
 const app = new App({
     token: process.env.SLACK_BOT_TOKEN, //disable this if enabling OAuth in socketModeReceiver
@@ -15,12 +17,12 @@ const reportChannel = process.env.REPORT_CHANNEL;
 })();
 
 // Publish a App Home
-app.event('app_home_opened', async ({ event, client }) => {
+app.event('app_home_opened', async ({event, client}) => {
     await client.views.publish({
         user_id: event.user,
         view: {
-            "type":"home",
-            "blocks":[
+            "type": "home",
+            "blocks": [
                 {
                     "type": "section",
                     "block_id": "section678",
@@ -46,7 +48,7 @@ function option(name, option) {
 }
 
 // Message Shortcut example
-app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
+app.shortcut('launch_msg_shortcut', async ({shortcut, body, ack, context, client}) => {
     await ack();
     console.log(shortcut);
 });
@@ -54,7 +56,7 @@ app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, clien
 // Global Shortcut example
 // setup global shortcut in App config with `launch_shortcut` as callback id
 // add `commands` scope
-app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
+app.shortcut('launch_shortcut', async ({shortcut, body, ack, context, client}) => {
     try {
         // Acknowledge shortcut request
         await ack();
@@ -205,13 +207,12 @@ app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client })
                 callback_id: 'create_help_request'
             }
         });
-    }
-    catch (error) {
+    } catch (error) {
         console.error(JSON.stringify(error));
     }
 });
 
-app.view('create_help_request', async ({ ack, body, view, client }) => {
+app.view('create_help_request', async ({ack, body, view, client}) => {
     // Acknowledge the view_submission event
     await ack();
 
@@ -227,90 +228,7 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
         const result = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
-            blocks: [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `New platform help request raised by <@${user}>`
-                    }
-                },
-                {
-                    "type": "divider"
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": `:warning: Summary: ${summary}.`,
-                        "emoji": true
-                    }
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": `:house: Environment: ${environment}.`,
-                        "emoji": true
-                    }
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": ":mechanic: Assigned to: "
-                    },
-                    "accessory": {
-                        "type": "users_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Unassigned",
-                            "emoji": true
-                        },
-                        "action_id": "users_select-action"
-                    }
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": `View on Jira: <https://tools.hmcts.net/jira/browse/${jiraId}|${jiraId}>`
-                        }
-                    ]
-                },
-                {
-                    "type": "divider"
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": ":eyes: Take it",
-                                "emoji": true
-                            },
-                            "value": "assign_help_request_to_me",
-                            "action_id": "assign_help_request_to_me"
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": " :white_check_mark: Resolve",
-                                "emoji": true
-                            },
-                            "value": "resolve_help_request",
-                            "action_id": "resolve_help_request"
-                        }
-                    ]
-                },
-                {
-                    "type": "divider"
-                }
-            ]
+            blocks: helpRequestRaised(user, summary, environment, 'Unassigned', jiraId)
         });
     } catch (error) {
         console.error(error);
@@ -321,9 +239,10 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
 
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
-app.event('app_mention', async ({ event, context, client, say }) => {
+app.event('app_mention', async ({event, context, client, say}) => {
     try {
-        await say({"blocks": [
+        await say({
+            "blocks": [
                 {
                     "type": "section",
                     "text": {
@@ -341,19 +260,20 @@ app.event('app_mention', async ({ event, context, client, say }) => {
                         "action_id": "first_button"
                     }
                 }
-            ]});
-    }
-    catch (error) {
+            ]
+        });
+    } catch (error) {
         console.error(error);
     }
 });
 
 // subscribe to `message.channels` event in your App Config
 // need channels:read scope
-app.message('hello', async ({ message, say }) => {
+app.message('hello', async ({message, say}) => {
     // say() sends a message to the channel where the event was triggered
     // no need to directly use 'chat.postMessage', no need to include token
-    await say({"blocks": [
+    await say({
+        "blocks": [
             {
                 "type": "section",
                 "text": {
@@ -371,11 +291,12 @@ app.message('hello', async ({ message, say }) => {
                     "action_id": "first_button"
                 }
             }
-        ]});
+        ]
+    });
 });
 
 // Listen and respond to button click
-app.action('first_button', async({action, ack, say, context}) => {
+app.action('first_button', async ({action, ack, say, context}) => {
     console.log('button clicked');
     console.log(action);
     // acknowledge the request right away
@@ -383,15 +304,48 @@ app.action('first_button', async({action, ack, say, context}) => {
     await say('Thanks for clicking the fancy button');
 });
 
-app.action('assign_help_request_to_me', async({action, ack, say, context}) => {
+
+function randomString() {
+    return crypto.randomBytes(16).toString("hex");
+}
+
+app.action('assign_help_request_to_me', async ({
+                                                   body, action, ack, client, context
+                                               }) => {
     await ack();
-    console.log(action)
+    const blocks = body.message.blocks
+    const assignedToSection = blocks[4]
+    assignedToSection.accessory.initial_user = body.user.id
+    // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
+    assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
+
+    const result = await client.chat.update({
+        channel: body.channel.id,
+        ts: body.message.ts,
+        text: 'New platform help request raised',
+        blocks: blocks
+    });
+
 })
+
+app.action('resolve_help_request', async ({
+                                                   body, action, ack, client, context
+                                               }) => {
+    await ack();
+    console.log('TODO implement resolve_help_request')
+});
+
+app.action('assign_help_request_to_user', async ({
+                                              body, action, ack, client, context
+                                          }) => {
+    await ack();
+    console.log('TODO implement assign_help_request_to_user')
+});
 
 // Listen to slash command
 // need to add commands permission
 // create slash command in App Config
-app.command('/socketslash', async ({ command, ack, say }) => {
+app.command('/socketslash', async ({command, ack, say}) => {
     // Acknowledge command request
     await ack();
 
