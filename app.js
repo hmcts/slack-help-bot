@@ -217,7 +217,6 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
 
     console.log(JSON.stringify(view.state.values))
     const user = body.user.id;
-    console.log(user)
 
     // Message the user
     try {
@@ -383,6 +382,11 @@ app.action('first_button', async({action, ack, say, context}) => {
     await ack();
     await say('Thanks for clicking the fancy button');
 });
+
+app.action('assign_help_request_to_me', async({action, ack, say, context}) => {
+    await ack();
+    console.log(action)
+})
 
 // Listen to slash command
 // need to add commands permission
