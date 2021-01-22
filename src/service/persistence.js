@@ -7,6 +7,9 @@ const systemUser = process.env.JIRA_USERNAME || 'mock-system-user'
 const issueTypeId = process.env.JIRA_ISSUE_TYPE || '10900' // TODO remove default
 
 const jiraProject = process.env.JIRA_PROJECT || 'SBOX' // TODO remove default
+
+// this can be found by hovering over the done link on the ticket
+const jiraDoneTransitionId = process.env.JIRA_DONE_TRANSITION_ID || '41' // TODO remove default
 const extractProjectRegex = new RegExp('browse/(' + jiraProject + '-[\\d]+)')
 
 const jira = new JiraApi({
@@ -18,8 +21,12 @@ const jira = new JiraApi({
     strictSSL: true
 });
 
-async function resolveHelpRequest() {
-
+async function resolveHelpRequest(jiraId) {
+    await jira.transitionIssue(jiraId, {
+        transition: {
+            id: jiraDoneTransitionId
+        }
+    })
 }
 
 async function reopenHelpRequest() {

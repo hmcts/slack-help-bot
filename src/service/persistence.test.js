@@ -41,6 +41,10 @@ describe('integration tests', () => {
     test('comment is added to help request', async () => {
         await jira.addCommentToHelpRequest()
     });
+
+    test('issue is resolved', async () => {
+        await jira.resolveHelpRequest('SBOX-51')
+    });
 })
 
 describe('convertEmail', () => {

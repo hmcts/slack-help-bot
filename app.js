@@ -5,6 +5,7 @@ const {
     assignHelpRequest,
     createHelpRequest,
     extractJiraId,
+    resolveHelpRequest,
     updateHelpRequestDescription
 } = require("./src/service/persistence");
 
@@ -195,7 +196,12 @@ app.action('resolve_help_request', async ({
                                               body, action, ack, client, context
                                           }) => {
     await ack();
-    console.log('TODO implement resolve_help_request')
+    const jiraId = extractJiraId(body.message.blocks[5].elements[0].text)
+
+    await resolveHelpRequest(jiraId) // TODO add optional resolution comment
+
+    // TODO update the slack message to look different
+    // TODO add re-open button?
 });
 
 app.action('assign_help_request_to_user', async ({
