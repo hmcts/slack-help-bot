@@ -1,6 +1,12 @@
 const {helpRequestRaised, helloToBotHandler, openHelpRequestBlocks} = require("./src/messages");
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
+const {
+    assignHelpRequest,
+    createHelpRequest,
+    extractJiraId,
+    updateHelpRequestDescription
+} = require("./src/service/persistence");
 
 const app = new App({
     token: process.env.SLACK_BOT_TOKEN, //disable this if enabling OAuth in socketModeReceiver
@@ -71,13 +77,42 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
     try {
         const summary = view.state.values.summary.title.value
         const environment = view.state.values.environment.environment.selected_option?.text.text || "None"
-        const jiraId = "DTSPO-1111"
 
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const jiraId = await createHelpRequest({
+            summary,
+            userEmail
+        })
         const result = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
             blocks: helpRequestRaised(user, summary, environment, 'Unassigned', jiraId)
         });
+
+        const permaLink = (await client.chat.getPermalink({
+            channel: result.channel,
+            'message_ts': result.message.ts
+        })).permalink
+
+        const prBuildUrl = view.state.values.urls?.title?.value
+        const description = view.state.values.description.description.value
+        const checkedWithTeam = view.state.values.checked_with_team.checked_with_team.selected_option.value
+        const analysis = view.state.values.analysis.analysis.value
+        const actionRequired = view.state.values.action_required?.action_required?.value
+
+        await updateHelpRequestDescription(jiraId, {
+            summary,
+            prBuildUrl,
+            environment,
+            description,
+            analysis,
+            checkedWithTeam,
+            actionRequired,
+            slackLink: permaLink
+        })
     } catch (error) {
         console.error(error);
     }
@@ -167,7 +202,27 @@ app.action('assign_help_request_to_user', async ({
                                                      body, action, ack, client, context
                                                  }) => {
     await ack();
-    console.log('TODO implement assign_help_request_to_user')
+
+    body.state.values
+
+    const blockName = Object.keys(body.state.values)[0]
+    const user = body.state.values[blockName].assign_help_request_to_user.selected_user
+
+
+    const jiraId = extractJiraId(body.message.blocks[5].elements[0].text)
+    const userEmail = (await client.users.profile.get({
+        user
+    })).profile.email
+
+    await assignHelpRequest(jiraId, userEmail)
+
+    const actor = body.user.id
+
+    await client.chat.postMessage({
+        channel: body.channel.id,
+        thread_ts: body.message.ts,
+        text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
+    });
 });
 
 // Listen to slash command

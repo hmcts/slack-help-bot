@@ -223,7 +223,7 @@ function openHelpRequestBlocks() {
                 "optional": true,
                 "element": {
                     "type": "plain_text_input",
-                    "action_id": "plain_text_input-action",
+                    "action_id": "action_required",
                     "placeholder": {
                         "type": "plain_text",
                         "text": "If you know what needs doing let us know"
