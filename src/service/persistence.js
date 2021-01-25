@@ -1,5 +1,5 @@
 const JiraApi = require('jira-client');
-const {mapFieldsToDescription} = require("./jiraMessages");
+const {createComment, mapFieldsToDescription} = require("./jiraMessages");
 
 const systemUser = process.env.JIRA_USERNAME || 'mock-system-user'
 
@@ -57,16 +57,7 @@ function convertEmail(email) {
     return email.split('@')[0]
 }
 
-async function createHelpRequest({
-                                     summary,
-                                     userEmail
-                                 }) {
-    const user = convertEmail(userEmail)
-
-    const project = await jira.getProject(jiraProject)
-
-    // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-post
-    // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
+async function createHelpRequestInJira(summary, project, user) {
     const result = await jira.addNewIssue({
         fields: {
             summary: summary,
@@ -85,6 +76,26 @@ async function createHelpRequest({
             }
         }
     })
+    return result;
+}
+
+async function createHelpRequest({
+                                     summary,
+                                     userEmail
+                                 }) {
+    const user = convertEmail(userEmail)
+
+    const project = await jira.getProject(jiraProject)
+
+    // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-post
+    // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
+    let result
+    try {
+        result = await createHelpRequestInJira(summary, project, user);
+    } catch (err) {
+        // in case the user doesn't exist in Jira use the system user
+        result = await createHelpRequestInJira(summary, project, systemUser);
+    }
 
     return result.key
 }
@@ -100,8 +111,8 @@ async function updateHelpRequestDescription(issueId, fields) {
     })
 }
 
-async function addCommentToHelpRequest(externalSystemId, comment) {
-
+async function addCommentToHelpRequest(externalSystemId, fields) {
+    await jira.addComment(externalSystemId, createComment(fields))
 }
 
 module.exports.resolveHelpRequest = resolveHelpRequest

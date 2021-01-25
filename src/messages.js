@@ -242,30 +242,5 @@ function openHelpRequestBlocks() {
 
 }
 
-async function helloToBotHandler({message, say}) {
-    await say({
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `Thanks for the mention <@${message.user}>! Click my fancy button`
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Button",
-                        "emoji": true
-                    },
-                    "value": "click_me_123",
-                    "action_id": "first_button"
-                }
-            }
-        ]
-    })
-}
-
 module.exports.helpRequestRaised = helpRequestRaised;
-module.exports.helloToBotHandler = helloToBotHandler;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;

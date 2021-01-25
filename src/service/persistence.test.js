@@ -39,7 +39,11 @@ describe('integration tests', () => {
     })
 
     test('comment is added to help request', async () => {
-        await jira.addCommentToHelpRequest()
+        await jira.addCommentToHelpRequest('SBOX-58', {
+            slackLink: 'https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611324186001500',
+            displayName: 'Alice',
+            message: 'Can anyone help?'
+        })
     });
 
     test('issue is resolved', async () => {

@@ -35,4 +35,14 @@ ${optionalField('Action required', actionRequired)}
 `
 }
 
+function createComment({slackLink, displayName, message}) {
+return `
+h6. _This is an automatically added comment created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
+
+h6. ${displayName}:
+${message}
+`
+}
+
 module.exports.mapFieldsToDescription = mapFieldsToDescription
+module.exports.createComment = createComment

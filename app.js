@@ -2,6 +2,7 @@ const {helpRequestRaised, helloToBotHandler, openHelpRequestBlocks} = require(".
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
 const {
+    addCommentToHelpRequest,
     assignHelpRequest,
     createHelpRequest,
     extractJiraId,
@@ -17,6 +18,8 @@ const app = new App({
 });
 
 const reportChannel = process.env.REPORT_CHANNEL;
+// can't find an easy way to look this up via API unfortunately :(
+const reportChannelId = process.env.REPORT_CHANNEL_ID;
 
 (async () => {
     await app.start();
@@ -131,18 +134,8 @@ app.event('app_mention', async ({event, context, client, say}) => {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": `Thanks for the mention <@${event.user}>! Click my fancy button`
+                        "text": `Thanks for the mention <@${event.user}>!`
                     },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Button",
-                            "emoji": true
-                        },
-                        "value": "click_me_123",
-                        "action_id": "first_button"
-                    }
                 }
             ]
         });
@@ -150,24 +143,6 @@ app.event('app_mention', async ({event, context, client, say}) => {
         console.error(error);
     }
 });
-
-// subscribe to `message.channels` event in your App Config
-// need channels:read scope
-app.message('hello', async ({message, say}) => {
-    // say() sends a message to the channel where the event was triggered
-    // no need to directly use 'chat.postMessage', no need to include token
-    await helloToBotHandler({message, say});
-});
-
-// Listen and respond to button click
-app.action('first_button', async ({action, ack, say, context}) => {
-    console.log('button clicked');
-    console.log(action);
-    // acknowledge the request right away
-    await ack();
-    await say('Thanks for clicking the fancy button');
-});
-
 
 function randomString() {
     return crypto.randomBytes(16).toString("hex");
@@ -240,3 +215,42 @@ app.command('/socketslash', async ({command, ack, say}) => {
 
     await say(`${command.text}`);
 });
+
+app.event('message', async ({event, context, client, say}) => {
+    // filter unwanted channels in case someone invites the bot to it
+    // and only look at threaded messages
+    if (event.channel === reportChannelId && event.thread_ts) {
+        const slackLink = (await client.chat.getPermalink({
+            channel: event.channel,
+            'message_ts': event.thread_ts
+        })).permalink
+
+        const user = (await client.users.profile.get({
+            user: event.user
+        }))
+
+        console.log(user)
+
+        const displayName = user.profile.display_name
+
+        const helpRequestMessages = (await client.conversations.replies({
+            channel: reportChannelId,
+            ts: event.thread_ts,
+            limit: 200, // after a thread is 200 long we'll break but good enough for now
+        })).messages
+
+        if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
+            const jiraId = extractJiraId(helpRequestMessages[0].blocks[5].elements[0].text)
+
+            await addCommentToHelpRequest(jiraId, {
+                slackLink,
+                displayName,
+                message: event.text
+            })
+        } else {
+            // either need to implement pagination or find a better way to get the first message in the thread
+            console.warn("Could not find jira ID, possibly thread is longer than 200 messages, TODO implement pagination");
+        }
+
+    }
+})
