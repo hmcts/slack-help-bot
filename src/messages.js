@@ -10,15 +10,41 @@ function helpRequestRaised({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
+                "text": `*${summary}*`,
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": `:fire: Status: Open`,
+                "emoji": true
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
                 "text": `:woman-surfing: Reporter: <@${user}>`,
             }
         },
         {
             "type": "section",
             "text": {
-                "type": "plain_text",
-                "text": `:warning: Summary: ${summary}`,
-                "emoji": true
+                "type": "mrkdwn",
+                "text": ":female-firefighter: Assigned to: "
+            },
+            "accessory": {
+                "type": "users_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Unassigned",
+                    "emoji": true
+                },
+                "action_id": "assign_help_request_to_user"
             }
         },
         {
@@ -33,24 +59,8 @@ function helpRequestRaised({
             "type": "section",
             "text": {
                 "type": "plain_text",
-                "text": `:jenkins: PR / build URLs: ${prBuildUrl}`,
+                "text": `:link: PR / build URLs: ${prBuildUrl}`,
                 "emoji": true
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": ":mechanic: Assigned to: "
-            },
-            "accessory": {
-                "type": "users_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Unassigned",
-                    "emoji": true
-                },
-                "action_id": "assign_help_request_to_user"
             }
         },
         {
@@ -82,7 +92,7 @@ function helpRequestRaised({
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": " :white_check_mark: Resolve",
+                        "text": ":snow_cloud: Resolve",
                         "emoji": true
                     },
                     "value": "resolve_help_request",
@@ -114,7 +124,7 @@ function helpRequestDetails(
             "type": "section",
             "text": {
                 "type": "plain_text",
-                "text": `:thinking_face: Analysis done so far: ${analysis}`,
+                "text": `:thinking_face: Analysis: ${analysis}`,
                 "emoji": true
             }
         },
