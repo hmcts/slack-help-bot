@@ -1,4 +1,4 @@
-const {helpRequestRaised, helloToBotHandler, openHelpRequestBlocks} = require("./src/messages");
+const {helpRequestDetails, helpRequestRaised, openHelpRequestBlocks} = require("./src/messages");
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
 const {
@@ -79,21 +79,40 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
 
     // Message the user
     try {
-        const summary = view.state.values.summary.title.value
-        const environment = view.state.values.environment.environment.selected_option?.text.text || "None"
 
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email
 
+        const helpRequest = {
+            user,
+            summary: view.state.values.summary.title.value,
+            environment: view.state.values.environment.environment.selected_option?.text.text || "None",
+            prBuildUrl: view.state.values.urls?.title?.value,
+            description: view.state.values.description.description.value,
+            checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
+            analysis: view.state.values.analysis.analysis.value,
+        }
+
         const jiraId = await createHelpRequest({
-            summary,
+            summary: helpRequest.summary,
             userEmail
         })
+
         const result = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
-            blocks: helpRequestRaised(user, summary, environment, 'Unassigned', jiraId)
+            blocks: helpRequestRaised({
+                ...helpRequest,
+                jiraId
+            })
+        });
+
+        await client.chat.postMessage({
+            channel: reportChannel,
+            thread_ts: result.message.ts,
+            text: 'New platform help request raised',
+            blocks: helpRequestDetails(helpRequest)
         });
 
         const permaLink = (await client.chat.getPermalink({
@@ -101,20 +120,8 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
             'message_ts': result.message.ts
         })).permalink
 
-        const prBuildUrl = view.state.values.urls?.title?.value
-        const description = view.state.values.description.description.value
-        const checkedWithTeam = view.state.values.checked_with_team.checked_with_team.selected_option.value
-        const analysis = view.state.values.analysis.analysis.value
-        const actionRequired = view.state.values.action_required?.action_required?.value
-
         await updateHelpRequestDescription(jiraId, {
-            summary,
-            prBuildUrl,
-            environment,
-            description,
-            analysis,
-            checkedWithTeam,
-            actionRequired,
+            ...helpRequest,
             slackLink: permaLink
         })
     } catch (error) {

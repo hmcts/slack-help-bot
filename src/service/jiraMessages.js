@@ -12,7 +12,6 @@ function mapFieldsToDescription(
         description,
         analysis,
         checkedWithTeam,
-        actionRequired,
         slackLink
     }) {
     return `
@@ -30,8 +29,6 @@ ${description}
 *Analysis done so far*: ${analysis}
 
 *Have you checked with your team?*: ${checkedWithTeam}
-
-${optionalField('Action required', actionRequired)}
 `
 }
 

@@ -1,14 +1,17 @@
-function helpRequestRaised(user, summary, environment, assignedTo, jiraId) {
+function helpRequestRaised({
+                               user,
+                               summary,
+                               environment,
+                               prBuildUrl,
+                               jiraId
+                           }) {
     return [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": `New platform help request raised by <@${user}>`
+                "text": `:woman-surfing: Reporter: <@${user}>`,
             }
-        },
-        {
-            "type": "divider"
         },
         {
             "type": "section",
@@ -23,6 +26,14 @@ function helpRequestRaised(user, summary, environment, assignedTo, jiraId) {
             "text": {
                 "type": "plain_text",
                 "text": `:house: Environment: ${environment}`,
+                "emoji": true
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": `:jenkins: PR / build URLs: ${prBuildUrl}`,
                 "emoji": true
             }
         },
@@ -82,6 +93,31 @@ function helpRequestRaised(user, summary, environment, assignedTo, jiraId) {
         {
             "type": "divider"
         }
+    ]
+}
+
+function helpRequestDetails(
+    {
+        description,
+        analysis,
+    }) {
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": `:spiral_note_pad: Description: ${description}`,
+                "emoji": true
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": `:thinking_face: Analysis done so far: ${analysis}`,
+                "emoji": true
+            }
+        },
     ]
 }
 
@@ -217,24 +253,6 @@ function openHelpRequestBlocks() {
                     "emoji": true
                 }
             },
-            {
-                "type": "input",
-                "block_id": "action_required",
-                "optional": true,
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "action_required",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "If you know what needs doing let us know"
-                    }
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Action required",
-                    "emoji": true
-                }
-            }
         ],
         "type": "modal",
         callback_id: 'create_help_request'
@@ -243,4 +261,5 @@ function openHelpRequestBlocks() {
 }
 
 module.exports.helpRequestRaised = helpRequestRaised;
+module.exports.helpRequestDetails = helpRequestDetails;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;

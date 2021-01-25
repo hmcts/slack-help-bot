@@ -12,7 +12,6 @@ describe('integration tests', () => {
             description: "Big large error message, something bad happened",
             analysis: "Service principal expired",
             checkedWithTeam: "Yes",
-            actionRequired: "Renew SP and store in x vault",
             userEmail: "tim.jacomb@hmcts.net"
         }
 
@@ -27,7 +26,6 @@ describe('integration tests', () => {
             description: "Big large error message, something bad happened",
             analysis: "Service principal expired",
             checkedWithTeam: "Yes",
-            actionRequired: "Renew SP and store in x vault",
             slackLink: "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611272568001500"
         }
 
