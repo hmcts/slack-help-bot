@@ -7,6 +7,7 @@ const {
     createHelpRequest,
     extractJiraId,
     resolveHelpRequest,
+    startHelpRequest,
     updateHelpRequestDescription
 } = require("./src/service/persistence");
 
@@ -159,13 +160,21 @@ app.action('assign_help_request_to_me', async ({
                                                    body, action, ack, client, context
                                                }) => {
     await ack();
+
+    const jiraId = extractJiraId(body.message.blocks)
+    const userEmail = (await client.users.profile.get({
+        user: body.user.id
+    })).profile.email
+
+    await assignHelpRequest(jiraId, userEmail)
+
     const blocks = body.message.blocks
     const assignedToSection = blocks[4]
     assignedToSection.accessory.initial_user = body.user.id
     // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
     assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
 
-    const result = await client.chat.update({
+    await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
         text: 'New platform help request raised',
@@ -178,12 +187,63 @@ app.action('resolve_help_request', async ({
                                               body, action, ack, client, context
                                           }) => {
     await ack();
-    const jiraId = extractJiraId(body.message.blocks[5].elements[0].text)
+    const jiraId = extractJiraId(body.message.blocks)
 
     await resolveHelpRequest(jiraId) // TODO add optional resolution comment
 
-    // TODO update the slack message to look different
-    // TODO add re-open button?
+    const blocks = body.message.blocks
+    // TODO less fragile block updating
+    blocks[9].elements[1] = {
+        "type": "button",
+        "text": {
+            "type": "plain_text",
+            "text": ":snow_cloud: Re-open",
+            "emoji": true
+        },
+        "value": "start_help_request",
+        "action_id": "start_help_request"
+    }
+
+    blocks[2].text.text = ":snowflake: Status: Done"
+
+    await client.chat.update({
+        channel: body.channel.id,
+        ts: body.message.ts,
+        text: 'New platform help request raised',
+        blocks: blocks
+    });
+});
+
+
+app.action('start_help_request', async ({
+                                              body, action, ack, client, context
+                                          }) => {
+    await ack();
+    const jiraId = extractJiraId(body.message.blocks)
+
+    await startHelpRequest(jiraId) // TODO add optional resolution comment
+
+    const blocks = body.message.blocks
+    // TODO less fragile block updating
+    blocks[9].elements[1] = {
+        "type": "button",
+        "text": {
+            "type": "plain_text",
+            "text": ":snow_cloud: Resolve",
+            "emoji": true
+        },
+        "value": "resolve_help_request",
+        "action_id": "resolve_help_request"
+    }
+
+    blocks[2].text.text = ":fire_extinguisher: Status: In progress"
+
+    await client.chat.update({
+        channel: body.channel.id,
+        ts: body.message.ts,
+        text: 'New platform help request raised',
+        blocks: blocks
+    });
 });
 
 app.action('assign_help_request_to_user', async ({
@@ -197,7 +257,7 @@ app.action('assign_help_request_to_user', async ({
     const user = body.state.values[blockName].assign_help_request_to_user.selected_user
 
 
-    const jiraId = extractJiraId(body.message.blocks[5].elements[0].text)
+    const jiraId = extractJiraId(body.message.blocks)
     const userEmail = (await client.users.profile.get({
         user
     })).profile.email
@@ -247,7 +307,7 @@ app.event('message', async ({event, context, client, say}) => {
         })).messages
 
         if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
-            const jiraId = extractJiraId(helpRequestMessages[0].blocks[5].elements[0].text)
+            const jiraId = extractJiraId(helpRequestMessages[0].blocks)
 
             await addCommentToHelpRequest(jiraId, {
                 slackLink,

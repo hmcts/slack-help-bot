@@ -10,6 +10,7 @@ const jiraProject = process.env.JIRA_PROJECT || 'SBOX' // TODO remove default
 
 // this can be found by hovering over the done link on the ticket
 const jiraDoneTransitionId = process.env.JIRA_DONE_TRANSITION_ID || '41' // TODO remove default
+const jiraStartTransitionId = process.env.JIRA_START_TRANSITION_ID || '21' // TODO remove default
 const extractProjectRegex = new RegExp('browse/(' + jiraProject + '-[\\d]+)')
 
 const jira = new JiraApi({
@@ -25,6 +26,14 @@ async function resolveHelpRequest(jiraId) {
     await jira.transitionIssue(jiraId, {
         transition: {
             id: jiraDoneTransitionId
+        }
+    })
+}
+
+async function startHelpRequest(jiraId) {
+    await jira.transitionIssue(jiraId, {
+        transition: {
+            id: jiraStartTransitionId
         }
     })
 }
@@ -45,7 +54,9 @@ async function assignHelpRequest(issueId, email) {
  * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
  * @param viewOnJiraText
  */
-function extractJiraId(viewOnJiraText) {
+function extractJiraId(blocks) {
+    const viewOnJiraText = blocks[7].elements[0].text // TODO make this less fragile
+
     return extractProjectRegex.exec(viewOnJiraText)[1]
 }
 
@@ -116,6 +127,7 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 }
 
 module.exports.resolveHelpRequest = resolveHelpRequest
+module.exports.startHelpRequest = startHelpRequest
 module.exports.reopenHelpRequest = reopenHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest

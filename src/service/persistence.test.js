@@ -44,6 +44,10 @@ describe('integration tests', () => {
         })
     });
 
+    test('issue is in progress', async () => {
+        await jira.startHelpRequest('SBOX-51')
+    });
+
     test('issue is resolved', async () => {
         await jira.resolveHelpRequest('SBOX-51')
     });

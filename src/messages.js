@@ -18,6 +18,7 @@ function helpRequestRaised({
         },
         {
             "type": "section",
+            "block_id": "status",
             "text": {
                 "type": "plain_text",
                 "text": `:fire: Status: Open`,
@@ -58,9 +59,8 @@ function helpRequestRaised({
         {
             "type": "section",
             "text": {
-                "type": "plain_text",
-                "text": `:link: PR / build URLs: ${prBuildUrl}`,
-                "emoji": true
+                "type": "mrkdwn",
+                "text": `:link: PR / build URLs: ${prBuildUrl}`
             }
         },
         {
@@ -77,6 +77,7 @@ function helpRequestRaised({
         },
         {
             "type": "actions",
+            "block_id": "actions",
             "elements": [
                 {
                     "type": "button",
@@ -92,11 +93,11 @@ function helpRequestRaised({
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": ":snow_cloud: Resolve",
+                        "text": ":female-firefighter: Start",
                         "emoji": true
                     },
-                    "value": "resolve_help_request",
-                    "action_id": "resolve_help_request"
+                    "value": "start_help_request",
+                    "action_id": "start_help_request"
                 }
             ]
         },
@@ -115,17 +116,15 @@ function helpRequestDetails(
         {
             "type": "section",
             "text": {
-                "type": "plain_text",
+                "type": "mrkdwn",
                 "text": `:spiral_note_pad: Description: ${description}`,
-                "emoji": true
             }
         },
         {
             "type": "section",
             "text": {
-                "type": "plain_text",
+                "type": "mrkdwn",
                 "text": `:thinking_face: Analysis: ${analysis}`,
-                "emoji": true
             }
         },
     ]
