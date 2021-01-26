@@ -1,4 +1,9 @@
-const {helpRequestDetails, helpRequestRaised, openHelpRequestBlocks} = require("./src/messages");
+const {
+    appHomeUnassignedIssues,
+    helpRequestDetails,
+    helpRequestRaised,
+    openHelpRequestBlocks
+} = require("./src/messages");
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
 const {
@@ -32,17 +37,8 @@ app.event('app_home_opened', async ({event, client}) => {
     await client.views.publish({
         user_id: event.user,
         view: {
-            "type": "home",
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": "section678",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "App Home Published via web sockets"
-                    },
-                }
-            ]
+            type: "home",
+            blocks: appHomeUnassignedIssues()
         },
     });
 });
@@ -216,8 +212,8 @@ app.action('resolve_help_request', async ({
 
 
 app.action('start_help_request', async ({
-                                              body, action, ack, client, context
-                                          }) => {
+                                            body, action, ack, client, context
+                                        }) => {
     await ack();
     const jiraId = extractJiraId(body.message.blocks)
 
