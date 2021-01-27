@@ -9,6 +9,7 @@ jira:
   start_transition_id: 21
   done_transition_id: 41
   project: SBOX
+  priority_id: 4 # medium in SBOX
   issue_type_id: 10900
   #username: no default
   #password: no default
