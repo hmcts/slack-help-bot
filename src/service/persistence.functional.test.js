@@ -34,6 +34,11 @@ describe('functional tests', () => {
         await jira.updateHelpRequestDescription('SBOX-51', helpRequest)
     })
 
+    test('search for unassigned users', async() => {
+        const results = await jira.searchForUnassignedOpenIssues()
+        console.log(JSON.stringify(results))
+    })
+
     test('issue is assigned to user', async ()=> {
         await jira.assignHelpRequest('SBOX-51', 'tim.jacomb')
     })

@@ -2,7 +2,8 @@ const {
     appHomeUnassignedIssues,
     helpRequestDetails,
     helpRequestRaised,
-    openHelpRequestBlocks
+    openHelpRequestBlocks,
+    unassignedOpenIssue,
 } = require("./src/messages");
 const config = require('@hmcts/properties-volume').addTo(require('config'))
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
@@ -14,6 +15,7 @@ const {
     createHelpRequest,
     extractJiraId,
     resolveHelpRequest,
+    searchForUnassignedOpenIssues,
     startHelpRequest,
     updateHelpRequestDescription
 } = require("./src/service/persistence");
@@ -39,11 +41,24 @@ const reportChannelId = config.get('slack.report_channel_id');
 
 // Publish a App Home
 app.event('app_home_opened', async ({event, client}) => {
+
+    const results = await searchForUnassignedOpenIssues()
+
+    const parsedResults = results.issues.flatMap(result => {
+        return unassignedOpenIssue({
+            summary: result.fields.summary,
+            slackLink: "http://example.com",
+            jiraId: result.key,
+            created: result.fields.created,
+            updated: result.fields.updated,
+        })
+    })
+
     await client.views.publish({
         user_id: event.user,
         view: {
             type: "home",
-            blocks: appHomeUnassignedIssues()
+            blocks: appHomeUnassignedIssues(parsedResults)
         },
     });
 });
@@ -79,7 +94,6 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
 
     // Message the user
     try {
-
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email

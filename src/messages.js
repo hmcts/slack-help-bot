@@ -1,3 +1,9 @@
+const { convertIso8601ToEpochSeconds } = require('./dateHelper');
+
+function convertJiraKeyToUrl(jiraId) {
+    return `https://tools.hmcts.net/jira/browse/${jiraId}`;
+}
+
 function helpRequestRaised({
                                user,
                                summary,
@@ -47,7 +53,7 @@ function helpRequestRaised({
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": `View on Jira: <https://tools.hmcts.net/jira/browse/${jiraId}|${jiraId}>`
+                    "text": `View on Jira: <${convertJiraKeyToUrl(jiraId)}|${jiraId}>`
                 }
             ]
         },
@@ -120,7 +126,70 @@ function helpRequestDetails(
     ]
 }
 
-function appHomeUnassignedIssues() {
+function unassignedOpenIssue({
+                                 summary,
+                                 slackLink,
+                                 jiraId,
+                                 created,
+                                 updated
+                             }) {
+    const link = slackLink ? slackLink : convertJiraKeyToUrl(jiraId)
+
+    return [
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `*<${link}|${summary}>*`
+            },
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Assign to",
+                        "emoji": true
+                    },
+                    "action_id": "app_home_unassigned_user_select"
+                },
+                {
+                    "type": "button",
+                    "action_id": "app_home_take_unassigned_issue",
+                    "text": {
+                        "type": "plain_text",
+                        "text": ":eyes: Take it"
+                    },
+                    "style": "primary"
+                }
+            ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": `*:alarm_clock: Opened:*\n <!date^${convertIso8601ToEpochSeconds(created)}^{date_pretty}|${created}>`
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": `*:hourglass: Last Updated:*\n <!date^${convertIso8601ToEpochSeconds(updated)}^{date_pretty}|${updated}>`
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": `*View on Jira*:\n <${convertJiraKeyToUrl(jiraId)}|${jiraId}>`
+                }
+            ]
+        },
+        ]
+}
+
+function appHomeUnassignedIssues(openIssueBlocks) {
     return [
         {
             "type": "section",
@@ -154,125 +223,7 @@ function appHomeUnassignedIssues() {
                 }
             ]
         },
-        {
-            "type": "divider"
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "*<https://example.com|Unassigned issue 1>* \n :alarm_clock: Opened: some date\n :hourglass:Last updated: some date"
-            }
-        },
-        {
-            "type": "divider"
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "*<https://example.com|Unassigned issue 2>*"
-            }
-        },
-        {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "users_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Assign to",
-                        "emoji": true
-                    },
-                    "action_id": "users_select-action"
-                },
-                {
-                    "type": "button",
-                    "action_id": "take_unassigned_issue",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":eyes: Take it"
-                    },
-                    "style": "primary"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*:alarm_clock: Opened:*\n Mar 10, 2015 (3 years, 5 months)"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*:hourglass: Last Updated:*\n Yesterday"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*View on Jira*:\n <https://tools.hmcts.net/jira/browse/SBOX-63|SBOX-63>"
-                }
-            ]
-        },
-        {
-            "type": "divider"
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "*<https://example.com|Unassigned issue 3>*\n_No help request found_"
-            }
-        },
-        {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "users_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Assign to",
-                        "emoji": true
-                    },
-                    "action_id": "users_select-action"
-                },
-                {
-                    "type": "button",
-                    "action_id": "take_unassigned_issue",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":eyes: Take it"
-                    },
-                    "style": "primary"
-                },
-                {
-                    "type": "button",
-                    "action_id": "create_help_request_from_jira",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":eyes: Create help request"
-                    },
-                    "style": "primary"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*:alarm_clock: Opened:*\n Mar 10, 2015 (3 years, 5 months)"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*:hourglass: Last Updated:*\n Yesterday"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*View on Jira*:\n <https://tools.hmcts.net/jira/browse/SBOX-63|SBOX-63>"
-                }
-            ]
-        }
+        ...openIssueBlocks
     ]
 }
 
@@ -416,6 +367,7 @@ function openHelpRequestBlocks() {
 }
 
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
+module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
 module.exports.helpRequestDetails = helpRequestDetails;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;

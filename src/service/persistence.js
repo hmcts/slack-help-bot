@@ -37,8 +37,15 @@ async function startHelpRequest(jiraId) {
     })
 }
 
-async function reopenHelpRequest() {
-
+async function searchForUnassignedOpenIssues() {
+    return await jira.searchJira(
+        'project = DTSPO AND type = "BAU Task" AND status = Open and assignee is EMPTY  ORDER BY created ASC',
+        {
+            // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
+            // which would probably be better for performance
+            fields: ['created', 'description', 'summary', 'updated']
+        }
+    )
 }
 
 async function assignHelpRequest(issueId, email) {
@@ -124,10 +131,10 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
-module.exports.reopenHelpRequest = reopenHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
 module.exports.convertEmail = convertEmail
 module.exports.extractJiraId = extractJiraId
+module.exports.searchForUnassignedOpenIssues = searchForUnassignedOpenIssues
