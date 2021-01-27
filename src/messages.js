@@ -174,11 +174,11 @@ function unassignedOpenIssue({
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": `*:alarm_clock: Opened:*\n <!date^${convertIso8601ToEpochSeconds(created)}^{date_pretty}|${created}>`
+                    "text": `*:alarm_clock: Opened:*\n <!date^${convertIso8601ToEpochSeconds(created)}^{date_pretty} ({time})|${created}>`
                 },
                 {
                     "type": "mrkdwn",
-                    "text": `*:hourglass: Last Updated:*\n <!date^${convertIso8601ToEpochSeconds(updated)}^{date_pretty}|${updated}>`
+                    "text": `*:hourglass: Last Updated:*\n <!date^${convertIso8601ToEpochSeconds(updated)}^{date_pretty} ({time})|${updated}>`
                 },
                 {
                     "type": "mrkdwn",
