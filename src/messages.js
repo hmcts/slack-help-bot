@@ -18,50 +18,29 @@ function helpRequestRaised({
         },
         {
             "type": "section",
-            "block_id": "status",
-            "text": {
-                "type": "plain_text",
-                "text": `:fire: Status: Open`,
-                "emoji": true
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": `:woman-surfing: Reporter: <@${user}>`,
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": ":female-firefighter: Assigned to: "
-            },
-            "accessory": {
-                "type": "users_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Unassigned",
-                    "emoji": true
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Status* :fire:  \n Open"
                 },
-                "action_id": "assign_help_request_to_user"
-            }
+                {
+                    "type": "mrkdwn",
+                    "text": `*Reporter* :man-surfing: \n <@${user}>`
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": `*Environment* :house_with_garden: \n ${environment}`
+                }
+            ]
         },
         {
             "type": "section",
-            "text": {
-                "type": "plain_text",
-                "text": `:house: Environment: ${environment}`,
-                "emoji": true
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": `:link: PR / build URLs: ${prBuildUrl}`
-            }
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": `*PR / build URLs* :link: \n${prBuildUrl}`
+                }
+            ]
         },
         {
             "type": "context",
@@ -80,12 +59,22 @@ function helpRequestRaised({
             "block_id": "actions",
             "elements": [
                 {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Unassigned",
+                        "emoji": true
+                    },
+                    "action_id": "assign_help_request_to_user"
+                },
+                {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": ":eyes: Take it",
+                        "text": ":raising_hand: Take it",
                         "emoji": true
                     },
+                    "style": "primary",
                     "value": "assign_help_request_to_me",
                     "action_id": "assign_help_request_to_me"
                 },
@@ -96,6 +85,7 @@ function helpRequestRaised({
                         "text": ":female-firefighter: Start",
                         "emoji": true
                     },
+                    "style": "primary",
                     "value": "start_help_request",
                     "action_id": "start_help_request"
                 }

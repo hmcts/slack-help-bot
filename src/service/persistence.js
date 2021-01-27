@@ -1,23 +1,22 @@
 const JiraApi = require('jira-client');
+const config = require('config')
 const {createComment, mapFieldsToDescription} = require("./jiraMessages");
 
-const systemUser = process.env.JIRA_USERNAME || 'mock-system-user'
+const systemUser = config.get('jira.username')
 
-// you can find the type with a GET on the project via rest api
-const issueTypeId = process.env.JIRA_ISSUE_TYPE || '10900' // TODO remove default
+const issueTypeId = config.get('jira.issue_type_id')
 
-const jiraProject = process.env.JIRA_PROJECT || 'SBOX' // TODO remove default
+const jiraProject = config.get('jira.project')
 
-// this can be found by hovering over the done link on the ticket
-const jiraDoneTransitionId = process.env.JIRA_DONE_TRANSITION_ID || '41' // TODO remove default
-const jiraStartTransitionId = process.env.JIRA_START_TRANSITION_ID || '21' // TODO remove default
+const jiraStartTransitionId = config.get('jira.start_transition_id')
+const jiraDoneTransitionId = config.get('jira.done_transition_id')
 const extractProjectRegex = new RegExp('browse/(' + jiraProject + '-[\\d]+)')
 
 const jira = new JiraApi({
     protocol: 'https',
     host: 'tools.hmcts.net/jira',
     username: systemUser,
-    password: process.env.JIRA_PASSWORD,
+    password: config.get('jira.password'),
     apiVersion: '2',
     strictSSL: true
 });
@@ -52,10 +51,10 @@ async function assignHelpRequest(issueId, email) {
  * Extracts a jira ID
  *
  * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
- * @param viewOnJiraText
+ * @param blocks
  */
 function extractJiraId(blocks) {
-    const viewOnJiraText = blocks[7].elements[0].text // TODO make this less fragile
+    const viewOnJiraText = blocks[4].elements[0].text // TODO make this less fragile
 
     return extractProjectRegex.exec(viewOnJiraText)[1]
 }

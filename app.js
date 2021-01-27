@@ -4,6 +4,7 @@ const {
     helpRequestRaised,
     openHelpRequestBlocks
 } = require("./src/messages");
+const config = require('config')
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
 const {
@@ -17,15 +18,15 @@ const {
 } = require("./src/service/persistence");
 
 const app = new App({
-    token: process.env.SLACK_BOT_TOKEN, //disable this if enabling OAuth in socketModeReceiver
+    token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
     // logLevel: LogLevel.DEBUG,
-    appToken: process.env.SLACK_APP_TOKEN,
+    appToken: config.get('slack.app_token'),
     socketMode: true,
 });
 
-const reportChannel = process.env.REPORT_CHANNEL;
+const reportChannel = config.get('slack.report_channel');
 // can't find an easy way to look this up via API unfortunately :(
-const reportChannelId = process.env.REPORT_CHANNEL_ID;
+const reportChannelId = config.get('slack.report_channel_id');
 
 (async () => {
     await app.start();
@@ -105,7 +106,7 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
             })
         });
 
-        await client.chat.postMessage({
+        await client.chat.postMessage(  {
             channel: reportChannel,
             thread_ts: result.message.ts,
             text: 'New platform help request raised',
@@ -165,10 +166,10 @@ app.action('assign_help_request_to_me', async ({
     await assignHelpRequest(jiraId, userEmail)
 
     const blocks = body.message.blocks
-    const assignedToSection = blocks[4]
-    assignedToSection.accessory.initial_user = body.user.id
+    const assignedToSection = blocks[6]
+    assignedToSection.elements[0].initial_user = body.user.id
     // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
-    assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
+    // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
 
     await client.chat.update({
         channel: body.channel.id,
@@ -189,18 +190,19 @@ app.action('resolve_help_request', async ({
 
     const blocks = body.message.blocks
     // TODO less fragile block updating
-    blocks[9].elements[1] = {
+    blocks[6].elements[2] = {
         "type": "button",
         "text": {
             "type": "plain_text",
             "text": ":snow_cloud: Re-open",
             "emoji": true
         },
+        "style": "primary",
         "value": "start_help_request",
         "action_id": "start_help_request"
     }
 
-    blocks[2].text.text = ":snowflake: Status: Done"
+    blocks[2].fields[0].text = "Status :snowflake:\n Done"
 
     await client.chat.update({
         channel: body.channel.id,
@@ -221,18 +223,19 @@ app.action('start_help_request', async ({
 
     const blocks = body.message.blocks
     // TODO less fragile block updating
-    blocks[9].elements[1] = {
+    blocks[6].elements[2] = {
         "type": "button",
         "text": {
             "type": "plain_text",
             "text": ":snow_cloud: Resolve",
             "emoji": true
         },
+        "style": "primary",
         "value": "resolve_help_request",
         "action_id": "resolve_help_request"
     }
 
-    blocks[2].text.text = ":fire_extinguisher: Status: In progress"
+    blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress"
 
     await client.chat.update({
         channel: body.channel.id,
