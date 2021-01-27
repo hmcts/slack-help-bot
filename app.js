@@ -4,9 +4,10 @@ const {
     helpRequestRaised,
     openHelpRequestBlocks
 } = require("./src/messages");
-const config = require('config')
+const config = require('@hmcts/properties-volume').addTo(require('config'))
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
+const setupSecrets = require('./src/setupSecrets');
 const {
     addCommentToHelpRequest,
     assignHelpRequest,
@@ -16,6 +17,9 @@ const {
     startHelpRequest,
     updateHelpRequestDescription
 } = require("./src/service/persistence");
+
+// must be called before any config.get calls
+setupSecrets.setup();
 
 const app = new App({
     token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
@@ -47,7 +51,6 @@ app.event('app_home_opened', async ({event, client}) => {
 // Message Shortcut example
 app.shortcut('launch_msg_shortcut', async ({shortcut, body, ack, context, client}) => {
     await ack();
-    console.log(shortcut);
 });
 
 // Global Shortcut example
@@ -72,7 +75,6 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
     // Acknowledge the view_submission event
     await ack();
 
-    console.log(JSON.stringify(view.state.values))
     const user = body.user.id;
 
     // Message the user
@@ -294,8 +296,6 @@ app.event('message', async ({event, context, client, say}) => {
         const user = (await client.users.profile.get({
             user: event.user
         }))
-
-        console.log(user)
 
         const displayName = user.profile.display_name
 
