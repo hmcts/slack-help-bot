@@ -8,7 +8,6 @@ jira:
   start_transition_id: JIRA_START_TRANSITION_ID
   done_transition_id: JIRA_DONE_TRANSITION_ID
   project: JIRA_PROJECT
-  priority_id: JIRA_PRIORITY_ID
   issue_type_id: JIRA_ISSUE_TYPE_ID
   username: JIRA_USERNAME
   password: JIRA_PASSWORD

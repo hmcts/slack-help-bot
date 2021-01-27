@@ -18,6 +18,7 @@ describe('functional tests', () => {
 
         const issueKey = await jira.createHelpRequest(helpRequest)
         expect(issueKey).toStartWith(`${jiraProject}-`)
+        console.log(issueKey)
     });
     test('help request description is updated', async() => {
         const helpRequest = {

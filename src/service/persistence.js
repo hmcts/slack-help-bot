@@ -80,9 +80,6 @@ async function createHelpRequestInJira(summary, project, user) {
             description: undefined,
             reporter: {
                 name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
-            },
-            priority: {
-                id: config.get('jira.priority_id') // Medium
             }
         }
     })
