@@ -20,7 +20,7 @@ describe('convertEmail', () => {
 
 describe('extractJiraId', () => {
     it('extracts the key', () => {
-        const actual = jira.extractJiraId([
+        const actual = jira.extractJiraIdFromBlocks([
             {},
             {},
             {},

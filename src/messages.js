@@ -141,6 +141,7 @@ function unassignedOpenIssue({
         },
         {
             "type": "section",
+            "block_id": `${jiraId}_link`,
             "text": {
                 "type": "mrkdwn",
                 "text": `*<${link}|${summary}>*`
@@ -148,6 +149,7 @@ function unassignedOpenIssue({
         },
         {
             "type": "actions",
+            "block_id": `${jiraId}_actions`,
             "elements": [
                 {
                     "type": "users_select",
@@ -163,7 +165,7 @@ function unassignedOpenIssue({
                     "action_id": "app_home_take_unassigned_issue",
                     "text": {
                         "type": "plain_text",
-                        "text": ":eyes: Take it"
+                        "text": ":raising_hand: Take it"
                     },
                     "style": "primary"
                 }
@@ -171,6 +173,7 @@ function unassignedOpenIssue({
         },
         {
             "type": "section",
+            "block_id": `${jiraId}_fields`,
             "fields": [
                 {
                     "type": "mrkdwn",

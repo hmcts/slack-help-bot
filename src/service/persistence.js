@@ -5,12 +5,13 @@ const {createComment, mapFieldsToDescription} = require("./jiraMessages");
 const systemUser = config.get('jira.username')
 
 const issueTypeId = config.get('jira.issue_type_id')
+const issueTypeName = config.get('jira.issue_type_name')
 
 const jiraProject = config.get('jira.project')
 
 const jiraStartTransitionId = config.get('jira.start_transition_id')
 const jiraDoneTransitionId = config.get('jira.done_transition_id')
-const extractProjectRegex = new RegExp('browse/(' + jiraProject + '-[\\d]+)')
+const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`)
 
 const jira = new JiraApi({
     protocol: 'https',
@@ -38,8 +39,9 @@ async function startHelpRequest(jiraId) {
 }
 
 async function searchForUnassignedOpenIssues() {
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open and assignee is EMPTY ORDER BY created ASC`;
     return await jira.searchJira(
-        'project = DTSPO AND type = "BAU Task" AND status = Open and assignee is EMPTY  ORDER BY created ASC',
+        jqlQuery,
         {
             // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
             // which would probably be better for performance
@@ -60,10 +62,14 @@ async function assignHelpRequest(issueId, email) {
  * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
  * @param blocks
  */
-function extractJiraId(blocks) {
+function extractJiraIdFromBlocks(blocks) {
     const viewOnJiraText = blocks[4].elements[0].text // TODO make this less fragile
 
     return extractProjectRegex.exec(viewOnJiraText)[1]
+}
+
+function extraJiraId(text) {
+    return extractProjectRegex.exec(text)[1]
 }
 
 function convertEmail(email) {
@@ -137,5 +143,6 @@ module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
 module.exports.convertEmail = convertEmail
-module.exports.extractJiraId = extractJiraId
+module.exports.extraJiraId = extraJiraId
+module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
 module.exports.searchForUnassignedOpenIssues = searchForUnassignedOpenIssues

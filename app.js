@@ -13,7 +13,8 @@ const {
     addCommentToHelpRequest,
     assignHelpRequest,
     createHelpRequest,
-    extractJiraId,
+    extraJiraId,
+    extractJiraIdFromBlocks,
     resolveHelpRequest,
     searchForUnassignedOpenIssues,
     startHelpRequest,
@@ -39,9 +40,7 @@ const reportChannelId = config.get('slack.report_channel_id');
     console.log('⚡️ Bolt app started');
 })();
 
-// Publish a App Home
-app.event('app_home_opened', async ({event, client}) => {
-
+async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()
 
     const parsedResults = results.issues.flatMap(result => {
@@ -55,12 +54,17 @@ app.event('app_home_opened', async ({event, client}) => {
     })
 
     await client.views.publish({
-        user_id: event.user,
+        user_id: userId,
         view: {
             type: "home",
             blocks: appHomeUnassignedIssues(parsedResults)
         },
     });
+}
+
+// Publish a App Home
+app.event('app_home_opened', async ({event, client}) => {
+    await reopenAppHome(client, event.user);
 });
 
 // Message Shortcut example
@@ -122,7 +126,7 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
             })
         });
 
-        await client.chat.postMessage(  {
+        await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
             text: 'New platform help request raised',
@@ -174,7 +178,7 @@ app.action('assign_help_request_to_me', async ({
                                                }) => {
     await ack();
 
-    const jiraId = extractJiraId(body.message.blocks)
+    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
     const userEmail = (await client.users.profile.get({
         user: body.user.id
     })).profile.email
@@ -200,7 +204,7 @@ app.action('resolve_help_request', async ({
                                               body, action, ack, client, context
                                           }) => {
     await ack();
-    const jiraId = extractJiraId(body.message.blocks)
+    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
     await resolveHelpRequest(jiraId) // TODO add optional resolution comment
 
@@ -233,7 +237,7 @@ app.action('start_help_request', async ({
                                             body, action, ack, client, context
                                         }) => {
     await ack();
-    const jiraId = extractJiraId(body.message.blocks)
+    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
     await startHelpRequest(jiraId) // TODO add optional resolution comment
 
@@ -261,18 +265,46 @@ app.action('start_help_request', async ({
     });
 });
 
+app.action('app_home_unassigned_user_select', async ({
+                                                         body, action, ack, client, context
+                                                     }) => {
+    await ack();
+
+    const user = action.selected_user
+    const userEmail = (await client.users.profile.get({
+        user
+    })).profile.email
+
+    const jiraId = extraJiraId(action.block_id)
+    await assignHelpRequest(jiraId, userEmail)
+
+    await reopenAppHome(client, user);
+})
+
+app.action('app_home_take_unassigned_issue', async ({
+                                                         body, action, ack, client, context
+                                                     }) => {
+    await ack();
+
+    const user = body.user.id
+    const userEmail = (await client.users.profile.get({
+        user
+    })).profile.email
+
+    const jiraId = extraJiraId(action.block_id)
+    await assignHelpRequest(jiraId, userEmail)
+
+    await reopenAppHome(client, user);
+})
+
 app.action('assign_help_request_to_user', async ({
                                                      body, action, ack, client, context
                                                  }) => {
     await ack();
 
-    body.state.values
+    const user = action.selected_user
 
-    const blockName = Object.keys(body.state.values)[0]
-    const user = body.state.values[blockName].assign_help_request_to_user.selected_user
-
-
-    const jiraId = extractJiraId(body.message.blocks)
+    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
     const userEmail = (await client.users.profile.get({
         user
     })).profile.email
@@ -320,7 +352,7 @@ app.event('message', async ({event, context, client, say}) => {
         })).messages
 
         if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
-            const jiraId = extractJiraId(helpRequestMessages[0].blocks)
+            const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
             await addCommentToHelpRequest(jiraId, {
                 slackLink,
