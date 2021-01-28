@@ -84,6 +84,7 @@ async function createHelpRequestInJira(summary, project, user) {
             project: {
                 id: project.id
             },
+            labels: ['created-from-slack'],
             description: undefined,
             reporter: {
                 name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future

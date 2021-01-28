@@ -8,11 +8,6 @@ describe('functional tests', () => {
     test('help request is created', async () => {
         const helpRequest = {
             summary: "Test creation of issue",
-            prBuildUrl: undefined,
-            environment: "Production",
-            description: "Big large error message, something bad happened",
-            analysis: "Service principal expired",
-            checkedWithTeam: "Yes",
             userEmail: "tim.jacomb@hmcts.net"
         }
 
@@ -31,7 +26,7 @@ describe('functional tests', () => {
             slackLink: "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611272568001500"
         }
 
-        await jira.updateHelpRequestDescription('SBOX-51', helpRequest)
+        await jira.updateHelpRequestDescription('SBOX-104', helpRequest)
     })
 
     test('search for unassigned users', async() => {
