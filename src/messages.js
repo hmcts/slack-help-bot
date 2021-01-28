@@ -4,6 +4,25 @@ function convertJiraKeyToUrl(jiraId) {
     return `https://tools.hmcts.net/jira/browse/${jiraId}`;
 }
 
+const config = require('config')
+
+const slackChannelId = config.get('slack.report_channel_id')
+const slackMessageIdRegex = new RegExp(`${slackChannelId}\/(.*)]`)
+
+const slackLinkRegex = /view in Slack\|(https:\/\/.+slack\.com.+)]/
+
+function extractSlackLinkFromText(text) {
+    if (text === undefined) {
+        return undefined
+    }
+
+    const regexResult = slackLinkRegex.exec(text);
+    if (regexResult === null) {
+        return undefined
+    }
+    return regexResult[1]
+}
+
 function helpRequestRaised({
                                user,
                                summary,
@@ -374,3 +393,4 @@ module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
 module.exports.helpRequestDetails = helpRequestDetails;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
+module.exports.extractSlackLinkFromText = extractSlackLinkFromText;

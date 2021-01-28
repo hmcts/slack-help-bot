@@ -1,11 +1,12 @@
+const config = require('@hmcts/properties-volume').addTo(require('config'))
 const {
     appHomeUnassignedIssues,
+    extractSlackLinkFromText,
     helpRequestDetails,
     helpRequestRaised,
     openHelpRequestBlocks,
     unassignedOpenIssue,
 } = require("./src/messages");
-const config = require('@hmcts/properties-volume').addTo(require('config'))
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
 const setupSecrets = require('./src/setupSecrets');
@@ -46,7 +47,7 @@ async function reopenAppHome(client, userId) {
     const parsedResults = results.issues.flatMap(result => {
         return unassignedOpenIssue({
             summary: result.fields.summary,
-            slackLink: "http://example.com",
+            slackLink: extractSlackLinkFromText(result.fields.description),
             jiraId: result.key,
             created: result.fields.created,
             updated: result.fields.updated,
