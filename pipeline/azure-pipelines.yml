@@ -53,7 +53,7 @@ stages:
 
   - ${{ each parameter in parameters.environments }}:
     - stage: ${{ parameter.environment }}
-      displayName: ${{ parameter.environment }}
+      displayName: "${{ parameter.environment }}-intsvc"
       dependsOn: ${{ parameter.dependsOn }}
       jobs:
         - job:
@@ -62,7 +62,7 @@ stages:
           steps:
             - template: templates/terraform/terraform.yaml
               parameters:
-                environment: ${{ parameter.environment }}
+                environment: "${{ parameter.environment }}-intsvc"
                 location: ${{ parameters.location }}
                 stack: ${{ parameter.deployment }}
                 project: ${{ variables.project }}
