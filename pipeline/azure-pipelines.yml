@@ -26,7 +26,7 @@ parameters:
     type: object
     default:
       - deployment: 'slack-help-bot'
-        environment: 'cftptl-intsvc'
+        environment: 'cftptl'
         storageAccountName: 'cftptlintsvc'
         storageAccountRg: 'core-infra-intsvc-rg'
         dependsOn: 'Precheck'    
@@ -69,4 +69,4 @@ stages:
                 storageAccountName: ${{ parameter.storageAccountName }}
                 storageAccountRg: ${{ parameter.storageAccountRg }}
                 tfversion: ${{ variables.terraformVersion}}
-                serviceConnection: "DTS-${{ upper(parameter.environment) }}"
+                serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"

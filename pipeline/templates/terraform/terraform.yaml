@@ -47,7 +47,7 @@ steps:
     name: "CheckFileChanges"
     displayName: "CheckFileChanges"
     env:
-      files_list: 'infarstructure environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars environments/variable.tf'
+      files_list: 'infrastructure environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars environments/variable.tf'
     inputs:
       filePath: pipeline/scripts/file-check-changes.sh
 
