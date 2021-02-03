@@ -2,7 +2,7 @@ steps:
   - task: TerraformInstaller@0
     displayName: Terraform install
     inputs:
-      terraformVersion: ${{ parameters.terraformVersion }}
+      terraformVersion: ${{ parameters.tfversion }}
 
   - task: AzureCLI@2
     displayName: AzureServicePrincipalAuth
