@@ -1,11 +1,11 @@
 locals {
   criticality = {
-    cftsbox-intsvc     = "Low"
-    cftptl-intsvc      = "Medium"
+    cftsbox-intsvc = "Low"
+    cftptl-intsvc  = "Medium"
   }
   env_display_names = {
-    cftsbox-intsvc     = "Mgmt Sandbox"
-    cftptl-intsvc      = "Mgmt"
+    cftsbox-intsvc = "Mgmt Sandbox"
+    cftptl-intsvc  = "Mgmt"
   }
   common_tags = {
     "managedBy"          = "PlatOps"
