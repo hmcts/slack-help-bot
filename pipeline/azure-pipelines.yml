@@ -14,7 +14,7 @@ variables:
   timeoutInMinutes: 60
   agentPool: 'ubuntu-18.04'
   build: $(Build.BuildNumber)
-  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   connectedServiceName: DCD-CFT-Sandbox
   keyVaultName: infra-vault-sandbox
   secretsFilter: azure-devops-token
