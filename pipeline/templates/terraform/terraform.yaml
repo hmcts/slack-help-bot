@@ -1,0 +1,80 @@
+steps:
+  - task: TerraformInstaller@0
+    displayName: Terraform install
+    inputs:
+      terraformVersion: ${{ parameters.terraformVersion }}
+
+  - task: AzureCLI@2
+    displayName: AzureServicePrincipalAuth
+    inputs:
+      azureSubscription: '${{ parameters.serviceConnection }}'
+      scriptType: bash
+      scriptLocation: inlineScript
+      addSpnToEnvironment: true
+      inlineScript: |
+        #!/bin/bash
+        set -e 
+        echo "##vso[task.setvariable variable=ServicePrincipalId;]$servicePrincipalId"
+        echo "##vso[task.setvariable variable=ServicePrincipalKey;]$servicePrincipalKey"
+        echo "##vso[task.setvariable variable=TenantId;]$tenantId"
+
+  - task: TerraformCLI@0
+    displayName: terraform init
+    inputs:
+      command: init
+      terraformVersion: ${{ parameters.tfversion }}
+      workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
+      backendType: azurerm
+      backendServiceArm: ${{ parameters.serviceConnection }}
+      backendAzureRmResourceGroupName: '${{ parameters.storageAccountRg }}'
+      backendAzureRmResourceGroupLocation: ${{ parameters.location }}
+      backendAzureRmStorageAccountName: '${{ parameters.storageAccountName }}'
+      backendAzureRmStorageAccountSku: Standard_LRS
+      backendAzureRmContainerName: 'tfstate'
+      backendAzureRmKey: '${{ parameters.stack }}.tfstate'
+
+  - task: TerraformCLI@0
+    displayName: terraform plan
+    inputs:
+      command: plan
+      terraformVersion: ${{ parameters.tfversion }}
+      workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+      environmentServiceName: ${{ parameters.serviceConnection }}
+      commandOptions: '-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }} -var activity_name=${{ parameters.stack }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false'
+
+  - task: Bash@3
+    condition: and(succeeded(), eq(variables.isMaster, true))
+    name: "CheckFileChanges"
+    displayName: "CheckFileChanges"
+    env:
+      files_list: 'infarstructure environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars environments/variable.tf'
+    inputs:
+      filePath: pipeline/scripts/file-check-changes.sh
+
+  - task: TerraformCLI@0
+    displayName: Apply-${{ parameters.stack }}
+    condition: and(succeeded(), eq(variables.isMaster, true), eq(variables['CheckFileChanges.SOURCE_CODE_CHANGED'], 'true'))
+    inputs:
+      command: apply
+      terraformVersion: ${{ parameters.tfversion }}
+      workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+      environmentServiceName: ${{ parameters.serviceConnection }}
+      commandOptions: '--auto-approve tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}'
+
+  - task: Bash@3
+    displayName: "Remove local tfstate"
+    inputs:
+      targetType: 'inline'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
+      script: |
+        rm -f terraform.tfstate* && rm -rf .terraform/
+
+  - task: AzureCLI@2
+    displayName: 'Unlock TF state if required'
+    condition: always()
+    inputs:
+      scriptType: bash
+      scriptLocation: scriptPath
+      azureSubscription: ${{ parameters.serviceConnection }}
+      scriptPath: $(System.DefaultWorkingDirectory)/pipeline/scripts/unlock-tf-state.sh
+      arguments: ${{ parameters.location }} ${{ parameters.storage_account_name }}
