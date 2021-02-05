@@ -29,7 +29,12 @@ parameters:
         environment: 'cftptl'
         storageAccountName: 'cftptlintsvc'
         storageAccountRg: 'core-infra-intsvc-rg'
-        dependsOn: 'Precheck'    
+        dependsOn: 'Precheck'
+      - deployment: 'slack-help-bot'
+        environment: 'cftsbox'
+        storageAccountName: 'cftsboxintsvc'
+        storageAccountRg: 'core-infra-intsvc-rg'
+        dependsOn: 'Precheck'      
 
   - name: location
     displayName: Location
