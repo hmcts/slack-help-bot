@@ -1,5 +1,0 @@
-nodejs:
-  applicationPort: 3000
-  aadIdentityName: slack-help-bot
-  ingressHost: slack-help-bot.{{ .Values.global.environment }}.platform.hmcts.net
-  image: 'hmctspublic.azurecr.io/rpe/slack-help-bot:latest'
