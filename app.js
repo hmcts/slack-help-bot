@@ -36,6 +36,28 @@ const reportChannel = config.get('slack.report_channel');
 // can't find an easy way to look this up via API unfortunately :(
 const reportChannelId = config.get('slack.report_channel_id');
 
+const http = require('http');
+
+const port = process.env.PORT || 3000
+
+const server = http.createServer((req, res) => {
+    if (req.method !== 'GET') {
+        res.end(`{"error": "${http.STATUS_CODES[405]}"}`)
+    } else if (req.url === '/Health') {
+        res.end(`<h1>slack-help-bot</h1>`)
+    } else if (req.url === '/Health/Liveness') {
+        res.end(`<h1>slack-help-bot</h1>`)
+    } else if (req.url === '/Health/Readiness') {
+        res.end(`<h1>slack-help-bot</h1>`)
+    } else {
+        res.end(`{"error": "${http.STATUS_CODES[404]}"}`)
+    }   
+})
+
+server.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+});
+
 (async () => {
     await app.start();
     console.log('⚡️ Bolt app started');
