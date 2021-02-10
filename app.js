@@ -43,11 +43,11 @@ const port = process.env.PORT || 3000
 const server = http.createServer((req, res) => {
     if (req.method !== 'GET') {
         res.end(`{"error": "${http.STATUS_CODES[405]}"}`)
-    } else if (req.url === '/Health') {
+    } else if (req.url === '/health') {
         res.end(`<h1>slack-help-bot</h1>`)
-    } else if (req.url === '/Health/Liveness') {
+    } else if (req.url === '/health/liveness') {
         res.end(`<h1>slack-help-bot</h1>`)
-    } else if (req.url === '/Health/Readiness') {
+    } else if (req.url === '/health/readiness') {
         res.end(`<h1>slack-help-bot</h1>`)
     } else {
         res.end(`{"error": "${http.STATUS_CODES[404]}"}`)
