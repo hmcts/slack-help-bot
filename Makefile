@@ -11,7 +11,8 @@ AKS_CLUSTER := cftptl-intsvc-00-aks
 
 build-push:
 	docker build . -t slack-help-bot
-	docker tag slack-help-bot hmctspublic.azurecr.io/rpe/slack-help-bot:test
+	docker tag slack-help-bot hmctspublic.azurecr.io/rpe/slack-help-bot:test-1
+	docker push hmctspublic.azurecr.io/rpe/slack-help-bot:test-1
 
 setup-acr:
 	az account set --subscription ${ACR_SUBSCRIPTION}
