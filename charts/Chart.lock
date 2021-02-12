@@ -1,0 +1,6 @@
+dependencies:
+- name: nodejs
+  repository: https://hmctspublic.azurecr.io/helm/v1/repo/
+  version: 2.3.4
+digest: sha256:69442c31f62140ab697f3c75381463048996e46cd686226dee7bfc3262af0a9e
+generated: "2021-02-12T09:05:59.0183Z"
