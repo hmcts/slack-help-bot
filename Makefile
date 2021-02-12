@@ -23,8 +23,8 @@ login-acr:
 	az acr login ${ACR}
 
 setup-aks:
-	az account set --subscription ${ACR_SUBSCRIPTION}
-	az aks get-credentials --resource-group ${AKS_RESOURCE_GROUP} --name ${AKS_CLUSTER}
+	az account set --subscription ${AKS_SUBSCRIPTION}
+	az aks get-credentials --resource-group ${AKS_RESOURCE_GROUP} --name ${AKS_CLUSTER} -a --overwrite
 
 clean:
 	-helm uninstall ${RELEASE} -n ${NAMESPACE}
