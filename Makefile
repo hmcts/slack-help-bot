@@ -9,10 +9,17 @@ AKS_SUBSCRIPTION := DTS-CFTPTL-INTSVC
 AKS_RESOURCE_GROUP := cftptl-intsvc-00-rg
 AKS_CLUSTER := cftptl-intsvc-00-aks
 
+build-push:
+	docker build . -t slack-help-bot
+	docker tag slack-help-bot hmctspublic.azurecr.io/rpe/slack-help-bot:test
+
 setup-acr:
 	az account set --subscription ${ACR_SUBSCRIPTION}
 	az configure --defaults acr=${ACR}
 	az acr helm repo add
+
+login-acr:
+	az acr login ${ACR}
 
 setup-aks:
 	az account set --subscription ${ACR_SUBSCRIPTION}
@@ -38,5 +45,9 @@ test:
 	helm test ${RELEASE}
 
 all: setup clean lint deploy test
+
+drytestrelease: build-push dry-run
+
+testrelease: build-push deploy
 
 .PHONY: setup clean lint deploy test all
