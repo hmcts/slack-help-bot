@@ -7,9 +7,21 @@ function convertJiraKeyToUrl(jiraId) {
 const config = require('config')
 
 const slackChannelId = config.get('slack.report_channel_id')
-const slackMessageIdRegex = new RegExp(`${slackChannelId}\/(.*)]`)
+const slackMessageIdRegex = new RegExp(`${slackChannelId}\/(.*)\\|`)
 
 const slackLinkRegex = /view in Slack\|(https:\/\/.+slack\.com.+)]/
+
+function extractSlackMessageIdFromText(text) {
+    if (text === undefined) {
+        return undefined
+    }
+
+    const regexResult = slackMessageIdRegex.exec(text);
+    if (regexResult === null) {
+        return undefined
+    }
+    return regexResult[1]
+}
 
 function extractSlackLinkFromText(text) {
     if (text === undefined) {
@@ -394,3 +406,4 @@ module.exports.helpRequestRaised = helpRequestRaised;
 module.exports.helpRequestDetails = helpRequestDetails;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
+module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;

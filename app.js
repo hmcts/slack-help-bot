@@ -2,6 +2,7 @@ const config = require('@hmcts/properties-volume').addTo(require('config'))
 const {
     appHomeUnassignedIssues,
     extractSlackLinkFromText,
+    extractSlackMessageIdFromText,
     helpRequestDetails,
     helpRequestRaised,
     openHelpRequestBlocks,
@@ -129,7 +130,7 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
             user,
             summary: view.state.values.summary.title.value,
             environment: view.state.values.environment.environment.selected_option?.text.text || "None",
-            prBuildUrl: view.state.values.urls?.title?.value,
+            prBuildUrl: view.state.values.urls?.title?.value || "None",
             description: view.state.values.description.description.value,
             checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
             analysis: view.state.values.analysis.analysis.value,
@@ -304,6 +305,17 @@ app.action('app_home_unassigned_user_select', async ({
     await reopenAppHome(client, user);
 })
 
+function extractSlackMessageId(body, action) {
+    let result
+    for (let i = 0; i < body.view.blocks.length; i++) {
+        if (body.view.blocks[i].block_id === action.block_id) {
+            const slackLink = body.view.blocks[i - 1].text.text
+            return extractSlackMessageIdFromText(slackLink)
+        }
+    }
+    return result
+}
+
 app.action('app_home_take_unassigned_issue', async ({
                                                          body, action, ack, client, context
                                                      }) => {
@@ -315,6 +327,8 @@ app.action('app_home_take_unassigned_issue', async ({
     })).profile.email
 
     const jiraId = extraJiraId(action.block_id)
+    const slackMessageId = extractSlackMessageId(body, action);
+
     await assignHelpRequest(jiraId, userEmail)
 
     await reopenAppHome(client, user);
