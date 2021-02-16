@@ -24,7 +24,7 @@ REPORT_CHANNEL=bot-test
 
 We use 'Socket mode' so no need to proxy Slack's requests.
 
-Rename "env.template.txt" to .env which is gitignored and safe for secrets.
+Rename "env.template.txt" to ".env" which is gitignored and safe for secrets.
 You can source into your shell with:
 
  ```bash
@@ -65,6 +65,4 @@ This will start the frontend container exposing the application's port
 
 In order to test if the application is up, you can visit https://localhost:3000/health in your browser.
 You should get a very basic health page (no styles, etc.).
-
-## Developing
 
