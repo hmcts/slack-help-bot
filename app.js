@@ -1,4 +1,8 @@
 const config = require('@hmcts/properties-volume').addTo(require('config'))
+const setupSecrets = require('./src/setupSecrets');
+// must be called before any config.get calls
+setupSecrets.setup();
+
 const {
     appHomeUnassignedIssues,
     extractSlackLinkFromText,
@@ -10,7 +14,6 @@ const {
 } = require("./src/messages");
 const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
 const crypto = require('crypto')
-const setupSecrets = require('./src/setupSecrets');
 const {
     addCommentToHelpRequest,
     assignHelpRequest,
@@ -22,9 +25,6 @@ const {
     startHelpRequest,
     updateHelpRequestDescription
 } = require("./src/service/persistence");
-
-// must be called before any config.get calls
-setupSecrets.setup();
 
 const app = new App({
     token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
