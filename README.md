@@ -44,8 +44,6 @@ Run:
 $ node app.js
 ```
 
-The applications's health page will be available at https://localhost:3000/health
-
 #### Running with Docker
 
 Create docker image:
@@ -65,4 +63,3 @@ This will start the frontend container exposing the application's port
 
 In order to test if the application is up, you can visit https://localhost:3000/health in your browser.
 You should get a very basic health page (no styles, etc.).
-
