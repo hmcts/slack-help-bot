@@ -35,7 +35,7 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 8. Add the app in the channel where you would like it to be used. Make a note of the **channelID** as this will later be required in the slack-help-bot configuration.
 
-<details>
+</details>
 
 ## Getting Started with the Bot
 
