@@ -2,6 +2,6 @@
 
 1. Create a new app.
 
-![Step1](/docs/images/Step1.png?raw=true =50x50)
+<img src="docs/images/step1.png" width="100" height="100" />
 
 2. Head to socket mode and enable it.
