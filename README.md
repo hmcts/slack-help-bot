@@ -5,7 +5,8 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 ## Creating the Slack App 
 <details>
   <summary>Steps</summary>
-1. Create a new app.
+
+1. Create a new app in your workspace.
 
 <img src="images/step1.png" width=50% height=50% />
 
