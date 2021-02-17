@@ -1,9 +1,10 @@
 # Slack help bot
 
-Listens for new posts in a designated Slack channel and raises a coresponding request in Jira. 
+Listens for new posts in a designated Slack channel and raises a coresponding request in Jira.
 
-# Creating the slack app 
-
+## Creating the Slack App 
+<details>
+  <summary>Steps</summary>
 1. Create a new app.
 
 <img src="images/step1.png" width=50% height=50% />
@@ -34,7 +35,9 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 8. Add the app in the channel where you would like it to be used. Make a note of the **channelID** as this will later be required in the slack-help-bot configuration.
 
-## Getting Started
+<details>
+
+## Getting Started with the Bot
 
 ### Prerequisites
 
@@ -44,15 +47,16 @@ Running the application requires the following tools to be installed in your env
   * [npm](https://www.npmjs.com/)
   * [Docker](https://www.docker.com)
 
-### Running the application
-
-You need to create a slack bot and export the following values in your shell:
+You need to create a Slack App as required in the steps above and export the following values in your shell:
 
 ```shell
 SLACK_BOT_TOKEN=
 SLACK_APP_TOKEN=
-REPORT_CHANNEL=bot-test
+SLACK_REPORT_CHANNEL=
+SLACK_REPORT_CHANNEL_ID=
 ```
+
+### Running the application
 
 We use 'Socket mode' so no need to proxy Slack's requests.
 
