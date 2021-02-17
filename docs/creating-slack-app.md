@@ -2,6 +2,6 @@
 
 1. Create a new app.
 
-<img src="images/Step1.png" width="100" height="100" />
+<img src="images/Step1.png" width="250" height="250" />
 
 2. Head to socket mode and enable it.
