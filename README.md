@@ -10,7 +10,7 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 <img src="images/step1.png" width=50% height=50% />
 
-2. Head to socket mode and enable it. You will then be asked to create a new token (call it **jira-integration**) This will only have **connections:write** in the scope. Select **Generate**. Make sure to write down the generated token as this will be required for the slack-help-bot configuration.
+2. Head to socket mode and enable it. You will then be asked to create a new token (call it **jira-integration**) This will only have **connections:write** in the scope. Select **Generate**. Copy the generated token as this will be required for the slack-help-bot configuration.
 
 <img src="images/step2.png" width=50% height=50% />
 
