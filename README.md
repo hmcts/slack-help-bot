@@ -57,18 +57,36 @@ SLACK_REPORT_CHANNEL=
 SLACK_REPORT_CHANNEL_ID=
 ```
 
+You will also need the following JIRA details:
+
+```shell
+JIRA_START_TRANSITION_ID=
+JIRA_DONE_TRANSITION_ID=
+JIRA_PROJECT=
+JIRA_ISSUE_TYPE_ID=
+JIRA_USERNAME=
+JIRA_PASSWORD=
+```
+
 ### Running the application
 
-We use 'Socket mode' so no need to proxy Slack's requests.
+We use 'Socket mode' so no need to proxy Slack's requests. 
+
+#### Running on Kubernetes
+
+The application can be deployed on Kubernetes using the [HMCTS nodejs chart](https://github.com/hmcts/chart-nodejs). To avoid exposing sensitive data from the configuration above you can add them as secrets from an Azure Key Vault. See the chart documentation for further info. 
+
+#### Running locally
+
+All configuration requirements listed above can be found in the "env.template.txt" file.
 
 Rename "env.template.txt" to ".env" which is gitignored and safe for secrets.
-You can source into your shell with:
+
+Source into your shell with:
 
  ```bash
 $ set -o allexport; source .env; set +o allexport
  ```
-
-#### Running locally
 
 Install dependencies by executing the following command:
 
@@ -81,7 +99,9 @@ Run:
 $ node app.js
 ```
 
-#### Running with Docker
+##### Running locally with Docker
+
+There is no need to source your configuration. The ".env" file will be mounted as a volume.  
 
 Create docker image:
 
