@@ -34,7 +34,7 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 <img src="images/step7.png" width=50% height=50% />
 
-8. Add the app in the channel where you would like it to be used. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration.
+8. Invite the app in the channel where you would like it to be used in Slack. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
 
 </details>
 
