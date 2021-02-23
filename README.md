@@ -49,6 +49,7 @@ Running the application requires the following tools to be installed in your env
   * [Docker](https://www.docker.com)
 
 You need to create a Slack App as required in the steps above and export the following values in your shell:
+(For development purposes this will have to be created in a new Slack workspace)
 
 ```shell
 SLACK_BOT_TOKEN=
@@ -57,7 +58,7 @@ SLACK_REPORT_CHANNEL=
 SLACK_REPORT_CHANNEL_ID=
 ```
 
-You will also need the following JIRA details:
+You will also need the following JIRA details (for development purposes these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project):
 
 ```shell
 JIRA_START_TRANSITION_ID=
