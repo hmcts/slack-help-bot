@@ -58,7 +58,6 @@ SLACK_REPORT_CHANNEL=
 SLACK_REPORT_CHANNEL_ID=
 ```
 
-
 You will also need the following JIRA details (for development purposes these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project):
 
 ```shell
