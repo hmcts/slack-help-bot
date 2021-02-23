@@ -1,8 +1,44 @@
 # Slack help bot
 
-Listens for new posts in a designated Slack channel and raises a coresponding request in Jira. 
+Listens for new posts in a designated Slack channel and raises a coresponding request in Jira.
 
-## Getting Started
+## Creating the Slack App 
+<details>
+  <summary>Steps</summary>
+
+1. Create a new app in your workspace.
+
+<img src="images/step1.png" width=50% height=50% />
+
+2. Head to socket mode and enable it. You will then be asked to create a new token (call it **jira-integration**) This will only have **connections:write** in the scope. Select **Generate**. Copy the generated token as this will be required for the slack-help-bot configuration.
+
+<img src="images/step2.png" width=50% height=50% />
+
+3. Head to **Event subscriptions** and enable it. 
+
+<img src="images/step3.png" width=50% height=50% />
+
+4. Expand the **Subscribe to bot events** tab, add the following settings and save changes.
+
+<img src="images/step4.png" width=50% height=50% />
+
+5. Expand the **Subscribe to events on behalf of users** tab, add the following settings and save changes.
+
+<img src="images/step5.png" width=50% height=50% />
+
+6. Head to **Interactivity and shortcuts** and create a **Global** shortcut with the following settings and save changes. 
+
+<img src="images/step6.png" width=50% height=50% />
+
+7. Head to **Oauth and Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration. 
+
+<img src="images/step7.png" width=50% height=50% />
+
+8. Invite the app in the channel where you would like it to be used in Slack. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
+
+</details>
+
+## Getting Started with the Bot
 
 ### Prerequisites
 
@@ -12,26 +48,45 @@ Running the application requires the following tools to be installed in your env
   * [npm](https://www.npmjs.com/)
   * [Docker](https://www.docker.com)
 
-### Running the application
-
-You need to create a slack bot and export the following values in your shell:
+You need to create a Slack App as required in the steps above and export the following values in your shell:
 
 ```shell
 SLACK_BOT_TOKEN=
 SLACK_APP_TOKEN=
-REPORT_CHANNEL=bot-test
+SLACK_REPORT_CHANNEL=
+SLACK_REPORT_CHANNEL_ID=
 ```
 
-We use 'Socket mode' so no need to proxy Slack's requests.
+You will also need the following JIRA details:
+
+```shell
+JIRA_START_TRANSITION_ID=
+JIRA_DONE_TRANSITION_ID=
+JIRA_PROJECT=
+JIRA_ISSUE_TYPE_ID=
+JIRA_USERNAME=
+JIRA_PASSWORD=
+```
+
+## Running the application
+
+We use 'Socket mode' so no need to proxy Slack's requests. 
+
+### Running on Kubernetes
+
+The application can be deployed on Kubernetes using the [HMCTS nodejs chart](https://github.com/hmcts/chart-nodejs). To avoid exposing sensitive data from the configuration above you can add them as secrets from an Azure Key Vault. See the chart documentation for further info. 
+
+### Running locally
+
+All configuration requirements listed above can be found in the "env.template.txt" file.
 
 Rename "env.template.txt" to ".env" which is gitignored and safe for secrets.
-You can source into your shell with:
+
+Source into your shell with:
 
  ```bash
 $ set -o allexport; source .env; set +o allexport
  ```
-
-#### Running locally
 
 Install dependencies by executing the following command:
 
@@ -44,7 +99,9 @@ Run:
 $ node app.js
 ```
 
-#### Running with Docker
+#### Running locally with Docker
+
+There is no need to source your configuration. The ".env" file will be mounted as a volume.  
 
 Create docker image:
 
