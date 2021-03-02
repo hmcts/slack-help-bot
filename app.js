@@ -110,7 +110,7 @@ app.shortcut('launch_shortcut', async ({shortcut, body, ack, context, client}) =
             view: openHelpRequestBlocks()
         });
     } catch (error) {
-        console.error(JSON.stringify(error));
+        console.error(error);
     }
 });
 
@@ -200,109 +200,125 @@ function randomString() {
 app.action('assign_help_request_to_me', async ({
                                                    body, action, ack, client, context
                                                }) => {
-    await ack();
+    try {
+        await ack();
 
-    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-    const userEmail = (await client.users.profile.get({
-        user: body.user.id
-    })).profile.email
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+        const userEmail = (await client.users.profile.get({
+            user: body.user.id
+        })).profile.email
 
-    await assignHelpRequest(jiraId, userEmail)
+        await assignHelpRequest(jiraId, userEmail)
 
-    const blocks = body.message.blocks
-    const assignedToSection = blocks[6]
-    assignedToSection.elements[0].initial_user = body.user.id
-    // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
-    // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
+        const blocks = body.message.blocks
+        const assignedToSection = blocks[6]
+        assignedToSection.elements[0].initial_user = body.user.id
+        // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
+        // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
 
-    await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: 'New platform help request raised',
-        blocks: blocks
-    });
+        await client.chat.update({
+            channel: body.channel.id,
+            ts: body.message.ts,
+            text: 'New platform help request raised',
+            blocks: blocks
+        });
+    } catch (error) {
+        console.error(error);
+    }
 
 })
 
 app.action('resolve_help_request', async ({
                                               body, action, ack, client, context
                                           }) => {
-    await ack();
-    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+    try {
+        await ack();
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
-    await resolveHelpRequest(jiraId) // TODO add optional resolution comment
+        await resolveHelpRequest(jiraId) // TODO add optional resolution comment
 
-    const blocks = body.message.blocks
-    // TODO less fragile block updating
-    blocks[6].elements[2] = {
-        "type": "button",
-        "text": {
-            "type": "plain_text",
-            "text": ":snow_cloud: Re-open",
-            "emoji": true
-        },
-        "style": "primary",
-        "value": "start_help_request",
-        "action_id": "start_help_request"
+        const blocks = body.message.blocks
+        // TODO less fragile block updating
+        blocks[6].elements[2] = {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": ":snow_cloud: Re-open",
+                "emoji": true
+            },
+            "style": "primary",
+            "value": "start_help_request",
+            "action_id": "start_help_request"
+        }
+
+        blocks[2].fields[0].text = "Status :snowflake:\n Done"
+
+        await client.chat.update({
+            channel: body.channel.id,
+            ts: body.message.ts,
+            text: 'New platform help request raised',
+            blocks: blocks
+        });
+    } catch (error) {
+        console.error(error);
     }
-
-    blocks[2].fields[0].text = "Status :snowflake:\n Done"
-
-    await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: 'New platform help request raised',
-        blocks: blocks
-    });
 });
 
 
 app.action('start_help_request', async ({
                                             body, action, ack, client, context
                                         }) => {
-    await ack();
-    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+    try {
+        await ack();
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
-    await startHelpRequest(jiraId) // TODO add optional resolution comment
+        await startHelpRequest(jiraId) // TODO add optional resolution comment
 
-    const blocks = body.message.blocks
-    // TODO less fragile block updating
-    blocks[6].elements[2] = {
-        "type": "button",
-        "text": {
-            "type": "plain_text",
-            "text": ":snow_cloud: Resolve",
-            "emoji": true
-        },
-        "style": "primary",
-        "value": "resolve_help_request",
-        "action_id": "resolve_help_request"
+        const blocks = body.message.blocks
+        // TODO less fragile block updating
+        blocks[6].elements[2] = {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": ":snow_cloud: Resolve",
+                "emoji": true
+            },
+            "style": "primary",
+            "value": "resolve_help_request",
+            "action_id": "resolve_help_request"
+        }
+
+        blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress"
+
+        await client.chat.update({
+            channel: body.channel.id,
+            ts: body.message.ts,
+            text: 'New platform help request raised',
+            blocks: blocks
+        });
+    } catch (error) {
+        console.error(error);
     }
-
-    blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress"
-
-    await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: 'New platform help request raised',
-        blocks: blocks
-    });
 });
 
 app.action('app_home_unassigned_user_select', async ({
                                                          body, action, ack, client, context
                                                      }) => {
-    await ack();
+    try {
+        await ack();
 
-    const user = action.selected_user
-    const userEmail = (await client.users.profile.get({
-        user
-    })).profile.email
+        const user = action.selected_user
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
 
-    const jiraId = extraJiraId(action.block_id)
-    await assignHelpRequest(jiraId, userEmail)
+        const jiraId = extraJiraId(action.block_id)
+        await assignHelpRequest(jiraId, userEmail)
 
-    await reopenAppHome(client, user);
+        await reopenAppHome(client, user);
+    } catch (error) {
+        console.error(error);
+    }
 })
 
 function extractSlackMessageId(body, action) {
@@ -319,52 +335,50 @@ function extractSlackMessageId(body, action) {
 app.action('app_home_take_unassigned_issue', async ({
                                                          body, action, ack, client, context
                                                      }) => {
-    await ack();
+    try {
+        await ack();
 
-    const user = body.user.id
-    const userEmail = (await client.users.profile.get({
-        user
-    })).profile.email
+        const user = body.user.id
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
 
-    const jiraId = extraJiraId(action.block_id)
-    const slackMessageId = extractSlackMessageId(body, action);
+        const jiraId = extraJiraId(action.block_id)
+        const slackMessageId = extractSlackMessageId(body, action);
 
-    await assignHelpRequest(jiraId, userEmail)
+        await assignHelpRequest(jiraId, userEmail)
 
-    await reopenAppHome(client, user);
+        await reopenAppHome(client, user);
+    } catch (error) {
+        console.error(error);
+    }
 })
 
 app.action('assign_help_request_to_user', async ({
                                                      body, action, ack, client, context
                                                  }) => {
-    await ack();
+    try {
+        await ack();
 
-    const user = action.selected_user
+        const user = action.selected_user
 
-    const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-    const userEmail = (await client.users.profile.get({
-        user
-    })).profile.email
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
 
-    await assignHelpRequest(jiraId, userEmail)
+        await assignHelpRequest(jiraId, userEmail)
 
-    const actor = body.user.id
+        const actor = body.user.id
 
-    await client.chat.postMessage({
-        channel: body.channel.id,
-        thread_ts: body.message.ts,
-        text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
-    });
-});
-
-// Listen to slash command
-// need to add commands permission
-// create slash command in App Config
-app.command('/socketslash', async ({command, ack, say}) => {
-    // Acknowledge command request
-    await ack();
-
-    await say(`${command.text}`);
+        await client.chat.postMessage({
+            channel: body.channel.id,
+            thread_ts: body.message.ts,
+            text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
+        });
+    } catch (error) {
+        console.error(error);
+    }
 });
 
 /**
@@ -388,50 +402,53 @@ async function replaceAsync(str, regex, asyncFn) {
 }
 
 app.event('message', async ({event, context, client, say}) => {
-    // filter unwanted channels in case someone invites the bot to it
-    // and only look at threaded messages
-    if (event.channel === reportChannelId && event.thread_ts) {
-        const slackLink = (await client.chat.getPermalink({
-            channel: event.channel,
-            'message_ts': event.thread_ts
-        })).permalink
+    try {
+        // filter unwanted channels in case someone invites the bot to it
+        // and only look at threaded messages
+        if (event.channel === reportChannelId && event.thread_ts) {
+            const slackLink = (await client.chat.getPermalink({
+                channel: event.channel,
+                'message_ts': event.thread_ts
+            })).permalink
 
-        const user = (await client.users.profile.get({
-            user: event.user
-        }))
+            const user = (await client.users.profile.get({
+                user: event.user
+            }))
 
-        const displayName = user.profile.display_name
+            const displayName = user.profile.display_name
 
-        const helpRequestMessages = (await client.conversations.replies({
-            channel: reportChannelId,
-            ts: event.thread_ts,
-            limit: 200, // after a thread is 200 long we'll break but good enough for now
-        })).messages
+            const helpRequestMessages = (await client.conversations.replies({
+                channel: reportChannelId,
+                ts: event.thread_ts,
+                limit: 200, // after a thread is 200 long we'll break but good enough for now
+            })).messages
 
-        if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
-            const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
+            if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
+                const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
-            const groupRegex = /<!subteam\^.+\|([^>.]+)>/g
-            const usernameRegex = /<@([^>.]+)>/g
+                const groupRegex = /<!subteam\^.+\|([^>.]+)>/g
+                const usernameRegex = /<@([^>.]+)>/g
 
-            let possibleNewTargetText = event.text.replace(groupRegex, (match, $1) => $1)
+                let possibleNewTargetText = event.text.replace(groupRegex, (match, $1) => $1)
 
-            const newTargetText = await replaceAsync(possibleNewTargetText, usernameRegex,  async (match, $1) => {
-                const user = (await client.users.profile.get({
-                    user: $1
-                }))
-                 return `@${user.profile.display_name}`
-            });
+                const newTargetText = await replaceAsync(possibleNewTargetText, usernameRegex, async (match, $1) => {
+                    const user = (await client.users.profile.get({
+                        user: $1
+                    }))
+                    return `@${user.profile.display_name}`
+                });
 
-            await addCommentToHelpRequest(jiraId, {
-                slackLink,
-                displayName,
-                message: newTargetText
-            })
-        } else {
-            // either need to implement pagination or find a better way to get the first message in the thread
-            console.warn("Could not find jira ID, possibly thread is longer than 200 messages, TODO implement pagination");
+                await addCommentToHelpRequest(jiraId, {
+                    slackLink,
+                    displayName,
+                    message: newTargetText
+                })
+            } else {
+                // either need to implement pagination or find a better way to get the first message in the thread
+                console.warn("Could not find jira ID, possibly thread is longer than 200 messages, TODO implement pagination");
+            }
         }
-
+    } catch (error) {
+        console.error(error);
     }
 })
