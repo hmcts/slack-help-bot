@@ -52,7 +52,7 @@ const server = http.createServer((req, res) => {
         res.end(`<h1>slack-help-bot</h1>`)
     } else {
         res.end(`{"error": "${http.STATUS_CODES[404]}"}`)
-    }   
+    }
 })
 
 server.listen(port, () => {
@@ -367,6 +367,26 @@ app.command('/socketslash', async ({command, ack, say}) => {
     await say(`${command.text}`);
 });
 
+/**
+ * The built in string replace function can't return a promise
+ * This is an adapted version that is able to do that
+ * Source: https://stackoverflow.com/a/48032528/4951015
+ *
+ * @param str source string
+ * @param regex the regex to apply to the string
+ * @param asyncFn function to transform the string with, arguments should include match and any capturing groups
+ * @returns {Promise<*>} result of the replace
+ */
+async function replaceAsync(str, regex, asyncFn) {
+    const promises = [];
+    str.replace(regex, (match, ...args) => {
+        const promise = asyncFn(match, ...args);
+        promises.push(promise);
+    });
+    const data = await Promise.all(promises);
+    return str.replace(regex, () => data.shift());
+}
+
 app.event('message', async ({event, context, client, say}) => {
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
@@ -391,10 +411,22 @@ app.event('message', async ({event, context, client, say}) => {
         if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
             const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
+            const groupRegex = /<!subteam\^.+\|([^>.]+)>/g
+            const usernameRegex = /<@([^>.]+)>/g
+
+            let possibleNewTargetText = event.text.replace(groupRegex, (match, $1) => $1)
+
+            const newTargetText = await replaceAsync(possibleNewTargetText, usernameRegex,  async (match, $1) => {
+                const user = (await client.users.profile.get({
+                    user: $1
+                }))
+                 return `@${user.profile.display_name}`
+            });
+
             await addCommentToHelpRequest(jiraId, {
                 slackLink,
                 displayName,
-                message: event.text
+                message: newTargetText
             })
         } else {
             // either need to implement pagination or find a better way to get the first message in the thread
