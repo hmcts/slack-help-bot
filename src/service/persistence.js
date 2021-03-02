@@ -23,37 +23,56 @@ const jira = new JiraApi({
 });
 
 async function resolveHelpRequest(jiraId) {
-    await jira.transitionIssue(jiraId, {
-        transition: {
-            id: jiraDoneTransitionId
-        }
-    })
+    try {
+        await jira.transitionIssue(jiraId, {
+            transition: {
+                id: jiraDoneTransitionId
+            }
+        })
+    } catch (err) {
+        console.log("Error resolving help request in jira", err)
+    }
 }
 
 async function startHelpRequest(jiraId) {
-    await jira.transitionIssue(jiraId, {
-        transition: {
-            id: jiraStartTransitionId
-        }
-    })
+    try {
+        await jira.transitionIssue(jiraId, {
+            transition: {
+                id: jiraStartTransitionId
+            }
+        })
+    } catch (err) {
+        console.log("Error starting help request in jira", err)
+    }
 }
 
 async function searchForUnassignedOpenIssues() {
     const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open and assignee is EMPTY ORDER BY created ASC`;
-    return await jira.searchJira(
-        jqlQuery,
-        {
-            // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
-            // which would probably be better for performance
-            fields: ['created', 'description', 'summary', 'updated']
+    try {
+        return await jira.searchJira(
+            jqlQuery,
+            {
+                // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
+                // which would probably be better for performance
+                fields: ['created', 'description', 'summary', 'updated']
+            }
+        )
+    } catch (err) {
+        console.log("Error searching for issues in jira", err)
+        return {
+            issues: []
         }
-    )
+    }
 }
 
 async function assignHelpRequest(issueId, email) {
     const user = convertEmail(email)
 
-    await jira.updateAssignee(issueId, user)
+    try {
+        await jira.updateAssignee(issueId, user)
+    } catch(err) {
+        console.log("Error assigning help request in jira", err)
+    }
 }
 
 /**
@@ -81,7 +100,7 @@ function convertEmail(email) {
 }
 
 async function createHelpRequestInJira(summary, project, user) {
-    const result = await jira.addNewIssue({
+    return await jira.addNewIssue({
         fields: {
             summary: summary,
             issuetype: {
@@ -96,8 +115,7 @@ async function createHelpRequestInJira(summary, project, user) {
                 name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
             }
         }
-    })
-    return result;
+    });
 }
 
 async function createHelpRequest({
@@ -123,17 +141,25 @@ async function createHelpRequest({
 
 async function updateHelpRequestDescription(issueId, fields) {
     const jiraDescription = mapFieldsToDescription(fields);
-    await jira.updateIssue(issueId, {
-        update: {
-            description: [{
-                set: jiraDescription
-            }]
-        }
-    })
+    try {
+        await jira.updateIssue(issueId, {
+            update: {
+                description: [{
+                    set: jiraDescription
+                }]
+            }
+        })
+    } catch(err) {
+        console.log("Error updating help request description in jira", err)
+    }
 }
 
 async function addCommentToHelpRequest(externalSystemId, fields) {
-    await jira.addComment(externalSystemId, createComment(fields))
+    try {
+        await jira.addComment(externalSystemId, createComment(fields))
+    } catch (err) {
+        console.log("Error creating comment in jira", err)
+    }
 }
 
 module.exports.resolveHelpRequest = resolveHelpRequest
