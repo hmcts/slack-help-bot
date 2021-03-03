@@ -48,27 +48,10 @@ Running the application requires the following tools to be installed in your env
   * [npm](https://www.npmjs.com/)
   * [Docker](https://www.docker.com)
 
-You need to create a Slack App as required in the steps above and export the following values in your shell:
-(For development purposes this will have to be created in a new Slack workspace)
+You need to create a Slack App as detailed in the steps above. For development purposes, this will have to be created in a new Slack workspace.
+You will also need the JIRA details. For development purposes, these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project.
 
-```shell
-SLACK_BOT_TOKEN=
-SLACK_APP_TOKEN=
-SLACK_REPORT_CHANNEL=
-SLACK_REPORT_CHANNEL_ID=
-```
-
-You will also need the following JIRA details (for development purposes these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project):
-
-```shell
-JIRA_START_TRANSITION_ID=
-JIRA_DONE_TRANSITION_ID=
-JIRA_PROJECT=
-JIRA_ISSUE_TYPE_ID=
-JIRA_USERNAME=
-JIRA_PASSWORD=
-JIRA_ISSUE_TYPE_NAME=
-```
+Set the relevant environment variables defined in [env.template.txt](env.template.txt) based on above steps.
 
 ## Running the application
 
