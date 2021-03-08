@@ -104,8 +104,10 @@ app.shortcut('launch_shortcut', async ({shortcut, body, ack, context, client}) =
         // Acknowledge shortcut request
         await ack();
 
-        // Call the views.open method using one of the built-in WebClients
-        const result = await client.views.open({
+        // Un-comment if you want the JSON for block-kit builder (https://app.slack.com/block-kit-builder/T1L0WSW9F)
+        // console.log(JSON.stringify(openHelpRequestBlocks().blocks))
+
+        await client.views.open({
             trigger_id: shortcut.trigger_id,
             view: openHelpRequestBlocks()
         });
@@ -113,6 +115,12 @@ app.shortcut('launch_shortcut', async ({shortcut, body, ack, context, client}) =
         console.error(error);
     }
 });
+
+function extractLabels(values) {
+    const team = `team-${values.team.team.selected_option.value}`
+    const area = `area-${values.area.area.selected_option.value}`
+    return [area, team];
+}
 
 app.view('create_help_request', async ({ack, body, view, client}) => {
     // Acknowledge the view_submission event
@@ -138,7 +146,8 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
 
         const jiraId = await createHelpRequest({
             summary: helpRequest.summary,
-            userEmail
+            userEmail,
+            labels: extractLabels(view.state.values)
         })
 
         const result = await client.chat.postMessage({

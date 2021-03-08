@@ -345,6 +345,38 @@ function openHelpRequestBlocks() {
             },
             {
                 "type": "input",
+                "block_id": "area",
+                "element": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select an item",
+                        "emoji": true
+                    },
+                    "options": [
+                        option("AKS"),
+                        option("Azure"),
+                        option("Azure DevOps", "azure-devops"),
+                        option("Database read", "DBQuery"),
+                        option("Database update", "DBUpdate"),
+                        option("Elasticsearch"),
+                        option("GitHub"),
+                        option("Jenkins"),
+                        option("Other"),
+                        option("Question"),
+                        option("SSL"),
+                        option("VPN"),
+                    ],
+                    "action_id": "area"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Which area do you need help in?",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
                 "block_id": "description",
                 "element": {
                     "type": "plain_text_input",
@@ -368,6 +400,50 @@ function openHelpRequestBlocks() {
                 "label": {
                     "type": "plain_text",
                     "text": "Analysis done so far",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "team",
+                "element": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select other if missing",
+                        "emoji": true
+                    },
+                    "options": [
+                        option('Architecture'),
+                        option('Bulk scan', 'bulkscan'),
+                        option('Bulk print', 'bulkprint'),
+                        option('CCD'),
+                        option('Civil Unspecified', 'CivilUnspec'),
+                        option('CMC'),
+                        option('Divorce'),
+                        option('No fault divorce', 'nfdivorce'),
+                        option('Ethos'),
+                        option('Evidence Management', 'evidence'),
+                        option('Expert UI', 'xui'),
+                        option('Financial Remedy', 'finrem'),
+                        option('FPLA'),
+                        option('Heritage'),
+                        option('HMI'),
+                        option('Management Information', 'mi'),
+                        option('IDAM'),
+                        option('Other'),
+                        option('Reference Data', 'refdata'),
+                        option('Reform Software Engineering', 'reform-software-engineering'),
+                        option('Security Operations or Secure design', 'security'),
+                        option('PayBubble'),
+                        option('PET'),
+                        option('Work Allocation', 'workallocation'),
+                    ],
+                    "action_id": "team"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Which team are you from?",
                     "emoji": true
                 }
             },
