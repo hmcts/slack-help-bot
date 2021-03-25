@@ -435,6 +435,7 @@ function openHelpRequestBlocks() {
                         option('Reference Data', 'refdata'),
                         option('Reform Software Engineering', 'reform-software-engineering'),
                         option('Security Operations or Secure design', 'security'),
+                        option('SSCS'),
                         option('PayBubble'),
                         option('PET'),
                         option('Work Allocation', 'workallocation'),
