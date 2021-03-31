@@ -8,7 +8,8 @@ describe('functional tests', () => {
     test('help request is created', async () => {
         const helpRequest = {
             summary: "Test creation of issue",
-            userEmail: "tim.jacomb@hmcts.net"
+            userEmail: "tim.jacomb@hmcts.net",
+            labels: []
         }
 
         const issueKey = await jira.createHelpRequest(helpRequest)
