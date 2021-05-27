@@ -12,4 +12,4 @@ jira:
   issue_type_name: Bug
   issue_type_id: 10900
   #username: no default
-  #password: no default
+  #api_token: no default

@@ -11,4 +11,4 @@ jira:
   issue_type_id: JIRA_ISSUE_TYPE_ID
   issue_type_name: JIRA_ISSUE_TYPE_NAME
   username: JIRA_USERNAME
-  password: JIRA_PASSWORD
+  api_token: JIRA_API_TOKEN
