@@ -427,7 +427,7 @@ function openHelpRequestBlocks() {
                         option('Expert UI', 'xui'),
                         option('Financial Remedy', 'finrem'),
                         option('FPLA'),
-                        option('FPRL'),
+                        option('Family Private Law', 'FPRL'),
                         option('Heritage'),
                         option('HMI'),
                         option('Management Information', 'mi'),
