@@ -414,6 +414,7 @@ function openHelpRequestBlocks() {
                         "emoji": true
                     },
                     "options": [
+                        option('Access Management'),
                         option('Architecture'),
                         option('Bulk scan', 'bulkscan'),
                         option('Bulk print', 'bulkprint'),
