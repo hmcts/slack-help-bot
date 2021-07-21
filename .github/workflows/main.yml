@@ -49,6 +49,6 @@ jobs:
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
         if: startsWith(github.ref, 'refs/pull')
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
         if: github.ref == 'refs/heads/main'
