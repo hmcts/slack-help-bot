@@ -10,12 +10,12 @@
   "license": "MIT",
   "dependencies": {
     "@hmcts/properties-volume": "0.0.9",
-    "@slack/bolt": "^3.0.0",
+    "@slack/bolt": "^3.6.0",
     "@types/config": "0.0.38",
-    "@types/jira-client": "^6.13.1",
-    "config": "^3.3.3",
-    "jira-client": "^6.21.1",
-    "lodash": "^4.17.20"
+    "@types/jira-client": "^6.21.2",
+    "config": "^3.3.6",
+    "jira-client": "^6.22.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "jest": "^26.6.3",
