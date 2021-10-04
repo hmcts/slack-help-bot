@@ -47,7 +47,13 @@ const server = http.createServer((req, res) => {
     } else if (req.url === '/health') {
         res.end(`<h1>slack-help-bot</h1>`)
     } else if (req.url === '/health/liveness') {
-        res.end(`<h1>slack-help-bot</h1>`)
+        if (app.receiver.client.badConnection) {
+            res.statusCode = 500
+            res.end('Internal Server Error');
+            return;
+        }
+
+        res.end('OK');
     } else if (req.url === '/health/readiness') {
         res.end(`<h1>slack-help-bot</h1>`)
     } else {
