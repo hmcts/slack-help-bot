@@ -12,7 +12,7 @@ const {
     openHelpRequestBlocks,
     unassignedOpenIssue,
 } = require("./src/messages");
-const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
+const {App, LogLevel, SocketModeReceiver, WorkflowStep} = require('@slack/bolt');
 const crypto = require('crypto')
 const {
     addCommentToHelpRequest,
@@ -69,6 +69,49 @@ server.listen(port, () => {
     await app.start();
     console.log('⚡️ Bolt app started');
 })();
+
+//// ////
+//// ////
+//// ////
+//// ////
+//// ////
+
+const ws = new WorkflowStep('launch_shortcut', {
+	edit: async ({ ack, step, configure }) => 
+    { 
+        console.log('edited!')
+        await ack();
+    
+        const blocks = [
+            {
+
+            },
+        ];
+    
+        await configure({ blocks });
+    },
+	save: async ({ ack, step, view, update }) => 
+    {
+        await ack();
+
+        const inputs = { };
+    
+        const outputs = [ ];
+    
+        await update({});
+    },
+	execute: async ({ step, complete, fail }) =>
+    {
+        console.log(step);
+    },
+});
+
+app.step(ws);
+
+//// ////
+//// ////
+//// ////
+//// ////
 
 async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()
