@@ -71,7 +71,7 @@ server.listen(port, () => {
     console.log('⚡️ Bolt app started');
 })();
 
-const ws = new WorkflowStep('launch_shortcut', {
+const ws = new WorkflowStep('superbot_help_request', {
     ////////////////////////////////////
     ////  New workflow for SuperBot ////
     ////////////////////////////////////
