@@ -297,7 +297,7 @@ function extractLabels(values) {
 async function create_help_request(ack, body, view, client) {
     await ack();
 }
-/*
+
 app.view('create_help_request', async ({ ack, body, view, client }) => {
     ////////////////////////////////////////////////////////////
     //// SuperBot: This entry point isn't used anymore, but ////
@@ -361,7 +361,6 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
     }
 
 });
-*/
 
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
