@@ -10,9 +10,10 @@ const {
     helpRequestDetails,
     helpRequestRaised,
     openHelpRequestBlocks,
+    superBotMessageBlocks,
     unassignedOpenIssue,
 } = require("./src/messages");
-const {App, LogLevel, SocketModeReceiver} = require('@slack/bolt');
+const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
 const {
     addCommentToHelpRequest,
@@ -70,6 +71,171 @@ server.listen(port, () => {
     console.log('⚡️ Bolt app started');
 })();
 
+const ws = new WorkflowStep('launch_shortcut', {
+    ////////////////////////////////////
+    ////  New workflow for SuperBot ////
+    ////////////////////////////////////
+    //// This can be added directly ////
+    ////  into the workflow builder ////
+    ////   in Slack, just give the  ////
+    ////  user a form or something  ////
+    ////     to fill out first.     ////
+    ////////////////////////////////////
+
+    edit: async ({ ack, step, configure }) => {
+        // Called when the workflow step is
+        // added/edited in the Slack workflow
+        // builder. This is what generates the
+        // customization form when you click 'edit'
+        console.log('edited!')
+        await ack();
+
+        console.log(step);
+
+        const blocks = superBotMessageBlocks(step.inputs);
+
+        await configure({ blocks });
+    },
+    save: async ({ ack, step, view, update, client }) => {
+        // Called when the workflow step is
+        // saved in the Slack workflow
+        // builder. This is responsible for
+        // updating the inputs in this stage
+        // when 'save' is clicked on the 'edit'
+        // form
+        console.log('saved!')
+        await ack();
+
+        const { values } = view.state;
+        console.log(values);
+
+        // names/paths of these values must match those in the 
+        // 'action_id' and 'block_id' parameters in original form.
+        // See src/messages.js:superBotMessageBlocks(inputs)
+        const summary = values.summary_block.summary_input;
+        const env = values.env_block.env_input;
+        const area = values.area_block.area_input;
+        const build = values.build_block.build_input;
+        const desc = values.desc_block.desc_input;
+        const alsys = values.alsys_block.alsys_input;
+        const team = values.team_block.team_input;
+        const action = values.action_block.action_input;
+        const user = values.user_block.user_input;
+
+        // skip_variable_replacement does something,
+        // I honestly can't tell from slack's documentation.
+        const inputs = {
+            summary: {
+                value: summary.value,
+                skip_variable_replacement: false
+            },
+            env: {
+                value: env.value,
+                skip_variable_replacement: false
+            },
+            area: {
+                value: area.value,
+                skip_variable_replacement: false
+            },
+            build: {
+                value: build.value,
+                skip_variable_replacement: false
+            },
+            desc: {
+                value: desc.value,
+                skip_variable_replacement: false
+            },
+            alsys: {
+                value: alsys.value,
+                skip_variable_replacement: false
+            },
+            team: {
+                value: team.value,
+                skip_variable_replacement: false
+            },
+            action: {
+                value: action.value,
+                skip_variable_replacement: false
+            },
+            user: {
+                value: user.selected_user,
+                skip_variable_replacement: false
+            },
+        };
+
+        const outputs = [ ];
+
+        await update({ inputs, outputs });
+    },
+    execute: async ({ step, complete, fail, client }) => {
+        console.log("executed!");
+        
+        const { inputs } = step;
+        console.log(inputs);
+
+        const user = inputs.user.value.id;
+
+        //TODO: Do we send user emails?
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const helpRequest = {
+            user,
+            summary: inputs.summary.value,
+            environment: inputs.env.value || "None",
+            area: inputs.area.value,
+            prBuildUrl: inputs.build.value || "None",
+            description: inputs.desc.value,
+            checkedWithTeam: inputs.team.value,
+            analysis: inputs.alsys.value,
+            action: inputs.action.value,
+        }
+
+        // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
+        // check if API is up-to-date
+        const jiraId = await createHelpRequest({
+            summary: helpRequest.summary,
+            userEmail,
+            // Slack labels go here
+            labels: [helpRequest.area]
+        })
+
+        const result = await client.chat.postMessage({
+            channel: reportChannel,
+            text: 'New platform help request raised',
+            blocks: helpRequestRaised({
+                ...helpRequest,
+                jiraId
+            })
+        });
+
+        await client.chat.postMessage({
+            channel: reportChannel,
+            thread_ts: result.message.ts,
+            text: 'New platform help request raised',
+            blocks: helpRequestDetails(helpRequest)
+        });
+
+        const permaLink = (await client.chat.getPermalink({
+            channel: result.channel,
+            'message_ts': result.message.ts
+        })).permalink
+
+        await updateHelpRequestDescription(jiraId, {
+            ...helpRequest,
+            slackLink: permaLink
+        })
+    },
+});
+
+app.step(ws);
+
+//// ////
+//// ////
+//// ////
+//// ////
+
 async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()
 
@@ -93,19 +259,19 @@ async function reopenAppHome(client, userId) {
 }
 
 // Publish a App Home
-app.event('app_home_opened', async ({event, client}) => {
+app.event('app_home_opened', async ({ event, client }) => {
     await reopenAppHome(client, event.user);
 });
 
 // Message Shortcut example
-app.shortcut('launch_msg_shortcut', async ({shortcut, body, ack, context, client}) => {
+app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
     await ack();
 });
 
 // Global Shortcut example
 // setup global shortcut in App config with `launch_shortcut` as callback id
 // add `commands` scope
-app.shortcut('launch_shortcut', async ({shortcut, body, ack, context, client}) => {
+app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
     try {
         // Acknowledge shortcut request
         await ack();
@@ -128,7 +294,16 @@ function extractLabels(values) {
     return [area, team];
 }
 
-app.view('create_help_request', async ({ack, body, view, client}) => {
+async function create_help_request(ack, body, view, client) {
+    await ack();
+}
+/*
+app.view('create_help_request', async ({ ack, body, view, client }) => {
+    ////////////////////////////////////////////////////////////
+    //// SuperBot: This entry point isn't used anymore, but ////
+    ////           we can keep it around just in case :)    ////
+    ////////////////////////////////////////////////////////////
+
     // Acknowledge the view_submission event
     await ack();
 
@@ -186,11 +361,11 @@ app.view('create_help_request', async ({ack, body, view, client}) => {
     }
 
 });
-
+*/
 
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
-app.event('app_mention', async ({event, context, client, say}) => {
+app.event('app_mention', async ({ event, context, client, say }) => {
     try {
         await say({
             "blocks": [
@@ -213,8 +388,8 @@ function randomString() {
 }
 
 app.action('assign_help_request_to_me', async ({
-                                                   body, action, ack, client, context
-                                               }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
 
@@ -244,8 +419,8 @@ app.action('assign_help_request_to_me', async ({
 })
 
 app.action('resolve_help_request', async ({
-                                              body, action, ack, client, context
-                                          }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
@@ -281,8 +456,8 @@ app.action('resolve_help_request', async ({
 
 
 app.action('start_help_request', async ({
-                                            body, action, ack, client, context
-                                        }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
@@ -317,8 +492,8 @@ app.action('start_help_request', async ({
 });
 
 app.action('app_home_unassigned_user_select', async ({
-                                                         body, action, ack, client, context
-                                                     }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
 
@@ -348,8 +523,8 @@ function extractSlackMessageId(body, action) {
 }
 
 app.action('app_home_take_unassigned_issue', async ({
-                                                         body, action, ack, client, context
-                                                     }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
 
@@ -370,8 +545,8 @@ app.action('app_home_take_unassigned_issue', async ({
 })
 
 app.action('assign_help_request_to_user', async ({
-                                                     body, action, ack, client, context
-                                                 }) => {
+    body, action, ack, client, context
+}) => {
     try {
         await ack();
 
@@ -416,7 +591,7 @@ async function replaceAsync(str, regex, asyncFn) {
     return str.replace(regex, () => data.shift());
 }
 
-app.event('message', async ({event, context, client, say}) => {
+app.event('message', async ({ event, context, client, say }) => {
     try {
         // filter unwanted channels in case someone invites the bot to it
         // and only look at threaded messages

@@ -479,6 +479,128 @@ function openHelpRequestBlocks() {
 
 }
 
+function superBotMessageBlocks(inputs) {
+    return [
+        {
+            "type": "input",
+            "block_id": 'summary_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Summary"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "summary_input",
+                "initial_value": inputs?.summary?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'env_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Environment"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "env_input",
+                "initial_value": inputs?.env?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'area_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Area"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "area_input",
+                "initial_value": inputs?.area?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'build_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Build URLs"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "build_input",
+                "initial_value": inputs?.build?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'desc_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Description"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "desc_input",
+                "initial_value": inputs?.desc?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'alsys_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Analysis"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "alsys_input",
+                "initial_value": inputs?.alsys?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'team_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Checked With Team?"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "team_input",
+                "initial_value": inputs?.team?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'action_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Action Required"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "action_input",
+                "initial_value": inputs?.action?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
+            "block_id": 'user_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Ticker Raiser"
+            },
+            "element": {
+                "type": "users_select",
+                "action_id": "user_input",
+                "initial_user": inputs?.user?.value ?? " ",
+            }
+        },
+    ];
+}
+
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
@@ -486,3 +608,4 @@ module.exports.helpRequestDetails = helpRequestDetails;
 module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
 module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;
+module.exports.superBotMessageBlocks = superBotMessageBlocks;
