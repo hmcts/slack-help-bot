@@ -171,9 +171,8 @@ const ws = new WorkflowStep('superbot_help_request', {
         console.log("executed!");
         
         const { inputs } = step;
-        console.log(inputs);
 
-        const user = inputs.user.value.id;
+        const user = inputs.user.value;
 
         //TODO: Do we send user emails?
         const userEmail = (await client.users.profile.get({
@@ -197,8 +196,8 @@ const ws = new WorkflowStep('superbot_help_request', {
         const jiraId = await createHelpRequest({
             summary: helpRequest.summary,
             userEmail,
-            // Slack labels go here
-            labels: [helpRequest.area]
+            // Slack labels go here, can't contain spaces btw
+            labels: [inputs.area.value.toLowerCase().replace(' ', '-')]
         })
 
         const result = await client.chat.postMessage({
@@ -372,7 +371,7 @@ app.event('app_mention', async ({ event, context, client, say }) => {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": `Thanks for the mention <@${event.user}>!`
+                        "text": `Thanks for the ping <@${event.user}>!`
                     },
                 }
             ]
