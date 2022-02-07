@@ -42,11 +42,31 @@ const http = require('http');
 
 const port = process.env.PORT || 3000
 
+var isJiraOkay = true;
+var isSlackOkay = true;
+
 const server = http.createServer((req, res) => {
     if (req.method !== 'GET') {
-        res.end(`{"error": "${http.STATUS_CODES[405]}"}`)
+        res.statusCode = 405;
+        res.end("error")
     } else if (req.url === '/health') {
-        res.end(`<h1>slack-help-bot</h1>`)
+        res.statusCode = 200;
+        myResponse = {
+            status: "UP",
+            slack: {
+                connection: (app.receiver.client.badConnection ? "DOWN" : "UP"),
+                status: (isSlackOkay ? "UP" : "DOWN"),
+            },
+            jira: {
+                status: (isJiraOkay ? "UP" : "DOWN"),
+            },
+            node: {
+                uptime: process.uptime(),
+                time: new Date().toString(),
+            }
+        };
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify(myResponse))
     } else if (req.url === '/health/liveness') {
         if (app.receiver.client.badConnection) {
             res.statusCode = 500
@@ -87,7 +107,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         // added/edited in the Slack workflow
         // builder. This is what generates the
         // customization form when you click 'edit'
-        console.log('edited!')
+        console.log('Slack workflow editor has been opened:')
         await ack();
 
         console.log(step);
@@ -103,7 +123,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         // updating the inputs in this stage
         // when 'save' is clicked on the 'edit'
         // form
-        console.log('saved!')
+        console.log('Slack workflow has been changed:')
         await ack();
 
         const { values } = view.state;
@@ -168,9 +188,10 @@ const ws = new WorkflowStep('superbot_help_request', {
         await update({ inputs, outputs });
     },
     execute: async ({ step, complete, fail, client }) => {
-        console.log("executed!");
+        console.log("Slack workflow has been executed:");
         
         const { inputs } = step;
+        console.log(inputs);
 
         const user = inputs.user.value;
 
@@ -209,12 +230,28 @@ const ws = new WorkflowStep('superbot_help_request', {
             })
         });
 
-        await client.chat.postMessage({
+        isJiraOkay = response.ok;
+
+        if (!response.ok)
+        {
+            console.log("An error occured when posting to JIRA:")
+            console.log(response);
+        }
+
+        response = await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
             text: 'New platform help request raised',
             blocks: helpRequestDetails(helpRequest)
         });
+
+        isSlackOkay = response.ok;
+
+        if (!response.ok)
+        {
+            console.log("An error occured when posting to Slack:")
+            console.log(response);
+        }
 
         const permaLink = (await client.chat.getPermalink({
             channel: result.channel,
