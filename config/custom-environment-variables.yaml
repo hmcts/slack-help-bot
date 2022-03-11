@@ -15,4 +15,3 @@ jira:
 
 app_insights:
   instrumentation_key: APP_INSIGHTS_INSTRUMENTATION_KEY
-  role_name: APP_INSIGHTS_ROLE_NAME

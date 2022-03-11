@@ -16,4 +16,4 @@ jira:
 
 azure:
   #app_insights_connection_string: no default
-  app_insights_role_name: slack-help-bot
+  app_insights_role_name: platops-slack-help-bot
