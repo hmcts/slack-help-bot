@@ -27,6 +27,22 @@ const {
     updateHelpRequestDescription
 } = require("./src/service/persistence");
 
+///////////////////////////
+//// Setup AppInsights ////
+///////////////////////////
+
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+let appInsights = require('applicationinsights');
+
+appInsights.setup(config.get('app_insights.instrumentation_key'))
+    .setAutoCollectConsole(true, true);
+appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] = config.get('app_insights.role_name');
+appInsights.start();
+
+/////////////////////////
+//// Setup Slack app ////
+/////////////////////////
+
 const app = new App({
     token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
     // logLevel: LogLevel.DEBUG,
@@ -38,19 +54,27 @@ const reportChannel = config.get('slack.report_channel');
 // can't find an easy way to look this up via API unfortunately :(
 const reportChannelId = config.get('slack.report_channel_id');
 
-const http = require('http');
+//////////////////////////////////
+//// Setup health check page /////
+//////////////////////////////////
 
+const http = require('http');
 const port = process.env.PORT || 3000
 
 var isJiraOkay = true;
 var isSlackOkay = true;
 
-const server = http.createServer((req, res) => {
+const server = http.createServer((req, res) => { 
+    appInsights.defaultClient.trackNodeHttpRequest({request: req, response: res});
     if (req.method !== 'GET') {
         res.statusCode = 405;
         res.end("error")
     } else if (req.url === '/health') {
-        res.statusCode = 200;
+        if ((!app.receiver.client.badConnection) && isJiraOkay && isSlackOkay) {
+            res.statusCode = 200;
+        } else {
+            res.statusCode = 500;
+        }
         myResponse = {
             status: "UP",
             slack: {
@@ -73,11 +97,15 @@ const server = http.createServer((req, res) => {
             res.end('Internal Server Error');
             return;
         }
-
         res.end('OK');
     } else if (req.url === '/health/readiness') {
         res.end(`<h1>slack-help-bot</h1>`)
+    } else if (req.url === '/health/error') {
+        // Dummy error page
+        res.statusCode = 500;
+        res.end(`{"error": "${http.STATUS_CODES[500]}"}`)
     } else {
+        res.statusCode = 404;
         res.end(`{"error": "${http.STATUS_CODES[404]}"}`)
     }
 })
@@ -85,6 +113,10 @@ const server = http.createServer((req, res) => {
 server.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
+
+//////////////////////////
+//// Setup Slack Bolt ////
+//////////////////////////
 
 (async () => {
     await app.start();
@@ -107,13 +139,10 @@ const ws = new WorkflowStep('superbot_help_request', {
         // added/edited in the Slack workflow
         // builder. This is what generates the
         // customization form when you click 'edit'
-        console.log('Slack workflow editor has been opened:')
         await ack();
-
-        console.log(step);
+        console.log('Slack workflow editor has been opened: ' + JSON.stringify(step))
 
         const blocks = superBotMessageBlocks(step.inputs);
-
         await configure({ blocks });
     },
     save: async ({ ack, step, view, update, client }) => {
@@ -123,11 +152,9 @@ const ws = new WorkflowStep('superbot_help_request', {
         // updating the inputs in this stage
         // when 'save' is clicked on the 'edit'
         // form
-        console.log('Slack workflow has been changed:')
         await ack();
-
         const { values } = view.state;
-        console.log(values);
+        console.log('Slack workflow has been changed: ' + JSON.stringify(values));
 
         // names/paths of these values must match those in the 
         // 'action_id' and 'block_id' parameters in original form.
@@ -188,10 +215,9 @@ const ws = new WorkflowStep('superbot_help_request', {
         await update({ inputs, outputs });
     },
     execute: async ({ step, complete, fail, client }) => {
-        console.log("Slack workflow has been executed:");
         
         const { inputs } = step;
-        console.log(inputs);
+        console.log("Slack workflow has been executed: " + JSON.stringify(inputs));
 
         const user = inputs.user.value;
 
@@ -232,10 +258,9 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         isJiraOkay = response.ok;
 
-        if (!response.ok)
+        if (!isJiraOkay)
         {
-            console.log("An error occured when posting to JIRA:")
-            console.log(response);
+            console.log("An error occured when posting to JIRA: " + JSON.stringify(response));
         }
 
         response = await client.chat.postMessage({
@@ -247,10 +272,9 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         isSlackOkay = response.ok;
 
-        if (!response.ok)
+        if (!isSlackOkay)
         {
-            console.log("An error occured when posting to Slack:")
-            console.log(response);
+            console.log("An error occured when posting to Slack: " + JSON.stringify(response))
         }
 
         const permaLink = (await client.chat.getPermalink({
@@ -267,10 +291,12 @@ const ws = new WorkflowStep('superbot_help_request', {
 
 app.step(ws);
 
-//// ////
-//// ////
-//// ////
-//// ////
+/////////////////////////////
+//// Setup App Homepage  ////
+/////////////////////////////
+//// I don't think we're ////
+//// actually using this ////
+/////////////////////////////
 
 async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()

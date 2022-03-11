@@ -12,3 +12,7 @@ jira:
   issue_type_name: JIRA_ISSUE_TYPE_NAME
   username: JIRA_USERNAME
   api_token: JIRA_API_TOKEN
+
+app_insights:
+  instrumentation_key: APP_INSIGHTS_INSTRUMENTATION_KEY
+  role_name: APP_INSIGHTS_ROLE_NAME
