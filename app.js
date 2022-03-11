@@ -31,7 +31,6 @@ const {
 //// Setup AppInsights ////
 ///////////////////////////
 
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 let appInsights = require('applicationinsights');
 
 appInsights.setup(config.get('app_insights.instrumentation_key'))
