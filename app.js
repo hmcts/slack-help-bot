@@ -255,14 +255,14 @@ const ws = new WorkflowStep('superbot_help_request', {
             })
         });
 
-        isJiraOkay = response.ok;
+        isJiraOkay = result.ok;
 
         if (!isJiraOkay)
         {
-            console.log("An error occured when posting to JIRA: " + JSON.stringify(response));
+            console.log("An error occured when posting to JIRA: " + JSON.stringify(result));
         }
 
-        response = await client.chat.postMessage({
+        const response = await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
             text: 'New platform help request raised',
