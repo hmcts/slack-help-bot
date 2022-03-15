@@ -1,4 +1,4 @@
-# Slack help bot
+# Slack help bot 
 
 Listens for new posts in a designated Slack channel and raises a coresponding request in Jira.
 
