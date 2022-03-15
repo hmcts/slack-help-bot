@@ -31,12 +31,19 @@ jobs:
         run: npm install
       # End of  setup
 
-      - id: get-short-sha
+      - name: "Get Short Sha Hash"
+        id: get-short-sha
         uses: actions/github-script@0.9.0
         with:
           script: |
             const shortSha = context.sha.substring(0, 7)
             core.setOutput('shortSha', shortSha)
+            
+      - name: 'Get Commit Timestamp'
+        id: get-timestamp
+        run: |
+          TIMESTAMP=$(git log -1 --format='%cI' | sed -e's/[-T:]//g' -e's/+.*$//g')
+          echo "::set-output name=timestamp::$TIMESTAMP"
 
       - name: 'Build and push image'
         uses: azure/docker-login@v1
@@ -49,6 +56,6 @@ jobs:
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
         if: startsWith(github.ref, 'refs/pull')
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outouts.timestamp }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
         if: github.ref == 'refs/heads/main'
