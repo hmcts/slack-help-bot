@@ -510,6 +510,19 @@ function superBotMessageBlocks(inputs) {
         },
         {
             "type": "input",
+            "block_id": 'team_block',
+            "label": {
+                "type": "plain_text",
+                "text": "Team"
+            },
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "team_input",
+                "initial_value": inputs?.team?.value ?? ""
+            }
+        },
+        {
+            "type": "input",
             "block_id": 'area_block',
             "label": {
                 "type": "plain_text",
@@ -562,15 +575,15 @@ function superBotMessageBlocks(inputs) {
         },
         {
             "type": "input",
-            "block_id": 'team_block',
+            "block_id": 'team_check_block',
             "label": {
                 "type": "plain_text",
                 "text": "Checked With Team?"
             },
             "element": {
                 "type": "plain_text_input",
-                "action_id": "team_input",
-                "initial_value": inputs?.team?.value ?? ""
+                "action_id": "team_check_input",
+                "initial_value": inputs?.team_check?.value ?? ""
             }
         },
         {

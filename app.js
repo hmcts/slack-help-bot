@@ -160,11 +160,12 @@ const ws = new WorkflowStep('superbot_help_request', {
         // See src/messages.js:superBotMessageBlocks(inputs)
         const summary = values.summary_block.summary_input;
         const env = values.env_block.env_input;
+        const team = values.team_block.team_input;
         const area = values.area_block.area_input;
         const build = values.build_block.build_input;
         const desc = values.desc_block.desc_input;
         const alsys = values.alsys_block.alsys_input;
-        const team = values.team_block.team_input;
+        const team_check = values.team_check_block.team_check_input;
         const action = values.action_block.action_input;
         const user = values.user_block.user_input;
 
@@ -177,6 +178,10 @@ const ws = new WorkflowStep('superbot_help_request', {
             },
             env: {
                 value: env.value,
+                skip_variable_replacement: false
+            },
+            team: {
+                value: team.value,
                 skip_variable_replacement: false
             },
             area: {
@@ -195,8 +200,8 @@ const ws = new WorkflowStep('superbot_help_request', {
                 value: alsys.value,
                 skip_variable_replacement: false
             },
-            team: {
-                value: team.value,
+            team_check: {
+                value: team_check.value,
                 skip_variable_replacement: false
             },
             action: {
@@ -229,10 +234,11 @@ const ws = new WorkflowStep('superbot_help_request', {
             user,
             summary: inputs.summary.value,
             environment: inputs.env.value || "None",
-            area: inputs.area.value,
+            team: inputs.team.value || "None",
+            area: inputs.area.value || "None",
             prBuildUrl: inputs.build.value || "None",
             description: inputs.desc.value,
-            checkedWithTeam: inputs.team.value,
+            checkedWithTeam: inputs.team_check.value,
             analysis: inputs.alsys.value,
             action: inputs.action.value,
         }
@@ -242,8 +248,13 @@ const ws = new WorkflowStep('superbot_help_request', {
         const jiraId = await createHelpRequest({
             summary: helpRequest.summary,
             userEmail,
-            // Slack labels go here, can't contain spaces btw
-            labels: [inputs.area.value.toLowerCase().replace(' ', '-')]
+            // Jira labels go here, can't contain spaces btw
+            // TODO: Put this in a function?
+            // TODO: Add more labels?
+            labels: [
+                `area-${inputs.area.value.toLowerCase().replace(' ', '-')}`,
+                `team-${inputs.team.value.toLowerCase().replace(' ', '-')}`
+            ]
         })
 
         const result = await client.chat.postMessage({
@@ -363,6 +374,9 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
     ////////////////////////////////////////////////////////////
     //// SuperBot: This entry point isn't used anymore, but ////
     ////           we can keep it around just in case :)    ////
+    ////////////////////////////////////////////////////////////
+    ////      SuperBot: This totally is used still, we      ////
+    ////      should probably do something about that       ////
     ////////////////////////////////////////////////////////////
 
     // Acknowledge the view_submission event
