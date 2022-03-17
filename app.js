@@ -166,7 +166,6 @@ const ws = new WorkflowStep('superbot_help_request', {
         const desc = values.desc_block.desc_input;
         const alsys = values.alsys_block.alsys_input;
         const team_check = values.team_check_block.team_check_input;
-        const action = values.action_block.action_input;
         const user = values.user_block.user_input;
 
         // skip_variable_replacement does something,
@@ -204,10 +203,6 @@ const ws = new WorkflowStep('superbot_help_request', {
                 value: team_check.value,
                 skip_variable_replacement: false
             },
-            action: {
-                value: action.value,
-                skip_variable_replacement: false
-            },
             user: {
                 value: user.selected_user,
                 skip_variable_replacement: false
@@ -239,8 +234,7 @@ const ws = new WorkflowStep('superbot_help_request', {
             prBuildUrl: inputs.build.value || "None",
             description: inputs.desc.value,
             checkedWithTeam: inputs.team_check.value,
-            analysis: inputs.alsys.value,
-            action: inputs.action.value,
+            analysis: inputs.alsys.value
         }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
@@ -268,6 +262,8 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         isJiraOkay = result.ok;
 
+        // TODO: This doesn't actually check if JIRA is okay,
+        //       it only checks the message sent to slack :/
         if (!isJiraOkay)
         {
             console.log("An error occured when posting to JIRA: " + JSON.stringify(result));

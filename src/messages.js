@@ -588,23 +588,10 @@ function superBotMessageBlocks(inputs) {
         },
         {
             "type": "input",
-            "block_id": 'action_block',
-            "label": {
-                "type": "plain_text",
-                "text": "Action Required"
-            },
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "action_input",
-                "initial_value": inputs?.action?.value ?? ""
-            }
-        },
-        {
-            "type": "input",
             "block_id": 'user_block',
             "label": {
                 "type": "plain_text",
-                "text": "Ticker Raiser"
+                "text": "Ticket Raiser"
             },
             "element": {
                 "type": "users_select",
