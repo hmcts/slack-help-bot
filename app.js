@@ -149,7 +149,6 @@ const ws = new WorkflowStep('superbot_help_request', {
         const desc = values.desc_block.desc_input;
         const alsys = values.alsys_block.alsys_input;
         const team = values.team_block.team_input;
-        const action = values.action_block.action_input;
         const user = values.user_block.user_input;
 
         // skip_variable_replacement does something,
@@ -183,10 +182,6 @@ const ws = new WorkflowStep('superbot_help_request', {
                 value: team.value,
                 skip_variable_replacement: false
             },
-            action: {
-                value: action.value,
-                skip_variable_replacement: false
-            },
             user: {
                 value: user.selected_user,
                 skip_variable_replacement: false
@@ -217,7 +212,6 @@ const ws = new WorkflowStep('superbot_help_request', {
             description: inputs.desc.value,
             checkedWithTeam: inputs.team.value,
             analysis: inputs.alsys.value,
-            action: inputs.action.value,
         }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
