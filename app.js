@@ -238,11 +238,9 @@ const ws = new WorkflowStep('superbot_help_request', {
             })
         });
 
-        isJiraOkay = result.ok;
-
-        if (!isJiraOkay)
+        if (!result.ok)
         {
-            console.log("An error occured when posting to JIRA: " + JSON.stringify(result));
+            console.log("An error occurred when posting to Slack: " + JSON.stringify(result));
         }
 
         const response = await client.chat.postMessage({
@@ -252,11 +250,10 @@ const ws = new WorkflowStep('superbot_help_request', {
             blocks: helpRequestDetails(helpRequest)
         });
 
-        isSlackOkay = response.ok;
-
-        if (!isSlackOkay)
+        if (!response.ok)
         {
-            console.log("An error occured when posting to Slack: " + JSON.stringify(response))
+            console.log("An error occurred when posting to Slack: " + JSON.stringify(response))
+            return;
         }
 
         const permaLink = (await client.chat.getPermalink({
