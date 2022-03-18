@@ -1,6 +1,6 @@
 FROM hmctspublic.azurecr.io/base/node:16-alpine
 
-COPY package*.json ./
+COPY --chown=hmcts:hmcts package*.json ./
 
 RUN npm install --production
 
