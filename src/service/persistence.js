@@ -33,6 +33,31 @@ async function resolveHelpRequest(jiraId) {
     }
 }
 
+async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
+    try {
+        await jira.issueLink({
+            type: {
+                name: "Duplicate"
+            },
+            inwardIssue: {
+                key: jiraIdToUpdate
+            },
+            outwardIssue: {
+                key: parentJiraId
+            },
+        });
+
+        await jira.transitionIssue(jiraIdToUpdate, {
+            transition: {
+                id: jiraDoneTransitionId
+            }
+        })
+    } catch (err) {
+        console.log("Error marking help request as duplicate in jira", err)
+    }
+}
+
+
 async function startHelpRequest(jiraId) {
     try {
         await jira.transitionIssue(jiraId, {
@@ -42,6 +67,20 @@ async function startHelpRequest(jiraId) {
         })
     } catch (err) {
         console.log("Error starting help request in jira", err)
+    }
+}
+
+async function getIssueDescription(issueId) {
+    try {
+        const issue = await jira.getIssue(issueId, 'description');
+        return issue.fields.description;
+    } catch(err) {
+        if (err.statusCode === 404) {
+            return undefined;
+        } else {
+            throw err
+        }
+
     }
 }
 
@@ -81,7 +120,12 @@ async function assignHelpRequest(issueId, email) {
  * @param blocks
  */
 function extractJiraIdFromBlocks(blocks) {
-    const viewOnJiraText = blocks[4].elements[0].text // TODO make this less fragile
+    let viewOnJiraText
+    if (blocks.length === 3) {
+        viewOnJiraText = blocks[2].fields[0].text
+    } else {
+        viewOnJiraText = blocks[4].elements[0].text
+    }
 
     return extractProjectRegex.exec(viewOnJiraText)[1]
 }
@@ -172,3 +216,5 @@ module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
 module.exports.searchForUnassignedOpenIssues = searchForUnassignedOpenIssues
+module.exports.getIssueDescription = getIssueDescription
+module.exports.markAsDuplicate = markAsDuplicate

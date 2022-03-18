@@ -601,6 +601,38 @@ function superBotMessageBlocks(inputs) {
         },
     ];
 }
+function duplicateHelpRequest({
+                                  summary,
+                                  parentJiraId,
+                                  parentSlackUrl,
+                                  currentIssueJiraId,
+                              }) {
+    return [
+        {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: summary
+            }
+        },
+        {
+            type: "divider"
+        },
+        {
+            type: "section",
+            fields: [
+                {
+                    type: "mrkdwn",
+                    text: `View on Jira: <${convertJiraKeyToUrl(currentIssueJiraId)}|${currentIssueJiraId}>`
+                },
+                {
+                    type: "mrkdwn",
+                    text: `Duplicate of <${parentSlackUrl}|${parentJiraId}>`
+                }
+            ]
+        }
+    ]
+}
 
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
@@ -610,3 +642,4 @@ module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
 module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;
 module.exports.superBotMessageBlocks = superBotMessageBlocks;
+module.exports.duplicateHelpRequest = duplicateHelpRequest;
