@@ -153,6 +153,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         // form
         await ack();
         const { values } = view.state;
+        
         console.log('Slack workflow has been changed: ' + JSON.stringify(values));
 
         // names/paths of these values must match those in the 
@@ -227,7 +228,7 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         const helpRequest = {
             user,
-            summary: inputs.summary.value,
+            summary: inputs.summary.value || "None",
             environment: inputs.env.value || "None",
             team: inputs.team.value || "None",
             area: inputs.area.value || "None",
@@ -329,108 +330,6 @@ async function reopenAppHome(client, userId) {
 // Publish a App Home
 app.event('app_home_opened', async ({ event, client }) => {
     await reopenAppHome(client, event.user);
-});
-
-// Message Shortcut example
-app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
-    await ack();
-});
-
-// Global Shortcut example
-// setup global shortcut in App config with `launch_shortcut` as callback id
-// add `commands` scope
-app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
-    try {
-        // Acknowledge shortcut request
-        await ack();
-
-        // Un-comment if you want the JSON for block-kit builder (https://app.slack.com/block-kit-builder/T1L0WSW9F)
-        // console.log(JSON.stringify(openHelpRequestBlocks().blocks))
-
-        await client.views.open({
-            trigger_id: shortcut.trigger_id,
-            view: openHelpRequestBlocks()
-        });
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-function extractLabels(values) {
-    const team = `team-${values.team.team.selected_option.value}`
-    const area = `area-${values.area.area.selected_option.value}`
-    return [area, team];
-}
-
-async function create_help_request(ack, body, view, client) {
-    await ack();
-}
-
-app.view('create_help_request', async ({ ack, body, view, client }) => {
-    ////////////////////////////////////////////////////////////
-    //// SuperBot: This entry point isn't used anymore, but ////
-    ////           we can keep it around just in case :)    ////
-    ////////////////////////////////////////////////////////////
-    ////      SuperBot: This totally is used still, we      ////
-    ////      should probably do something about that       ////
-    ////////////////////////////////////////////////////////////
-
-    // Acknowledge the view_submission event
-    await ack();
-
-    const user = body.user.id;
-
-    // Message the user
-    try {
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const helpRequest = {
-            user,
-            summary: view.state.values.summary.title.value,
-            environment: view.state.values.environment.environment.selected_option?.text.text || "None",
-            prBuildUrl: view.state.values.urls?.title?.value || "None",
-            description: view.state.values.description.description.value,
-            checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
-            analysis: view.state.values.analysis.analysis.value,
-        }
-
-        const jiraId = await createHelpRequest({
-            summary: helpRequest.summary,
-            userEmail,
-            labels: extractLabels(view.state.values)
-        })
-
-        const result = await client.chat.postMessage({
-            channel: reportChannel,
-            text: 'New platform help request raised',
-            blocks: helpRequestRaised({
-                ...helpRequest,
-                jiraId
-            })
-        });
-
-        await client.chat.postMessage({
-            channel: reportChannel,
-            thread_ts: result.message.ts,
-            text: 'New platform help request raised',
-            blocks: helpRequestDetails(helpRequest)
-        });
-
-        const permaLink = (await client.chat.getPermalink({
-            channel: result.channel,
-            'message_ts': result.message.ts
-        })).permalink
-
-        await updateHelpRequestDescription(jiraId, {
-            ...helpRequest,
-            slackLink: permaLink
-        })
-    } catch (error) {
-        console.error(error);
-    }
-
 });
 
 // subscribe to 'app_mention' event in your App config
