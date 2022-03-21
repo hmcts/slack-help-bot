@@ -729,7 +729,7 @@ function helpRequestDocumentation({where, what, how}) {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": ":pencil: *Ticket Resolution Documentation:*"
+                "text": ":pencil: *Help Provided:*"
             }
         },
         {
