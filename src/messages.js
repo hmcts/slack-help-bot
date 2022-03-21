@@ -602,6 +602,128 @@ function superBotMessageBlocks(inputs) {
     ];
 }
 
+function resolveHelpRequestBlocks({thread_ts}) {
+    return {
+        "title": {
+            "type": "plain_text",
+            "text": "Document Help Request"
+        },
+        "submit": {
+            "type": "plain_text",
+            "text": "Document"
+        },
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "title_block",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": ":pencil: *Run into this problem often?*"
+                }
+            },
+            {
+                "type": "section",
+                "block_id": "subtitle_block",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Write some documentation to help out next time!\nKeep answers brief, but make them informative.",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "where_block",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": true,
+                    "action_id": "where",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Where did you look to identify the problem?"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": ":mag: Where?"
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "what_block",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "what",
+                    "multiline": true,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "What was the underlying cause of the problem?\nWhat resources were affected?"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": ":exclamation: What?"
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "how_block",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "how",
+                    "multiline": true,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "How did you fix the problem?"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": ":bulb: How?"
+                }
+            }
+        ],
+        "type": "modal",
+        "callback_id": 'document_help_request',
+        // We use the private_metadata field to smuggle the ts of the thread
+        // into the form so the bot knows where to reply when the form is submitted
+        "private_metadata": `${thread_ts}`,
+    }
+
+}
+
+function helpRequestDocumentation({where, what, how}) {
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": ":pencil: *Ticket Resolution Documentation:*"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `:mag: *Where:* ${where}`
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `:exclamation: *What:* ${what}`
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `:bulb: *How:* ${how}`
+            }
+        }
+    ];
+}
+
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
@@ -610,3 +732,6 @@ module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
 module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;
 module.exports.superBotMessageBlocks = superBotMessageBlocks;
+module.exports.duplicateHelpRequest = duplicateHelpRequest;
+module.exports.resolveHelpRequestBlocks = resolveHelpRequestBlocks;
+module.exports.helpRequestDocumentation = helpRequestDocumentation;

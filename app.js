@@ -12,6 +12,9 @@ const {
     openHelpRequestBlocks,
     superBotMessageBlocks,
     unassignedOpenIssue,
+    duplicateHelpRequest,
+    resolveHelpRequestBlocks,
+    helpRequestDocumentation,
 } = require("./src/messages");
 const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
@@ -58,6 +61,7 @@ const reportChannelId = config.get('slack.report_channel_id');
 //////////////////////////////////
 
 const http = require('http');
+const { report } = require('process');
 const port = process.env.PORT || 3000
 
 var isJiraOkay = true;
@@ -388,13 +392,20 @@ app.action('assign_help_request_to_me', async ({
 })
 
 app.action('resolve_help_request', async ({
-    body, action, ack, client, context
+    body, action, ack, client, context, payload
 }) => {
     try {
         await ack();
+
+        // Trigger IDs have a short lifespan, so process them first
+        await client.views.open({
+            trigger_id: body.trigger_id,
+            view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
+        });
+
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
-        await resolveHelpRequest(jiraId) // TODO add optional resolution comment
+        await resolveHelpRequest(jiraId)
 
         const blocks = body.message.blocks
         // TODO less fragile block updating
@@ -414,9 +425,34 @@ app.action('resolve_help_request', async ({
 
         await client.chat.update({
             channel: body.channel.id,
-            ts: body.message.ts,
+            //ts: body.message.ts,
             text: 'New platform help request raised',
             blocks: blocks
+        });
+
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.view('document_help_request', async ({ ack, body, view, client }) => {
+    try{
+        await ack();
+
+        console.log(JSON.stringify(body, null, 2));
+
+        const documentation = {
+            what: body.view.state.values.what_block.what.value,
+            where: body.view.state.values.where_block.where.value,
+            how: body.view.state.values.how_block.how.value,
+        };
+
+        await client.chat.postMessage({
+            channel: reportChannel,
+            thread_ts: body.view.private_metadata,
+            text: 'Platform help request documented',
+            blocks: helpRequestDocumentation(documentation)
         });
     } catch (error) {
         console.error(error);
