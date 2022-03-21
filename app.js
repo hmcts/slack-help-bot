@@ -51,7 +51,7 @@ const http = require('http');
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
-    appInsights.defaultClient.trackNodeHttpRequest({request: req, response: res});
+    appInsights.client().trackNodeHttpRequest({request: req, response: res});
     if (req.method !== 'GET') {
         res.statusCode = 405;
         res.end("error")
