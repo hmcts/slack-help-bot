@@ -27,23 +27,12 @@ const {
     resolveHelpRequest,
     searchForUnassignedOpenIssues,
     startHelpRequest,
-    updateHelpRequestDescription
+    updateHelpRequestDescription,
+    getIssueDescription, markAsDuplicate
 } = require("./src/service/persistence");
+const appInsights = require('./src/modules/appInsights')
 
-///////////////////////////
-//// Setup AppInsights ////
-///////////////////////////
-
-let appInsights = require('applicationinsights');
-
-appInsights.setup(config.get('app_insights.instrumentation_key'))
-    .setAutoCollectConsole(true, true);
-appInsights.defaultClient.context.tags[appInsights.defaultClient.context.keys.cloudRole] = config.get('app_insights.role_name');
-appInsights.start();
-
-/////////////////////////
-//// Setup Slack app ////
-/////////////////////////
+appInsights.enableAppInsights()
 
 const app = new App({
     token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
@@ -64,28 +53,22 @@ const http = require('http');
 const { report } = require('process');
 const port = process.env.PORT || 3000
 
-var isJiraOkay = true;
-var isSlackOkay = true;
-
-const server = http.createServer((req, res) => { 
-    appInsights.defaultClient.trackNodeHttpRequest({request: req, response: res});
+const server = http.createServer((req, res) => {
+    appInsights.client().trackNodeHttpRequest({request: req, response: res});
     if (req.method !== 'GET') {
         res.statusCode = 405;
         res.end("error")
     } else if (req.url === '/health') {
-        if ((!app.receiver.client.badConnection) && isJiraOkay && isSlackOkay) {
-            res.statusCode = 200;
-        } else {
+        const connectionError = app.receiver.client.badConnection;
+        if (connectionError) {
             res.statusCode = 500;
+        } else {
+            res.statusCode = 200;
         }
-        myResponse = {
+        const myResponse = {
             status: "UP",
             slack: {
-                connection: (app.receiver.client.badConnection ? "DOWN" : "UP"),
-                status: (isSlackOkay ? "UP" : "DOWN"),
-            },
-            jira: {
-                status: (isJiraOkay ? "UP" : "DOWN"),
+                connection: connectionError ? "DOWN" : "UP",
             },
             node: {
                 uptime: process.uptime(),
@@ -160,7 +143,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         
         console.log('Slack workflow has been changed: ' + JSON.stringify(values));
 
-        // names/paths of these values must match those in the 
+        // names/paths of these values must match those in the
         // 'action_id' and 'block_id' parameters in original form.
         // See src/messages.js:superBotMessageBlocks(inputs)
         const summary = values.summary_block.summary_input;
@@ -219,13 +202,12 @@ const ws = new WorkflowStep('superbot_help_request', {
         await update({ inputs, outputs });
     },
     execute: async ({ step, complete, fail, client }) => {
-        
+
         const { inputs } = step;
         console.log("Slack workflow has been executed: " + JSON.stringify(inputs));
 
         const user = inputs.user.value;
 
-        //TODO: Do we send user emails?
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email
@@ -264,14 +246,10 @@ const ws = new WorkflowStep('superbot_help_request', {
                 jiraId
             })
         });
-
-        isJiraOkay = result.ok;
-
-        // TODO: This doesn't actually check if JIRA is okay,
-        //       it only checks the message sent to slack :/
-        if (!isJiraOkay)
+      
+        if (!result.ok)
         {
-            console.log("An error occured when posting to JIRA: " + JSON.stringify(result));
+            console.log("An error occurred when posting to Slack: " + JSON.stringify(result));
         }
 
         const response = await client.chat.postMessage({
@@ -281,11 +259,10 @@ const ws = new WorkflowStep('superbot_help_request', {
             blocks: helpRequestDetails(helpRequest)
         });
 
-        isSlackOkay = response.ok;
-
-        if (!isSlackOkay)
+        if (!response.ok)
         {
-            console.log("An error occured when posting to Slack: " + JSON.stringify(response))
+            console.log("An error occurred when posting to Slack: " + JSON.stringify(response))
+            return;
         }
 
         const permaLink = (await client.chat.getPermalink({
@@ -336,28 +313,186 @@ app.event('app_home_opened', async ({ event, client }) => {
     await reopenAppHome(client, event.user);
 });
 
-// subscribe to 'app_mention' event in your App config
-// need app_mentions:read and chat:write scopes
-app.event('app_mention', async ({ event, context, client, say }) => {
+// Message Shortcut example
+app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
+    await ack();
+});
+
+// Global Shortcut example
+// setup global shortcut in App config with `launch_shortcut` as callback id
+// add `commands` scope
+app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
     try {
-        await say({
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `Thanks for the ping <@${event.user}>!`
-                    },
-                }
-            ]
+        // Acknowledge shortcut request
+        await ack();
+
+        // Un-comment if you want the JSON for block-kit builder (https://app.slack.com/block-kit-builder/T1L0WSW9F)
+        // console.log(JSON.stringify(openHelpRequestBlocks().blocks))
+
+        await client.views.open({
+            trigger_id: shortcut.trigger_id,
+            view: openHelpRequestBlocks()
         });
     } catch (error) {
         console.error(error);
     }
 });
 
-function randomString() {
-    return crypto.randomBytes(16).toString("hex");
+function extractLabels(values) {
+    const team = `team-${values.team.team.selected_option.value}`
+    const area = `area-${values.area.area.selected_option.value}`
+    return [area, team];
+}
+
+app.view('create_help_request', async ({ ack, body, view, client }) => {
+    ////////////////////////////////////////////////////////////
+    //// SuperBot: This entry point isn't used anymore, but ////
+    ////           we can keep it around just in case :)    ////
+    ////////////////////////////////////////////////////////////
+
+    // Acknowledge the view_submission event
+    await ack();
+
+    const user = body.user.id;
+
+    // Message the user
+    try {
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const helpRequest = {
+            user,
+            summary: view.state.values.summary.title.value,
+            environment: view.state.values.environment.environment.selected_option?.text.text || "None",
+            prBuildUrl: view.state.values.urls?.title?.value || "None",
+            description: view.state.values.description.description.value,
+            checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
+            analysis: view.state.values.analysis.analysis.value,
+        }
+
+        const jiraId = await createHelpRequest({
+            summary: helpRequest.summary,
+            userEmail,
+            labels: extractLabels(view.state.values)
+        })
+
+        const result = await client.chat.postMessage({
+            channel: reportChannel,
+            text: 'New platform help request raised',
+            blocks: helpRequestRaised({
+                ...helpRequest,
+                jiraId
+            })
+        });
+
+        await client.chat.postMessage({
+            channel: reportChannel,
+            thread_ts: result.message.ts,
+            text: 'New platform help request raised',
+            blocks: helpRequestDetails(helpRequest)
+        });
+
+        const permaLink = (await client.chat.getPermalink({
+            channel: result.channel,
+            'message_ts': result.message.ts
+        })).permalink
+
+        await updateHelpRequestDescription(jiraId, {
+            ...helpRequest,
+            slackLink: permaLink
+        })
+    } catch (error) {
+        console.error(error);
+    }
+
+});
+
+// subscribe to 'app_mention' event in your App config
+// need app_mentions:read and chat:write scopes
+app.event('app_mention', async ({ event, context, client, say }) => {
+    try {
+        // filter unwanted channels in case someone invites the bot to it
+        // and only look at threaded messages
+        if (event.channel === reportChannelId && event.thread_ts) {
+            const helpRequestMessages = (await client.conversations.replies({
+                channel: reportChannelId,
+                ts: event.thread_ts,
+                limit: 200, // after a thread is 200 long we'll break but good enough for now
+            })).messages
+
+            if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
+                if (event.text.includes('help')) {
+                    const usageMessage = `Hi <@${event.user}>, here is what I can do:
+\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID`
+
+                    await say({
+                        text: usageMessage,
+                        thread_ts: event.thread_ts
+                    });
+                } else if (event.text.includes('duplicate')) {
+                    const result = event.text.match(/.+duplicate ([A-Z]+-[0-9]+)/);
+                    if (result) {
+                        const blocks = helpRequestMessages[0].blocks
+                        const summary = extractSummaryFromBlocks(blocks)
+                        const parentJiraId = result[1];
+                        const issueDescription = await getIssueDescription(parentJiraId)
+
+                        if (issueDescription === undefined) {
+                            await say({
+                                text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
+                                thread_ts: event.thread_ts
+                            });
+                            return;
+                        }
+
+                        const parentSlackUrl = extractSlackLinkFromText(issueDescription)
+                        const currentIssueJiraId = extractJiraIdFromBlocks(blocks)
+
+                        await markAsDuplicate(currentIssueJiraId, parentJiraId)
+
+                        await client.chat.update({
+                            channel: event.channel,
+                            ts: helpRequestMessages[0].ts,
+                            text: 'Duplicate issue',
+                            blocks: duplicateHelpRequest({
+                                summary,
+                                parentJiraId,
+                                parentSlackUrl,
+                                currentIssueJiraId
+                            })
+                        });
+
+                        await client.reactions.add({
+                            name: 'white_check_mark',
+                            timestamp: event.ts,
+                            channel: event.channel
+                        });
+
+                    } else {
+                        await say({
+                            text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
+                            thread_ts: event.thread_ts
+                        });
+                    }
+
+
+                } else {
+                    await say({
+                        text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
+                        thread_ts: event.thread_ts
+                    });
+                }
+
+            }
+        }
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+function extractSummaryFromBlocks(blocks) {
+    return blocks[0].text.text
 }
 
 app.action('assign_help_request_to_me', async ({
@@ -596,6 +731,18 @@ async function replaceAsync(str, regex, asyncFn) {
     return str.replace(regex, () => data.shift());
 }
 
+/**
+ * Users may have a display name set or may not.
+ * Display name is normally better than real name, so we prefer that but fallback to real name.
+ */
+function convertProfileToName(profile) {
+    let name = profile.display_name_normalized
+    if (!name) {
+        name = profile.real_name_normalized;
+    }
+    return name;
+}
+
 app.event('message', async ({ event, context, client, say }) => {
     try {
         // filter unwanted channels in case someone invites the bot to it
@@ -610,7 +757,7 @@ app.event('message', async ({ event, context, client, say }) => {
                 user: event.user
             }))
 
-            const displayName = user.profile.display_name
+            const name = convertProfileToName(user.profile);
 
             const helpRequestMessages = (await client.conversations.replies({
                 channel: reportChannelId,
@@ -618,7 +765,10 @@ app.event('message', async ({ event, context, client, say }) => {
                 limit: 200, // after a thread is 200 long we'll break but good enough for now
             })).messages
 
-            if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
+            if (helpRequestMessages.length > 0 && (
+                helpRequestMessages[0].text === 'New platform help request raised' ||
+                helpRequestMessages[0].text === 'Duplicate issue')
+            ) {
                 const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
                 const groupRegex = /<!subteam\^.+\|([^>.]+)>/g
@@ -630,12 +780,12 @@ app.event('message', async ({ event, context, client, say }) => {
                     const user = (await client.users.profile.get({
                         user: $1
                     }))
-                    return `@${user.profile.display_name}`
+                    return `@${convertProfileToName(user.profile)}`
                 });
 
                 await addCommentToHelpRequest(jiraId, {
                     slackLink,
-                    displayName,
+                    name,
                     message: newTargetText
                 })
             } else {

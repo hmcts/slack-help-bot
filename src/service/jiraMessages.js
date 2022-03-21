@@ -32,11 +32,11 @@ ${description}
 `
 }
 
-function createComment({slackLink, displayName, message}) {
+function createComment({slackLink, name, message}) {
 return `
 h6. _This is an automatically added comment created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
-h6. ${displayName}:
+h6. ${name}:
 ${message}
 `
 }

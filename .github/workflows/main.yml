@@ -11,32 +11,38 @@ name: Publish
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Beginning of yarn setup, keep in sync between all workflows, see ci.yml
       - name: use node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org/ # Needed for auth
-      - name: Cache npm dependencies
-        uses: actions/cache@v2
-        with:
-          path: '~/.npm'
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: 'npm'
       - name: npm install
         run: npm install
       # End of  setup
 
-      - id: get-short-sha
+      - name: "Get Short Sha Hash"
+        id: get-short-sha
         uses: actions/github-script@0.9.0
         with:
           script: |
             const shortSha = context.sha.substring(0, 7)
             core.setOutput('shortSha', shortSha)
+
+      - name: 'Get Commit Timestamp'
+        id: get-timestamp
+        run: |
+          TIMESTAMP=$(git log -1 --format='%cI' | sed -e's/[-T:]//g' -e's/+.*$//g')
+          echo "::set-output name=timestamp::$TIMESTAMP"
 
       - name: 'Build and push image'
         uses: azure/docker-login@v1
@@ -49,6 +55,6 @@ jobs:
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
         if: startsWith(github.ref, 'refs/pull')
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ github.run_number }}
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
         if: github.ref == 'refs/heads/main'

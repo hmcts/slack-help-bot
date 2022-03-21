@@ -42,10 +42,15 @@ describe('functional tests', () => {
     test('comment is added to help request', async () => {
         await jira.addCommentToHelpRequest('SBOX-58', {
             slackLink: 'https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611324186001500',
-            displayName: 'Alice',
+            name: 'Alice',
             message: 'Can anyone help?'
         })
     });
+
+    test('issue is closed as duplicate', async () => {
+        await jira.markAsDuplicate('SBOX-219', 'SBOX-118')
+    });
+
 
     test('issue is in progress', async () => {
         await jira.startHelpRequest('SBOX-51')
