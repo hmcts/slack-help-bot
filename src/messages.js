@@ -526,7 +526,7 @@ function superBotMessageBlocks(inputs) {
             "block_id": 'build_block',
             "label": {
                 "type": "plain_text",
-                "text": "Build URLs"
+                "text": "PR / build URLs"
             },
             "element": {
                 "type": "plain_text_input",
@@ -552,7 +552,7 @@ function superBotMessageBlocks(inputs) {
             "block_id": 'alsys_block',
             "label": {
                 "type": "plain_text",
-                "text": "Analysis"
+                "text": "Analysis done so far, or additional context"
             },
             "element": {
                 "type": "plain_text_input",
@@ -565,25 +565,12 @@ function superBotMessageBlocks(inputs) {
             "block_id": 'team_block',
             "label": {
                 "type": "plain_text",
-                "text": "Checked With Team?"
+                "text": "Have you checked with your team?"
             },
             "element": {
                 "type": "plain_text_input",
                 "action_id": "team_input",
                 "initial_value": inputs?.team?.value ?? ""
-            }
-        },
-        {
-            "type": "input",
-            "block_id": 'action_block',
-            "label": {
-                "type": "plain_text",
-                "text": "Action Required"
-            },
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "action_input",
-                "initial_value": inputs?.action?.value ?? ""
             }
         },
         {
@@ -601,6 +588,38 @@ function superBotMessageBlocks(inputs) {
         },
     ];
 }
+function duplicateHelpRequest({
+                                  summary,
+                                  parentJiraId,
+                                  parentSlackUrl,
+                                  currentIssueJiraId,
+                              }) {
+    return [
+        {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: summary
+            }
+        },
+        {
+            type: "divider"
+        },
+        {
+            type: "section",
+            fields: [
+                {
+                    type: "mrkdwn",
+                    text: `View on Jira: <${convertJiraKeyToUrl(currentIssueJiraId)}|${currentIssueJiraId}>`
+                },
+                {
+                    type: "mrkdwn",
+                    text: `Duplicate of <${parentSlackUrl}|${parentJiraId}>`
+                }
+            ]
+        }
+    ]
+}
 
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
@@ -610,3 +629,4 @@ module.exports.openHelpRequestBlocks = openHelpRequestBlocks;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
 module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;
 module.exports.superBotMessageBlocks = superBotMessageBlocks;
+module.exports.duplicateHelpRequest = duplicateHelpRequest;
