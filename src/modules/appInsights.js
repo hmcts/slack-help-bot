@@ -13,4 +13,8 @@ const enableAppInsights = () => {
     }
 }
 
-module.exports = {enableAppInsights};
+const client = () => {
+    return appInsights.defaultClient;
+}
+
+module.exports = {enableAppInsights, client};
