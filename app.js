@@ -575,7 +575,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
     try{
         await ack();
 
-        console.log(JSON.stringify(body, null, 2));
+        //console.log(JSON.stringify(body, null, 2));
 
         const documentation = {
             what: body.view.state.values.what_block.what.value,
