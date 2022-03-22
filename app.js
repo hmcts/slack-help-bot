@@ -13,6 +13,8 @@ const {
     superBotMessageBlocks,
     unassignedOpenIssue,
     duplicateHelpRequest,
+    resolveHelpRequestBlocks,
+    helpRequestDocumentation,
 } = require("./src/messages");
 const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
@@ -48,6 +50,7 @@ const reportChannelId = config.get('slack.report_channel_id');
 //////////////////////////////////
 
 const http = require('http');
+const { report } = require('process');
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
@@ -137,6 +140,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         // form
         await ack();
         const { values } = view.state;
+        
         console.log('Slack workflow has been changed: ' + JSON.stringify(values));
 
         // names/paths of these values must match those in the
@@ -144,11 +148,12 @@ const ws = new WorkflowStep('superbot_help_request', {
         // See src/messages.js:superBotMessageBlocks(inputs)
         const summary = values.summary_block.summary_input;
         const env = values.env_block.env_input;
+        const team = values.team_block.team_input;
         const area = values.area_block.area_input;
         const build = values.build_block.build_input;
         const desc = values.desc_block.desc_input;
         const alsys = values.alsys_block.alsys_input;
-        const team = values.team_block.team_input;
+        const team_check = values.team_check_block.team_check_input;
         const user = values.user_block.user_input;
 
         // skip_variable_replacement does something,
@@ -160,6 +165,10 @@ const ws = new WorkflowStep('superbot_help_request', {
             },
             env: {
                 value: env.value,
+                skip_variable_replacement: false
+            },
+            team: {
+                value: team.value,
                 skip_variable_replacement: false
             },
             area: {
@@ -178,8 +187,8 @@ const ws = new WorkflowStep('superbot_help_request', {
                 value: alsys.value,
                 skip_variable_replacement: false
             },
-            team: {
-                value: team.value,
+            team_check: {
+                value: team_check.value,
                 skip_variable_replacement: false
             },
             user: {
@@ -205,13 +214,14 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         const helpRequest = {
             user,
-            summary: inputs.summary.value,
+            summary: inputs.summary.value || "None",
             environment: inputs.env.value || "None",
-            area: inputs.area.value,
+            team: inputs.team.value || "None",
+            area: inputs.area.value || "None",
             prBuildUrl: inputs.build.value || "None",
             description: inputs.desc.value,
-            checkedWithTeam: inputs.team.value,
-            analysis: inputs.alsys.value,
+            checkedWithTeam: inputs.team_check.value,
+            analysis: inputs.alsys.value
         }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
@@ -219,8 +229,13 @@ const ws = new WorkflowStep('superbot_help_request', {
         const jiraId = await createHelpRequest({
             summary: helpRequest.summary,
             userEmail,
-            // Slack labels go here, can't contain spaces btw
-            labels: [inputs.area.value.toLowerCase().replace(' ', '-')]
+            // Jira labels go here, can't contain spaces btw
+            // TODO: Put this in a function?
+            // TODO: Add more labels?
+            labels: [
+                `area-${inputs.area.value.toLowerCase().replace(' ', '-')}`,
+                `team-${inputs.team.value.toLowerCase().replace(' ', '-')}`
+            ]
         })
 
         const result = await client.chat.postMessage({
@@ -231,7 +246,7 @@ const ws = new WorkflowStep('superbot_help_request', {
                 jiraId
             })
         });
-
+      
         if (!result.ok)
         {
             console.log("An error occurred when posting to Slack: " + JSON.stringify(result));
@@ -512,13 +527,20 @@ app.action('assign_help_request_to_me', async ({
 })
 
 app.action('resolve_help_request', async ({
-    body, action, ack, client, context
+    body, action, ack, client, context, payload
 }) => {
     try {
         await ack();
+
+        // Trigger IDs have a short lifespan, so process them first
+        await client.views.open({
+            trigger_id: body.trigger_id,
+            view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
+        });
+
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
-        await resolveHelpRequest(jiraId) // TODO add optional resolution comment
+        await resolveHelpRequest(jiraId)
 
         const blocks = body.message.blocks
         // TODO less fragile block updating
@@ -538,9 +560,34 @@ app.action('resolve_help_request', async ({
 
         await client.chat.update({
             channel: body.channel.id,
-            ts: body.message.ts,
+            //ts: body.message.ts,
             text: 'New platform help request raised',
             blocks: blocks
+        });
+
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.view('document_help_request', async ({ ack, body, view, client }) => {
+    try{
+        await ack();
+
+        console.log(JSON.stringify(body, null, 2));
+
+        const documentation = {
+            what: body.view.state.values.what_block.what.value,
+            where: body.view.state.values.where_block.where.value,
+            how: body.view.state.values.how_block.how.value,
+        };
+
+        await client.chat.postMessage({
+            channel: reportChannel,
+            thread_ts: body.view.private_metadata,
+            text: 'Platform help request documented',
+            blocks: helpRequestDocumentation(documentation)
         });
     } catch (error) {
         console.error(error);
