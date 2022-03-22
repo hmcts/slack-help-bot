@@ -560,7 +560,7 @@ app.action('resolve_help_request', async ({
 
         await client.chat.update({
             channel: body.channel.id,
-            //ts: body.message.ts,
+            ts: body.message.ts,
             text: 'New platform help request raised',
             blocks: blocks
         });
