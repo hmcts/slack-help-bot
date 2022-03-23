@@ -238,6 +238,11 @@ const ws = new WorkflowStep('superbot_help_request', {
             ]
         })
 
+        if (!jiraId) {
+            console.log("Posting help request to Jira Failed.");
+            fail();
+        }
+
         const result = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
@@ -273,7 +278,9 @@ const ws = new WorkflowStep('superbot_help_request', {
         await updateHelpRequestDescription(jiraId, {
             ...helpRequest,
             slackLink: permaLink
-        })
+        });
+
+        complete();
     },
 });
 
