@@ -127,7 +127,9 @@ function extractJiraIdFromBlocks(blocks) {
         viewOnJiraText = blocks[4].elements[0].text
     }
 
-    return extractProjectRegex.exec(viewOnJiraText)[1]
+    project = extractProjectRegex.exec(viewOnJiraText);
+
+    return (project) ? project[1] : 'undefined';
 }
 
 function extraJiraId(text) {
