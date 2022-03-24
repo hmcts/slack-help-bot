@@ -181,7 +181,7 @@ async function createHelpRequest({
             result = await createHelpRequestInJira(summary, project, systemUser, labels);
         } catch (n_err) {
             // error we don't know about, should probably log.
-            console.log("Error creating help request in jira", JSON.stringify(n_err))
+            console.log("Error creating help request in jira", JSON.stringify(n_err));
         }
     }
 
