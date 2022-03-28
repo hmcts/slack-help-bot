@@ -176,11 +176,11 @@ async function createHelpRequest({
     // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
     const result = await createHelpRequestInJira(summary, project, user, labels);
 
-    if (result && !result.key) {
+    if (!result.key) {
         // in case the user doesn't exist in Jira use the system user
         result = await createHelpRequestInJira(summary, project, systemUser, labels);
 
-        if (result && !result.key) {
+        if (!result.key) {
             console.log("Error creating help request in jira", JSON.stringify(result));
         }
     }
