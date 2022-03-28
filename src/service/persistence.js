@@ -170,26 +170,19 @@ async function createHelpRequest({
                                  }) {
     const user = convertEmail(userEmail)
 
-    const project = await jira.getProject(jiraProject)
+    const project = await jira.getProject(jiraProject);
 
     // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-post
     // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
-    let result
-    try {
-        result = await createHelpRequestInJira(summary, project, user, labels);
-    } catch (err) {
-        try {
-            // in case the user doesn't exist in Jira use the system user
-            result = await createHelpRequestInJira(summary, project, systemUser, labels);
-        } catch (n_err) {
-            // error we don't know about, should probably log.
+    let result = await createHelpRequestInJira(summary, project, user, labels);
+
+    if (!result.key) {
+        // in case the user doesn't exist in Jira use the system user
+        result = await createHelpRequestInJira(summary, project, systemUser, labels);
+
+        if (!result.key) {
             console.log("Error creating help request in jira", JSON.stringify(n_err));
         }
-    }
-
-    if (!result.key)
-    {
-        console.log("Failed to create help request in jira", JSON.stringify(result));
     }
 
     return result.key
