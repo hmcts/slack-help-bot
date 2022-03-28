@@ -236,12 +236,7 @@ const ws = new WorkflowStep('superbot_help_request', {
                 `area-${inputs.area.value.toLowerCase().replace(' ', '-')}`,
                 `team-${inputs.team.value.toLowerCase().replace(' ', '-')}`
             ]
-        })
-
-        if (!jiraId) {
-            console.log("Posting help request to Jira Failed.");
-            fail();
-        }
+        });
 
         const result = await client.chat.postMessage({
             channel: reportChannel,
