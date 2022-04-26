@@ -35,6 +35,16 @@ function extractSlackLinkFromText(text) {
     return regexResult[1]
 }
 
+function stringTrim(string, maxLength) {
+    const truncationMessage = '... [Truncated] see Jira for rest of message.';
+
+    if (string.length >= maxLength) {
+        return string.slice(0, maxLength - truncationMessage.length).concat(truncationMessage);
+    } else {
+        return string;
+    }
+}
+
 function helpRequestRaised({
                                user,
                                summary,
@@ -144,14 +154,14 @@ function helpRequestDetails(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": `:spiral_note_pad: Description: ${description}`,
+                "text": stringTrim(`:spiral_note_pad: Description: ${description}`, 3000),
             }
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": `:thinking_face: Analysis: ${analysis}`,
+                "text": stringTrim(`:thinking_face: Analysis: ${analysis}`, 3000),
             }
         },
     ]
