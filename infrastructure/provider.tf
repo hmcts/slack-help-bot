@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 0.14.5"
+  required_version = "~> 0.15.0"
   backend "azurerm" {}
   required_providers {
     azurerm = {
