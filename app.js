@@ -3,6 +3,9 @@ const setupSecrets = require('./src/setupSecrets');
 // must be called before any config.get calls
 setupSecrets.setup();
 
+// Slack message generator functions, each of these return a JSON object valid
+// for use with slack's block framework. These can then be used to post forms
+// and formatted messages within slack: https://api.slack.com/block-kit
 const {
     appHomeUnassignedIssues,
     extractSlackLinkFromText,
@@ -16,8 +19,15 @@ const {
     resolveHelpRequestBlocks,
     helpRequestDocumentation,
 } = require("./src/messages");
+
+// Import slack's Bolt API. This is the primary way the bot communicates with
+// slack: https://api.slack.com/bolt
 const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
+
+// Jira functions. These are wrapper functions for the jira-client npm package
+// which itself is a wrapper around Jira's REST API:
+// https://www.npmjs.com/package/jira-client
 const {
     addCommentToHelpRequest,
     assignHelpRequest,
@@ -30,10 +40,17 @@ const {
     updateHelpRequestDescription,
     getIssueDescription, markAsDuplicate
 } = require("./src/service/persistence");
-const appInsights = require('./src/modules/appInsights')
 
+// Import and enable Azure AppInsights. Instrumentation key can be configured
+// using the APP_INSIGHTS_INSTRUMENTATION_KEY environment variable. In prod,
+// this reports to cft-platform-prod. If running locally, consider reporting
+// to cft-platform-sbox
+const appInsights = require('./src/modules/appInsights')
 appInsights.enableAppInsights()
 
+// Create slack bolt app. Bot token and app token can be configured using the
+// SLACK_BOT_TOKEN and SLACK_APP_TOKEN environment variables. See README.md for
+// details on how to set up a bot and obtain these tokens.
 const app = new App({
     token: config.get('slack.bot_token'), //disable this if enabling OAuth in socketModeReceiver
     // logLevel: LogLevel.DEBUG,
@@ -41,14 +58,19 @@ const app = new App({
     socketMode: true,
 });
 
+// Set the channel the bot will post messages to. Unfortunately couldn't find
+// a way to look up the channel id via the API, so it must be provided here as
+// well. These can be configured using the SLACK_REPORT_CHANNEL and
+// SLACK_REPORT_CHANNEL_ID environment variables. In slack, the channel id can
+// be found by right-clicking the channel name in the sidebar and clicking
+// 'Open channel details'. The channel ID can then be found at the bottom of
+// the popup.
 const reportChannel = config.get('slack.report_channel');
-// can't find an easy way to look this up via API unfortunately :(
 const reportChannelId = config.get('slack.report_channel_id');
 
-//////////////////////////////////
-//// Setup health check page /////
-//////////////////////////////////
-
+// Set up health and readiness pages, this is a simple node server that reports
+// basic runtime info about the bot. Can be accessed by visiting localhost:3000
+// in your browser while running the bot locally
 const http = require('http');
 const { report } = require('process');
 const port = process.env.PORT || 3000
@@ -100,26 +122,17 @@ server.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
 
-//////////////////////////
-//// Setup Slack Bolt ////
-//////////////////////////
-
+// Start the slack bolt app
 (async () => {
     await app.start();
     console.log('⚡️ Bolt app started');
 })();
 
+// New slack workflow for the slack-help-bot. Workflow steps are fully
+// managed by code but must be integrated into a slack workflow via the
+// workflow builder.
+// TODO: https://tools.hmcts.net/jira/browse/DTSPO-7541
 const ws = new WorkflowStep('superbot_help_request', {
-    ////////////////////////////////////
-    ////  New workflow for SuperBot ////
-    ////////////////////////////////////
-    //// This can be added directly ////
-    ////  into the workflow builder ////
-    ////   in Slack, just give the  ////
-    ////  user a form or something  ////
-    ////     to fill out first.     ////
-    ////////////////////////////////////
-
     edit: async ({ ack, step, configure }) => {
         // Called when the workflow step is
         // added/edited in the Slack workflow
@@ -156,7 +169,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         const team_check = values.team_check_block.team_check_input;
         const user = values.user_block.user_input;
 
-        // skip_variable_replacement does something,
+        // skip_variable_replacement does something we don't want,
         // I honestly can't tell from slack's documentation.
         const inputs = {
             summary: {
@@ -202,16 +215,25 @@ const ws = new WorkflowStep('superbot_help_request', {
         await update({ inputs, outputs });
     },
     execute: async ({ step, complete, fail, client }) => {
+        // Called when the workflow step is
+        // invoked by somebody from inside of
+        // slack. This is the workflow step
+        // responsible for actually doing things.
 
         const { inputs } = step;
         console.log("Slack workflow has been executed: " + JSON.stringify(inputs));
 
         const user = inputs.user.value;
 
+        // Find the email of the ticket reporter. This is used to find their
+        // Jira account so they can be listed as the reporter when the ticket
+        // is created. If a user with that email is not found, the ticket
+        // reporter is set to the defailt: 'Generic RW'
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email
 
+        // Generate the help request object 
         const helpRequest = {
             user,
             summary: inputs.summary.value || "None",
@@ -224,13 +246,14 @@ const ws = new WorkflowStep('superbot_help_request', {
             analysis: inputs.alsys.value
         }
 
+        // Create the help request ticket in Jira and get the ticket id.
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
         // check if API is up-to-date
         const jiraId = await createHelpRequest({
             summary: helpRequest.summary,
             userEmail,
-            // Jira labels go here, can't contain spaces btw
-            // TODO: Put this in a function?
+            // Jira labels go here, these can't contain spaces so we substitute
+            // them for '-' characters
             // TODO: Add more labels?
             labels: [
                 `area-${inputs.area.value.toLowerCase().replace(' ', '-')}`,
@@ -238,6 +261,8 @@ const ws = new WorkflowStep('superbot_help_request', {
             ]
         });
 
+        // Send the 'help request raised' message to the report channel,
+        // pointing it to the Jira ticket we created
         const result = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
@@ -252,6 +277,7 @@ const ws = new WorkflowStep('superbot_help_request', {
             console.log("An error occurred when posting to Slack: " + JSON.stringify(result));
         }
 
+        // Send the details of the help request in a reply to the first message
         const response = await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
@@ -265,11 +291,13 @@ const ws = new WorkflowStep('superbot_help_request', {
             return;
         }
 
+        // Get a link to the slack thread we just created
         const permaLink = (await client.chat.getPermalink({
             channel: result.channel,
             'message_ts': result.message.ts
         })).permalink
 
+        // Update the Jira ticket to point to the slack thread
         await updateHelpRequestDescription(jiraId, {
             ...helpRequest,
             slackLink: permaLink
@@ -320,7 +348,9 @@ app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, clien
     await ack();
 });
 
-// Global Shortcut example
+// Old method of raising the help request form using slack shortcuts instead of
+// workflow steps. Shortcut is still active in slack, but should be removed.
+
 // setup global shortcut in App config with `launch_shortcut` as callback id
 // add `commands` scope
 app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
@@ -346,11 +376,9 @@ function extractLabels(values) {
     return [area, team];
 }
 
+// 'Old' method of creating the help request once the form has been submitted.
+// This uses app views instead of slack workflows which are now preferred.
 app.view('create_help_request', async ({ ack, body, view, client }) => {
-    ////////////////////////////////////////////////////////////
-    //// SuperBot: This entry point isn't used anymore, but ////
-    ////           we can keep it around just in case :)    ////
-    ////////////////////////////////////////////////////////////
 
     // Acknowledge the view_submission event
     await ack();
@@ -497,17 +525,23 @@ function extractSummaryFromBlocks(blocks) {
     return blocks[0].text.text
 }
 
+// Callback triggered when someone clicks the 'Take it' button on a help
+// request message posted by the bot.
 app.action('assign_help_request_to_me', async ({
     body, action, ack, client, context
 }) => {
     try {
         await ack();
 
+        // Get the Jira id from the help request message posted to slack
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+
+        // Get the email of the user from their slack profile
         const userEmail = (await client.users.profile.get({
             user: body.user.id
         })).profile.email
 
+        // Assign the help request in Jira to the user who clicked the button
         await assignHelpRequest(jiraId, userEmail)
 
         const blocks = body.message.blocks
@@ -516,6 +550,8 @@ app.action('assign_help_request_to_me', async ({
         // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
         // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
 
+        // Update the Message in slack to reflect that someone is now assigned
+        // to the help request
         await client.chat.update({
             channel: body.channel.id,
             ts: body.message.ts,
@@ -528,20 +564,27 @@ app.action('assign_help_request_to_me', async ({
 
 })
 
+// Callback triggered when someone clicks the 'Resolve' button on a help
+// request message posted by the bot.
 app.action('resolve_help_request', async ({
     body, action, ack, client, context, payload
 }) => {
     try {
         await ack();
 
-        // Trigger IDs have a short lifespan, so process them first
+        // Trigger IDs have a short lifespan, so process them first; show the
+        // ticket closure form to the user who clicked the button.
         await client.views.open({
             trigger_id: body.trigger_id,
             view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
         });
 
+        // Get the Jira id from the help request message posted to slack
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
+        // Transitions the Jira ticket from 'In Progress' to 'Done'
+        // The transition ID taken can be configured with the
+        // JIRA_DONE_TRANSITION_ID environment variable
         await resolveHelpRequest(jiraId)
 
         const blocks = body.message.blocks
@@ -560,6 +603,8 @@ app.action('resolve_help_request', async ({
 
         blocks[2].fields[0].text = "Status :snowflake:\n Done"
 
+        // Update the message in slack to reflect that the help request is now
+        // resolved.
         await client.chat.update({
             channel: body.channel.id,
             ts: body.message.ts,
@@ -573,6 +618,8 @@ app.action('resolve_help_request', async ({
     }
 });
 
+// Callback triggered when someone submits the documentation form for a
+// resolved help request
 app.view('document_help_request', async ({ ack, body, view, client }) => {
     try{
         await ack();
@@ -585,6 +632,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             how: body.view.state.values.how_block.how.value,
         };
 
+        // Post a message containing the documentation the user entered
         await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: body.view.private_metadata,
@@ -596,15 +644,21 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
     }
 });
 
-
+// Callback triggered when someone clicks the 'Start' button on a help
+// request message posted by the bot.
 app.action('start_help_request', async ({
     body, action, ack, client, context
 }) => {
     try {
         await ack();
+
+        // Get the Jira id from the help request message posted to slack
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
-        await startHelpRequest(jiraId) // TODO add optional resolution comment
+        // Transitions the Jira ticket from its initial state to 'In Progress'
+        // The transition ID taken can be configured with the
+        // JIRA_START_TRANSITION_ID environment variable
+        await startHelpRequest(jiraId);
 
         const blocks = body.message.blocks
         // TODO less fragile block updating
@@ -622,6 +676,8 @@ app.action('start_help_request', async ({
 
         blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress"
 
+        // Update the message in slack to reflect that the help request is now
+        // in progress.
         await client.chat.update({
             channel: body.channel.id,
             ts: body.message.ts,
@@ -686,6 +742,8 @@ app.action('app_home_take_unassigned_issue', async ({
     }
 })
 
+// Callback triggered when someone selects a user from the drop-down menu on
+// a help request message posted by the bot.
 app.action('assign_help_request_to_user', async ({
     body, action, ack, client, context
 }) => {
@@ -694,15 +752,22 @@ app.action('assign_help_request_to_user', async ({
 
         const user = action.selected_user
 
+        // Get the Jira id from the help request message posted to slack
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+
+        // Get the email of the user selected in the drop-down menu from their
+        // slack profile
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email
 
+        // Assign the help request in Jira to the user selected in the menu
         await assignHelpRequest(jiraId, userEmail)
 
         const actor = body.user.id
 
+        // Notify the user that they have been assigned to the help request
+        // by the perso who selected them from the menu
         await client.chat.postMessage({
             channel: body.channel.id,
             thread_ts: body.message.ts,
