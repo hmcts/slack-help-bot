@@ -11,7 +11,7 @@
   "dependencies": {
     "@hmcts/properties-volume": "^0.0.13",
     "@slack/bolt": "^3.6.0",
-    "@types/config": "0.0.38",
+    "@types/config": "0.0.41",
     "@types/jira-client": "^6.21.2",
     "applicationinsights": "^2.2.2",
     "config": "^3.3.6",
