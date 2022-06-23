@@ -10,7 +10,6 @@ trigger:
     - main
 
 variables:
-  terraformVersion: 1.2.0
   timeoutInMinutes: 60
   agentPool: 'ubuntu-18.04'
   build: $(Build.BuildNumber)
@@ -68,5 +67,4 @@ stages:
                 project: ${{ variables.project }}
                 storageAccountName: ${{ parameter.storageAccountName }}
                 storageAccountRg: ${{ parameter.storageAccountRg }}
-                tfversion: ${{ variables.terraformVersion}}
                 serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
