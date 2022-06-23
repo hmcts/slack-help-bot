@@ -1,6 +1,8 @@
 steps:
   - task: TerraformInstaller@0
     displayName: Terraform install
+    inputs:
+      terraformVersion: ${{ parameters.tfversion }}
 
   - task: AzureCLI@2
     displayName: AzureServicePrincipalAuth
@@ -20,6 +22,7 @@ steps:
     displayName: terraform init
     inputs:
       command: init
+      terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: '$(System.DefaultWorkingDirectory)/infrastructure'
       backendType: azurerm
       backendServiceArm: ${{ parameters.serviceConnection }}
@@ -34,6 +37,7 @@ steps:
     displayName: terraform plan
     inputs:
       command: plan
+      terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
       commandOptions: '-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }} -var activity_name=${{ parameters.stack }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false'
@@ -52,6 +56,7 @@ steps:
     condition: and(succeeded(), eq(variables.isMaster, true), eq(variables['CheckFileChanges.SOURCE_CODE_CHANGED'], 'true'))
     inputs:
       command: apply
+      terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
       commandOptions: '--auto-approve tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}'
