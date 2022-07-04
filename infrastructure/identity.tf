@@ -21,6 +21,7 @@ resource "azurerm_key_vault_access_policy" "implicit_managed_identity_access_pol
   certificate_permissions = [
     "Get",
     "List",
+    "ListIssuers",
   ]
 
   secret_permissions = [
