@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "jest": "29.0.2",
-    "jest-extended": "3.0.2"
+    "jest-extended": "3.1.0"
   },
   "jest": {
     "setupFilesAfterEnv": [
