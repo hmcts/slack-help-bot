@@ -16,7 +16,7 @@ variables:
   build: $(Build.BuildNumber)
   isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   connectedServiceName: DCD-CFT-Sandbox
-  keyVaultName: infra-vault-sandbox
+  keyVaultName: infra-vault-nonprod
   secretsFilter: azure-devops-token
   project: application
 
