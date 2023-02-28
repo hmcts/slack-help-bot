@@ -141,10 +141,12 @@ function convertEmail(email) {
         return systemUser
     }
 
-    return email.split('@')[0]
+    //TODO: justice.gov emails no longer match 1:1 with jura usernames, so this may fail post migration to justice.gov
+    return email.split('@')[0].replace(/[0-9]/g, '')
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
+    console.log(`Creating help request in jura for user: ${user}`)
     return await jira.addNewIssue({
         fields: {
             summary: summary,
