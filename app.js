@@ -540,34 +540,6 @@ app.action('resolve_help_request', async ({
             view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
         });
 
-        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-
-        await resolveHelpRequest(jiraId)
-
-        const blocks = body.message.blocks
-        // TODO less fragile block updating
-        blocks[6].elements[2] = {
-            "type": "button",
-            "text": {
-                "type": "plain_text",
-                "text": ":snow_cloud: Re-open",
-                "emoji": true
-            },
-            "style": "primary",
-            "value": "start_help_request",
-            "action_id": "start_help_request"
-        }
-
-        blocks[2].fields[0].text = "Status :snowflake:\n Done"
-
-        await client.chat.update({
-            channel: body.channel.id,
-            ts: body.message.ts,
-            text: 'New platform help request raised',
-            blocks: blocks
-        });
-
-
     } catch (error) {
         console.error(error);
     }
@@ -577,20 +549,57 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
     try{
         await ack();
 
-        //console.log(JSON.stringify(body, null, 2));
+        const helpRequestMessages = (await client.conversations.replies({
+            channel: reportChannelId,
+            ts: body.view.private_metadata,
+            limit: 200, // after a thread is 200 long we'll break but good enough for now
+        })).messages
 
-        const documentation = {
-            what: body.view.state.values.what_block.what.value,
-            where: body.view.state.values.where_block.where.value,
-            how: body.view.state.values.how_block.how.value,
-        };
+        if (helpRequestMessages.length > 0 && (
+            helpRequestMessages[0].text === 'New platform help request raised' ||
+            helpRequestMessages[0].text === 'Duplicate issue')
+        ) {
+            const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
-        await client.chat.postMessage({
-            channel: reportChannel,
-            thread_ts: body.view.private_metadata,
-            text: 'Platform help request documented',
-            blocks: helpRequestDocumentation(documentation)
-        });
+            await resolveHelpRequest(jiraId)
+
+            const blocks = helpRequestMessages[0].blocks
+            // TODO less fragile block updating
+            blocks[6].elements[2] = {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":snow_cloud: Re-open",
+                    "emoji": true
+                },
+                "style": "primary",
+                "value": "start_help_request",
+                "action_id": "start_help_request"
+            }
+
+            blocks[2].fields[0].text = "Status :snowflake:\n Done"
+
+            await client.chat.update({
+                channel: reportChannelId,
+                ts: body.view.private_metadata,
+                text: 'New platform help request raised',
+                blocks: blocks
+            });
+        
+            //console.log(JSON.stringify(body, null, 2));
+
+            const documentation = {
+                category:   body.view.state.values.category_block.category.selected_option.value,
+                how: body.view.state.values.how_block.how.value,
+            };
+
+            await client.chat.postMessage({
+                channel: reportChannel,
+                thread_ts: body.view.private_metadata,
+                text: 'Platform help request documented',
+                blocks: helpRequestDocumentation(documentation)
+            });
+        }
     } catch (error) {
         console.error(error);
     }

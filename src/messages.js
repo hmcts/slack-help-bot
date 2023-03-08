@@ -660,7 +660,7 @@ function resolveHelpRequestBlocks({thread_ts}) {
                 "block_id": "title_block",
                 "text": {
                     "type": "mrkdwn",
-                    "text": ":pencil: *Run into this problem often?*"
+                    "text": "*Run into this problem often?*"
                 }
             },
             {
@@ -674,36 +674,29 @@ function resolveHelpRequestBlocks({thread_ts}) {
             },
             {
                 "type": "input",
-                "block_id": "where_block",
+                "block_id": "category_block",
                 "element": {
-                    "type": "plain_text_input",
-                    "multiline": true,
-                    "action_id": "where",
+                    "type": "static_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Where did you look to identify the problem?"
-                    }
+                        "text": "Select an item",
+                        "emoji": true
+                    },
+                    "options": [
+                        option('Infrastructure issue'),
+                        option('Lack of documentation'),
+                        option('Lack of access'),
+                        option('Other issue'),
+                        option('Performance issue'),
+                        option('Security issue'),
+                        option('User error')
+                    ],
+                    "action_id": "category"
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": ":mag: Where?"
-                }
-            },
-            {
-                "type": "input",
-                "block_id": "what_block",
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "what",
-                    "multiline": true,
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "What was the underlying cause of the problem?\nWhat resources were affected?"
-                    }
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": ":exclamation: What?"
+                    "text": "What was the issue?",
+                    "emoji": true
                 }
             },
             {
@@ -715,13 +708,16 @@ function resolveHelpRequestBlocks({thread_ts}) {
                     "multiline": true,
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "How did you fix the problem?"
+                        "text": "Provide some details?"
                     }
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": ":bulb: How?"
-                }
+                    "text": ":bulb: How?\n (Provide some details)"
+                },
+                "optional": true
+       
+
             }
         ],
         "type": "modal",
@@ -733,27 +729,20 @@ function resolveHelpRequestBlocks({thread_ts}) {
 
 }
 
-function helpRequestDocumentation({where, what, how}) {
+function helpRequestDocumentation({category, how}) {
     return [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": ":pencil: *Help Provided:*"
+                "text": "*Help Provided:*"
             }
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": `:mag: *Where:* ${where}`
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": `:exclamation: *What:* ${what}`
+                "text": `:exclamation: *What:* ${category}`
             }
         },
         {
@@ -765,6 +754,8 @@ function helpRequestDocumentation({where, what, how}) {
         }
     ];
 }
+
+
 
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
