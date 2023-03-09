@@ -716,8 +716,6 @@ function resolveHelpRequestBlocks({thread_ts}) {
                     "text": ":bulb: How?\n (Provide some details)"
                 },
                 "optional": true
-       
-
             }
         ],
         "type": "modal",

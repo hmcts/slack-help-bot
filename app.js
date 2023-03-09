@@ -19,6 +19,7 @@ const {
 const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
 const {
+    addCommentToHelpRequestResolve,
     addCommentToHelpRequest,
     assignHelpRequest,
     createHelpRequest,
@@ -587,11 +588,20 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             });
         
             //console.log(JSON.stringify(body, null, 2));
+            console.log(body.view.state.values.category_block.category.selected_option)
 
             const documentation = {
                 category:   body.view.state.values.category_block.category.selected_option.value,
                 how: body.view.state.values.how_block.how.value,
             };
+
+            /*await addCommentToHelpRequest(jiraId, {
+                slackLink,
+                name,
+                message: newTargetText
+            })*/
+            
+            await addCommentToHelpRequestResolve(jiraId, documentation)
 
             await client.chat.postMessage({
                 channel: reportChannel,

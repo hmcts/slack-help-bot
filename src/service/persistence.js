@@ -1,6 +1,6 @@
 const JiraApi = require('jira-client');
 const config = require('config')
-const {createComment, mapFieldsToDescription} = require("./jiraMessages");
+const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
 
 const systemUser = config.get('jira.username')
 
@@ -213,12 +213,21 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
     }
 }
 
+async function addCommentToHelpRequestResolve(externalSystemId, { category, how} ) {
+    try {
+        await jira.addComment(externalSystemId, createResolveComment({category, how}))
+    } catch (err) {
+        console.log("Error creating comment in jira", err)
+    }
+}
+
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
+module.exports.addCommentToHelpRequestResolve = addCommentToHelpRequestResolve
 module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
