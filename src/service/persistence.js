@@ -221,6 +221,21 @@ async function addCommentToHelpRequestResolve(externalSystemId, { category, how}
     }
 }
 
+async function addLabel(externalSystemId, { category} ) {
+    try {
+        await jira.updateIssue(externalSystemId, {
+            update: {
+                labels: [{
+                    add: `resolution-${category.toLowerCase().replaceAll(' ', '-')}`
+                }]
+            }
+        })
+    } catch(err) {
+        console.log("Error updating help request description in jira", err)
+    }
+}
+
+
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
@@ -228,6 +243,7 @@ module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
 module.exports.addCommentToHelpRequestResolve = addCommentToHelpRequestResolve
+module.exports.addLabel = addLabel
 module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks

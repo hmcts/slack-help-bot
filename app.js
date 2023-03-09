@@ -21,6 +21,7 @@ const crypto = require('crypto')
 const {
     addCommentToHelpRequestResolve,
     addCommentToHelpRequest,
+    addLabel,
     assignHelpRequest,
     createHelpRequest,
     extraJiraId,
@@ -596,6 +597,8 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             };
 
             await addCommentToHelpRequestResolve(jiraId, documentation)
+            
+            await addLabel(jiraId, documentation)
 
             await client.chat.postMessage({
                 channel: reportChannel,
