@@ -753,8 +753,6 @@ function helpRequestDocumentation({category, how}) {
     ];
 }
 
-
-
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
