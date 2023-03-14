@@ -146,7 +146,7 @@ function convertEmail(email) {
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
-    console.log(`Creating help request in jura for user: ${user}`)
+    console.log(`Creating help request in Jira for user: ${user}`)
     return await jira.addNewIssue({
         fields: {
             summary: summary,
