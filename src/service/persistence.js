@@ -141,7 +141,7 @@ function convertEmail(email) {
         return systemUser
     }
 
-    //TODO: justice.gov emails no longer match 1:1 with jura usernames, so this may fail post migration to justice.gov
+    // TODO: justice.gov emails no longer match 1:1 with Jira usernames, so this may fail post migration to justice.gov.uk, this hack mostly works but if there are multiple people with the same name this could cause issues.
     return email.split('@')[0].replace(/[0-9]/g, '')
 }
 
