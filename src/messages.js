@@ -48,8 +48,11 @@ function stringTrim(string, maxLength) {
 function helpRequestRaised({
                                user,
                                summary,
+                               priority,
                                environment,
-                               prBuildUrl,
+                               references,
+                               replicateSteps,
+                               testAccount,
                                jiraId
                            }) {
     return [
@@ -72,6 +75,10 @@ function helpRequestRaised({
                 },
                 {
                     "type": "mrkdwn",
+                    "text": `*Priority* :rotating_light: \n ${priority}`
+                },
+                {
+                    "type": "mrkdwn",
                     "text": `*Reporter* :man-surfing: \n <@${user}>`
                 },
                 {
@@ -85,7 +92,7 @@ function helpRequestRaised({
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": `*PR / build URLs* :link: \n${prBuildUrl}`
+                    "text": `*Jira/ServiceNow references* :pencil: \n${references}`
                 }
             ]
         },
@@ -286,7 +293,7 @@ function openHelpRequestBlocks() {
     return {
         "title": {
             "type": "plain_text",
-            "text": "Platform help request"
+            "text": "ExUI Support request"
         },
         "submit": {
             "type": "plain_text",
@@ -301,7 +308,7 @@ function openHelpRequestBlocks() {
                     "action_id": "title",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Short description of the issue"
+                        "text": "Brief description of the issue"
                     }
                 },
                 "label": {
@@ -312,18 +319,42 @@ function openHelpRequestBlocks() {
             {
                 "type": "input",
                 "block_id": "urls",
-                "optional": true,
+                "block_id": "priority",
                 "element": {
-                    "type": "plain_text_input",
-                    "action_id": "title",
+                    "type": "static_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Link to any build or pull request"
+                        "text": "Standard priority classification",
+                        "emoji": true
+                    },
+                    "options": [
+                        option('Highest'),
+                        option('High'),
+                        option('Medium'),
+                        option('Low'),
+                    ],
+                    "action_id": "priority"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Priority",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "references",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "references",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Related SNOW / JIRA References..."
                     }
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "PR / build URLs"
+                    "text": "References"
                 }
             },
             {
@@ -355,38 +386,6 @@ function openHelpRequestBlocks() {
             },
             {
                 "type": "input",
-                "block_id": "area",
-                "element": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select an item",
-                        "emoji": true
-                    },
-                    "options": [
-                        option("AKS"),
-                        option("Azure"),
-                        option("Azure DevOps", "azure-devops"),
-                        option("Database read", "DBQuery"),
-                        option("Database update", "DBUpdate"),
-                        option("Elasticsearch"),
-                        option("GitHub"),
-                        option("Jenkins"),
-                        option("Other"),
-                        option("Question"),
-                        option("SSL"),
-                        option("VPN"),
-                    ],
-                    "action_id": "area"
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Which area do you need help in?",
-                    "emoji": true
-                }
-            },
-            {
-                "type": "input",
                 "block_id": "description",
                 "element": {
                     "type": "plain_text_input",
@@ -396,6 +395,38 @@ function openHelpRequestBlocks() {
                 "label": {
                     "type": "plain_text",
                     "text": "Issue description",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "replicateSteps",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": true,
+                    "action_id": "replicateSteps"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Steps to replicate",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "testAccount",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": false,
+                    "action_id": "testAccount",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Username / Password used to replicate issue"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Test account",
                     "emoji": true
                 }
             },
@@ -461,28 +492,7 @@ function openHelpRequestBlocks() {
                     "emoji": true
                 }
             },
-            {
-                "type": "input",
-                "block_id": "checked_with_team",
-                "element": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select an item",
-                        "emoji": true
-                    },
-                    "options": [
-                        option('No'),
-                        option('Yes')
-                    ],
-                    "action_id": "checked_with_team"
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Have you checked with your team?",
-                    "emoji": true
-                }
-            },
+            
         ],
         "type": "modal",
         callback_id: 'create_help_request'
