@@ -683,7 +683,7 @@ function resolveHelpRequestBlocks({thread_ts}) {
                         "emoji": true
                     },
                     "options": [
-                        option('External (Github/Azure/Sonacloud) issue'),
+                        option('External (GitHub/Azure/SonarCloud) issue'),
                         option('Lack of access'),
                         option('Lack of documentation'),
                         option('User did not do enough troubleshooting'),
