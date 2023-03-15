@@ -1,12 +1,12 @@
 {
-  "name": "slack-help-bot",
+  "name": "xui-slack-help-bot",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Platform Operations",
+  "author": "Expert UI",
   "license": "MIT",
   "dependencies": {
     "@hmcts/properties-volume": "^0.0.14",
