@@ -683,13 +683,12 @@ function resolveHelpRequestBlocks({thread_ts}) {
                         "emoji": true
                     },
                     "options": [
-                        option('Infrastructure issue'),
-                        option('Lack of documentation'),
+                        option('External (Github/Azure/Sonacloud) issue'),
                         option('Lack of access'),
-                        option('Other issue'),
-                        option('Performance issue'),
-                        option('Security issue'),
-                        option('User error')
+                        option('Lack of documentation'),
+                        option('User did not go through documentation'),
+                        option('User error'),
+                        option('Other')
                     ],
                     "action_id": "category"
                 },
