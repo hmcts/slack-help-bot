@@ -1,6 +1,6 @@
 const JiraApi = require('jira-client');
 const config = require('config')
-const {createComment, mapFieldsToDescription} = require("./jiraMessages");
+const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
 
 const systemUser = config.get('jira.username')
 
@@ -141,10 +141,12 @@ function convertEmail(email) {
         return systemUser
     }
 
-    return email.split('@')[0]
+    // TODO: justice.gov emails no longer match 1:1 with Jira usernames, so this may fail post migration to justice.gov.uk, this hack mostly works but if there are multiple people with the same name this could cause issues.
+    return email.split('@')[0].replace(/[0-9]/g, '')
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
+    console.log(`Creating help request in Jira for user: ${user}`)
     return await jira.addNewIssue({
         fields: {
             summary: summary,
@@ -211,12 +213,37 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
     }
 }
 
+async function addCommentToHelpRequestResolve(externalSystemId, { category, how} ) {
+    try {
+        await jira.addComment(externalSystemId, createResolveComment({category, how}))
+    } catch (err) {
+        console.log("Error creating comment in jira", err)
+    }
+}
+
+async function addLabel(externalSystemId, { category} ) {
+    try {
+        await jira.updateIssue(externalSystemId, {
+            update: {
+                labels: [{
+                    add: `resolution-${category.toLowerCase().replaceAll(' ', '-')}`
+                }]
+            }
+        })
+    } catch(err) {
+        console.log("Error updating help request description in jira", err)
+    }
+}
+
+
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
+module.exports.addCommentToHelpRequestResolve = addCommentToHelpRequestResolve
+module.exports.addLabel = addLabel
 module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
