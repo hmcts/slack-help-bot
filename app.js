@@ -85,7 +85,7 @@ const server = http.createServer((req, res) => {
         }
         res.end('OK');
     } else if (req.url === '/health/readiness') {
-        res.end(`<h1>slack-help-bot</h1>`)
+        res.end(`<h1>xui-slack-help-bot</h1>`)
     } else if (req.url === '/health/error') {
         // Dummy error page
         res.statusCode = 500;
