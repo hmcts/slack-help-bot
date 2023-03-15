@@ -686,7 +686,7 @@ function resolveHelpRequestBlocks({thread_ts}) {
                         option('External (Github/Azure/Sonacloud) issue'),
                         option('Lack of access'),
                         option('Lack of documentation'),
-                        option('User did not go through documentation'),
+                        option('User did not do enough troubleshooting'),
                         option('User error'),
                         option('Other')
                     ],
