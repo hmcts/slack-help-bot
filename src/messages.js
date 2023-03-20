@@ -683,6 +683,7 @@ function resolveHelpRequestBlocks({thread_ts}) {
                         "emoji": true
                     },
                     "options": [
+                        option('Application code/config issue'),
                         option('External (GitHub/Azure/SonarCloud) issue'),
                         option('Lack of access'),
                         option('Lack of documentation'),
