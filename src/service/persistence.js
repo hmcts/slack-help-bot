@@ -158,7 +158,8 @@ async function createHelpRequestInJira(summary, project, user, labels) {
             description: undefined,
             reporter: {
                 name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
-            }
+            },
+            customfield_10004: 0 // default story point to 0
         }
     });
 }
