@@ -687,8 +687,10 @@ function resolveHelpRequestBlocks({thread_ts}) {
                         option('External (GitHub/Azure/SonarCloud) issue'),
                         option('Lack of access'),
                         option('Lack of documentation'),
+                        option('Platform issue'),
                         option('User did not do enough troubleshooting'),
                         option('User error'),
+                        option('Working as per design'),
                         option('Other')
                     ],
                     "action_id": "category"
