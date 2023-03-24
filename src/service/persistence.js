@@ -212,23 +212,12 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
     }
 }
 
-async function addAttachmentToHelpRequest(jiraId, attachmentFile, attachmentFilename) {
-    await jira.addAttachmentOnIssue(jiraId, attachmentFile, { filename: attachmentFilename })
-        .then(response => {
-            console.log(`Attachment added to ${jiraId} successfully!`);
-        })
-        .catch(error => {
-            console.error("Error adding attachment:", error);
-        });
-}
-
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
-module.exports.addAttachmentToHelpRequest = addAttachmentToHelpRequest
 module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
