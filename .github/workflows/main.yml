@@ -32,7 +32,7 @@ jobs:
 
       - name: "Get Short Sha Hash"
         id: get-short-sha
-        uses: actions/github-script@v6.4.0
+        uses: actions/github-script@v6.4.1
         with:
           script: |
             const shortSha = context.sha.substring(0, 7)
