@@ -3,6 +3,7 @@ slack:
   app_token: SLACK_APP_TOKEN
   report_channel: SLACK_REPORT_CHANNEL
   report_channel_id: SLACK_REPORT_CHANNEL_ID
+  feedback_channel_id: SLACK_FEEDBACK_CHANNEL_ID
 
 jira:
   start_transition_id: JIRA_START_TRANSITION_ID
