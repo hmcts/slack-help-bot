@@ -12,7 +12,7 @@ trigger:
 variables:
   terraformVersion: 1.3.9
   timeoutInMinutes: 60
-  agentPool: 'ubuntu-18.04'
+  agentPool: 'ubuntu-latest'
   build: $(Build.BuildNumber)
   isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   connectedServiceName: DCD-CFT-Sandbox
