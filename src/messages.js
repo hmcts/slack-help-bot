@@ -349,7 +349,7 @@ function openHelpRequestBlocks() {
                     "action_id": "references",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Related SNOW / JIRA References..."
+                        "text": "Related JIRA References..."
                     }
                 },
                 "label": {
@@ -467,6 +467,7 @@ function openHelpRequestBlocks() {
                         option('Ethos'),
                         option('Evidence Management', 'evidence'),
                         option('Expert UI', 'xui'),
+                        option('Fee & Pay'),
                         option('Financial Remedy', 'finrem'),
                         option('FPLA'),
                         option('Family Private Law', 'FPRL'),
