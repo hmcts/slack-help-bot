@@ -7,6 +7,10 @@ const {
     appHomeUnassignedIssues,
     extractSlackLinkFromText,
     extractSlackMessageIdFromText,
+    extractUserIDFromText,
+    feedback,
+    feedbackForm,
+    feedbackMessageBlocks,
     helpRequestDetails,
     helpRequestRaised,
     openHelpRequestBlocks,
@@ -53,6 +57,7 @@ const reportChannelId = config.get('slack.report_channel_id');
 
 const http = require('http');
 const { report } = require('process');
+const str = require("lodash");
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
@@ -583,14 +588,57 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             text: 'New platform help request raised',
             blocks: blocks
         });
-        
+
+        const reporterUserID = extractUserIDFromText(blocks[2].fields[1].text)
+
+        await client.chat.postMessage({
+            channel: reporterUserID,
+            blocks: feedback({jiraId: jiraId}),
+            text: `${jiraId} Resolved - Leave feedback`
+        })
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+
+app.action('feedback_request', async ({
+                                          body,
+                                          action,
+                                          ack,
+                                          client,
+                                          context,
+                                          payload
+                                          }) => {
+    try {
+        await ack();
+
+        // Trigger IDs have a short lifespan, so process them first
+        await client.views.open({
+            trigger_id: body.trigger_id,
+            view: feedbackForm({thread_ts: body.message.ts}),
+        });
+
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.view('document_help_request', async ({ ack, body, view, client }) => {
+    try{
+        await ack();
+
+        //console.log(JSON.stringify(body, null, 2));
+
         const documentation = {
             category:   body.view.state.values.category_block.category.selected_option.value,
             how: body.view.state.values.how_block.how.value,
         };
 
         await addCommentToHelpRequestResolve(jiraId, documentation)
-            
+
         await addLabel(jiraId, documentation)
 
         await client.chat.postMessage({
@@ -599,6 +647,38 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             text: 'Platform help request documented',
             blocks: helpRequestDocumentation(documentation)
         });
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.view('submit_feedback_form', async ({ ack, body, view, client }) => {
+    try{
+        await ack();
+
+        const isAnonymousFeedback = body.view.state.values.anonymous.stay_anonymous_radio.selected_option.value
+        const user = body.user.id
+
+        let feedbackText = body.view.state.values.submit_feedback.feedback_text.value
+        feedbackText = feedbackText.replace(/^/gm, '> ')
+
+
+
+
+        // Post feedback to channel
+        await client.chat.postMessage({
+            channel: config.get('slack.feedback_channel_id'),
+            text: "PlatOps Feedback Received",
+            blocks: feedbackMessageBlocks({feedback_text: feedbackText, anonymous: isAnonymousFeedback, user: user})
+        });
+
+        // Confirm feedback has been sent
+        await client.chat.postMessage({
+            channel: body.user.id,
+            thread_ts: view.private_metadata,
+            text: "Your feedback has been submitted",
+        });
+
     } catch (error) {
         console.error(error);
     }

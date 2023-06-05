@@ -10,6 +10,8 @@ const slackChannelId = config.get('slack.report_channel_id')
 const slackMessageIdRegex = new RegExp(`${slackChannelId}\/(.*)\\|`)
 
 const slackLinkRegex = /view in Slack\|(https:\/\/.+slack\.com.+)]/
+const UserIDRegex = /<@(.*)>/
+
 
 function extractSlackMessageIdFromText(text) {
     if (text === undefined) {
@@ -17,6 +19,18 @@ function extractSlackMessageIdFromText(text) {
     }
 
     const regexResult = slackMessageIdRegex.exec(text);
+    if (regexResult === null) {
+        return undefined
+    }
+    return regexResult[1]
+}
+
+function extractUserIDFromText(text) {
+    if (text === undefined) {
+        return undefined
+    }
+
+    const regexResult = UserIDRegex.exec(text);
     if (regexResult === null) {
         return undefined
     }
@@ -755,6 +769,162 @@ function helpRequestDocumentation({category, how}) {
     ];
 }
 
+function feedback({jiraId}) {
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": `${jiraId} is now resolved :snowflake:`,
+                "emoji": true
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Would you like to send us some feedback about your PlatOps-help experience? Just click the `Leave Feedback` button below.\n\n_If you would prefer to leave feedback anonymously you can_ :ninja:"
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "actions",
+            "block_id": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Leave feedback",
+                        "emoji": true
+                    },
+                    "style": "primary",
+                    "value": "feedback_request",
+                    "action_id": "feedback_request"
+                }
+            ]
+        },
+        {
+            "type": "divider"
+        }
+    ]
+}
+
+function feedbackForm({thread_ts}) {
+    return {
+        "title": {
+            "type": "plain_text",
+            "text": "Send feedback"
+        },
+        "submit": {
+            "type": "plain_text",
+            "text": "Submit Feedback"
+        },
+        "blocks": [
+            {
+                "type": "input",
+                "block_id": "submit_feedback",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": true,
+                    "action_id": "feedback_text"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Leave feedback:",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "divider"
+            },
+            {
+                "type": "input",
+                "block_id": "anonymous",
+                "element": {
+                    "type": "radio_buttons",
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": ":ninja: Stay anonymous",
+                                "emoji": true
+                            },
+                            "value": "true"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": ":star2: Let us know who you are so we can get back to you or keep you updated with any actions we take",
+                                "emoji": true
+                            },
+                            "value": "false"
+                        }
+                    ],
+                    "action_id": "stay_anonymous_radio"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Want to stay anonymous?",
+                    "emoji": true
+                }
+            }
+        ],
+        "type": "modal",
+        "callback_id": 'submit_feedback_form',
+        // We use the private_metadata field to smuggle the ts of the thread
+        // into the form so the bot knows where to reply when the form is submitted
+        "private_metadata": `${thread_ts}`,
+
+    }
+}
+
+function feedbackMessageBlocks({feedback_text, anonymous, user}) {
+    let contextBody
+
+    if (anonymous === "true") {
+        contextBody = "Anonymous submission :ninja:"
+    } else {
+        contextBody = `Submitted by <@${user}>`
+    }
+
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "PlatOps-Help feedback :speech_balloon:",
+                "emoji": true
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "block_id": "feedback_text_block",
+            "text": {
+                "type": "mrkdwn",
+                "text": `${feedback_text}`
+            }
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": contextBody
+                }
+            ]
+        }
+    ]
+}
+
 module.exports.appHomeUnassignedIssues = appHomeUnassignedIssues;
 module.exports.unassignedOpenIssue = unassignedOpenIssue;
 module.exports.helpRequestRaised = helpRequestRaised;
@@ -766,3 +936,7 @@ module.exports.superBotMessageBlocks = superBotMessageBlocks;
 module.exports.duplicateHelpRequest = duplicateHelpRequest;
 module.exports.resolveHelpRequestBlocks = resolveHelpRequestBlocks;
 module.exports.helpRequestDocumentation = helpRequestDocumentation;
+module.exports.extractUserIDFromText = extractUserIDFromText;
+module.exports.feedback = feedback;
+module.exports.feedbackForm = feedbackForm;
+module.exports.feedbackMessageBlocks = feedbackMessageBlocks;
