@@ -467,7 +467,7 @@ function openHelpRequestBlocks() {
                         option('Ethos'),
                         option('Evidence Management', 'evidence'),
                         option('Expert UI', 'xui'),
-                        option('Fee & Pay'),
+                        option('Fee & Pay', 'feeAndPay'),
                         option('Financial Remedy', 'finrem'),
                         option('FPLA'),
                         option('Family Private Law', 'FPRL'),
