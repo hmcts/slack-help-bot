@@ -9,7 +9,7 @@
   "author": "Platform Operations",
   "license": "MIT",
   "dependencies": {
-    "@hmcts/properties-volume": "^0.0.14",
+    "@hmcts/properties-volume": "^1.0.0",
     "@slack/bolt": "^3.6.0",
     "@types/config": "3.3.0",
     "@types/jira-client": "^7.0.0",
