@@ -104,7 +104,7 @@ async function searchForUnassignedOpenIssues() {
 }
 
 async function assignHelpRequest(issueId, email) {
-    const user = convertEmail(email)
+    const user = await convertEmail(email)
 
     try {
         await jira.updateAssignee(issueId, user)
@@ -136,13 +136,22 @@ function extraJiraId(text) {
     return extractProjectRegex.exec(text)[1]
 }
 
-function convertEmail(email) {
+async function convertEmail(email) {
     if (!email) {
         return systemUser
     }
 
-    // TODO: justice.gov emails no longer match 1:1 with Jira usernames, so this may fail post migration to justice.gov.uk, this hack mostly works but if there are multiple people with the same name this could cause issues.
-    return email.split('@')[0].replace(/[0-9]/g, '')
+    try {
+        res = await jira.searchUsers(options = {
+            username: email,
+            maxResults: 1
+        })
+
+        return res[0].name
+    } catch(ex) {
+        console.log("Querying username failed: " + ex)
+        return systemUser
+    }
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
@@ -170,7 +179,7 @@ async function createHelpRequest({
                                      userEmail,
                                      labels
                                  }) {
-    const user = convertEmail(userEmail)
+    const user = await convertEmail(userEmail)
 
     const project = await jira.getProject(jiraProject);
 
