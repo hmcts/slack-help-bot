@@ -172,6 +172,7 @@ async function createHelpRequest({
     const user = convertEmail(userEmail)
 
     const project = await jira.getProject(jiraProject);
+    console.log(`Preparing to create in project ${jiraProject}/${project.id}, issue id ${issueTypeId}, issue name ${issueTypeName}`);
 
     // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-post
     // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
