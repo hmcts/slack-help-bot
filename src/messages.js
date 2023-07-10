@@ -478,6 +478,7 @@ function openHelpRequestBlocks() {
                         option('Immigration and Asylum', 'iac'),
                         option('Other'),
                         option('Private Law','private-law'),
+                        option('Probate'),
                         option('Reference Data', 'refdata'),
                         option('Reform Software Engineering', 'reform-software-engineering'),
                         option('Security Operations or Secure design', 'security'),
