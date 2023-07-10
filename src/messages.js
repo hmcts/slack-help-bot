@@ -475,6 +475,7 @@ function openHelpRequestBlocks() {
                         option('HMI'),
                         option('Management Information', 'mi'),
                         option('IDAM'),
+                        option('Immigration and Asylum', 'iac'),
                         option('Other'),
                         option('Private Law','private-law'),
                         option('Reference Data', 'refdata'),
