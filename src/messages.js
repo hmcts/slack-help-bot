@@ -46,12 +46,15 @@ function stringTrim(string, maxLength) {
 }
 
 function helpRequestRaised({
-                               user,
-                               summary,
-                               environment,
-                               prBuildUrl,
-                               jiraId
-                           }) {
+    user,
+    summary,
+    priority,
+    environment,
+    references,
+    replicateSteps,
+    testAccount,
+    jiraId
+}) {
     return [
         {
             "type": "section",
@@ -72,6 +75,10 @@ function helpRequestRaised({
                 },
                 {
                     "type": "mrkdwn",
+                    "text": `*Priority* :rotating_light: \n ${priority}`
+                },
+                {
+                    "type": "mrkdwn",
                     "text": `*Reporter* :man-surfing: \n <@${user}>`
                 },
                 {
@@ -85,7 +92,7 @@ function helpRequestRaised({
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": `*PR / build URLs* :link: \n${prBuildUrl}`
+                    "text": `*Jira/ServiceNow references* :pencil: \n${references}`
                 }
             ]
         },
@@ -168,12 +175,12 @@ function helpRequestDetails(
 }
 
 function unassignedOpenIssue({
-                                 summary,
-                                 slackLink,
-                                 jiraId,
-                                 created,
-                                 updated
-                             }) {
+    summary,
+    slackLink,
+    jiraId,
+    created,
+    updated
+}) {
     const link = slackLink ? slackLink : convertJiraKeyToUrl(jiraId)
 
     return [
@@ -230,7 +237,7 @@ function unassignedOpenIssue({
                 }
             ]
         },
-        ]
+    ]
 }
 
 function appHomeUnassignedIssues(openIssueBlocks) {
@@ -286,7 +293,7 @@ function openHelpRequestBlocks() {
     return {
         "title": {
             "type": "plain_text",
-            "text": "Platform help request"
+            "text": "F&P Support request"
         },
         "submit": {
             "type": "plain_text",
@@ -301,7 +308,7 @@ function openHelpRequestBlocks() {
                     "action_id": "title",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Short description of the issue"
+                        "text": "Brief description of the issue"
                     }
                 },
                 "label": {
@@ -312,18 +319,42 @@ function openHelpRequestBlocks() {
             {
                 "type": "input",
                 "block_id": "urls",
-                "optional": true,
+                "block_id": "priority",
                 "element": {
-                    "type": "plain_text_input",
-                    "action_id": "title",
+                    "type": "static_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Link to any build or pull request"
+                        "text": "Standard priority classification",
+                        "emoji": true
+                    },
+                    "options": [
+                        option('Highest'),
+                        option('High'),
+                        option('Medium'),
+                        option('Low'),
+                    ],
+                    "action_id": "priority"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Priority",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "references",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "references",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Related JIRA References..."
                     }
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "PR / build URLs"
+                    "text": "References"
                 }
             },
             {
@@ -355,38 +386,6 @@ function openHelpRequestBlocks() {
             },
             {
                 "type": "input",
-                "block_id": "area",
-                "element": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select an item",
-                        "emoji": true
-                    },
-                    "options": [
-                        option("AKS"),
-                        option("Azure"),
-                        option("Azure DevOps", "azure-devops"),
-                        option("Database read", "DBQuery"),
-                        option("Database update", "DBUpdate"),
-                        option("Elasticsearch"),
-                        option("GitHub"),
-                        option("Jenkins"),
-                        option("Other"),
-                        option("Question"),
-                        option("SSL"),
-                        option("VPN"),
-                    ],
-                    "action_id": "area"
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Which area do you need help in?",
-                    "emoji": true
-                }
-            },
-            {
-                "type": "input",
                 "block_id": "description",
                 "element": {
                     "type": "plain_text_input",
@@ -396,6 +395,38 @@ function openHelpRequestBlocks() {
                 "label": {
                     "type": "plain_text",
                     "text": "Issue description",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "replicateSteps",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": true,
+                    "action_id": "replicateSteps"
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Steps to replicate",
+                    "emoji": true
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "testAccount",
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": false,
+                    "action_id": "testAccount",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Username / Password used to replicate issue"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "Test account",
                     "emoji": true
                 }
             },
@@ -436,6 +467,7 @@ function openHelpRequestBlocks() {
                         option('Ethos'),
                         option('Evidence Management', 'evidence'),
                         option('Expert UI', 'xui'),
+                        option('Fee & Pay', 'feeAndPay'),
                         option('Financial Remedy', 'finrem'),
                         option('FPLA'),
                         option('Family Private Law', 'FPRL'),
@@ -461,28 +493,7 @@ function openHelpRequestBlocks() {
                     "emoji": true
                 }
             },
-            {
-                "type": "input",
-                "block_id": "checked_with_team",
-                "element": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select an item",
-                        "emoji": true
-                    },
-                    "options": [
-                        option('No'),
-                        option('Yes')
-                    ],
-                    "action_id": "checked_with_team"
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Have you checked with your team?",
-                    "emoji": true
-                }
-            },
+            
         ],
         "type": "modal",
         callback_id: 'create_help_request'
@@ -611,12 +622,13 @@ function superBotMessageBlocks(inputs) {
         },
     ];
 }
+
 function duplicateHelpRequest({
-                                  summary,
-                                  parentJiraId,
-                                  parentSlackUrl,
-                                  currentIssueJiraId,
-                              }) {
+    summary,
+    parentJiraId,
+    parentSlackUrl,
+    currentIssueJiraId,
+}) {
     return [
         {
             type: "section",
@@ -660,7 +672,7 @@ function resolveHelpRequestBlocks({thread_ts}) {
                 "block_id": "title_block",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Run into this problem often?*"
+                    "text": ":pencil: *Run into this problem often?*"
                 }
             },
             {
@@ -674,31 +686,36 @@ function resolveHelpRequestBlocks({thread_ts}) {
             },
             {
                 "type": "input",
-                "block_id": "category_block",
+                "block_id": "where_block",
                 "element": {
-                    "type": "static_select",
+                    "type": "plain_text_input",
+                    "multiline": true,
+                    "action_id": "where",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Select an item",
-                        "emoji": true
-                    },
-                    "options": [
-                        option('Application code/config issue'),
-                        option('External (GitHub/Azure/SonarCloud) issue'),
-                        option('Lack of access'),
-                        option('Lack of documentation'),
-                        option('Platform issue'),
-                        option('User did not do enough troubleshooting'),
-                        option('User error'),
-                        option('Working as per design'),
-                        option('Other')
-                    ],
-                    "action_id": "category"
+                        "text": "Where did you look to identify the problem?"
+                    }
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "What was the issue?",
-                    "emoji": true
+                    "text": ":mag: Where?"
+                }
+            },
+            {
+                "type": "input",
+                "block_id": "what_block",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "what",
+                    "multiline": true,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "What was the underlying cause of the problem?\nWhat resources were affected?"
+                    }
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": ":exclamation: What?"
                 }
             },
             {
@@ -710,14 +727,13 @@ function resolveHelpRequestBlocks({thread_ts}) {
                     "multiline": true,
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Provide some details?"
+                        "text": "How did you fix the problem?"
                     }
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": ":bulb: How?\n (Provide some details)"
-                },
-                "optional": true
+                    "text": ":bulb: How?"
+                }
             }
         ],
         "type": "modal",
@@ -729,20 +745,27 @@ function resolveHelpRequestBlocks({thread_ts}) {
 
 }
 
-function helpRequestDocumentation({category, how}) {
+function helpRequestDocumentation({where, what, how}) {
     return [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Help Provided:*"
+                "text": ":pencil: *Help Provided:*"
             }
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": `:exclamation: *What:* ${category}`
+                "text": `:mag: *Where:* ${where}`
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `:exclamation: *What:* ${what}`
             }
         },
         {

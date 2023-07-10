@@ -87,7 +87,7 @@ const server = http.createServer((req, res) => {
         }
         res.end('OK');
     } else if (req.url === '/health/readiness') {
-        res.end(`<h1>slack-help-bot</h1>`)
+        res.end(`<h1>ccpay-slack-help-bot</h1>`)
     } else if (req.url === '/health/error') {
         // Dummy error page
         res.statusCode = 500;
@@ -219,11 +219,11 @@ const ws = new WorkflowStep('superbot_help_request', {
             summary: inputs.summary.value || "None",
             environment: inputs.env.value || "None",
             team: inputs.team.value || "None",
-            area: inputs.area.value || "None",
-            prBuildUrl: inputs.build.value || "None",
             description: inputs.desc.value,
-            checkedWithTeam: inputs.team_check.value,
-            analysis: inputs.alsys.value
+            analysis: inputs.alsys.value,
+            replicateSteps: inputs.replicateSteps.value,
+            testAccount: inputs.testAccount.value,
+            references: inputs.references.value
         }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
@@ -343,9 +343,9 @@ app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client })
 });
 
 function extractLabels(values) {
+    const priority = `priority-${values.priority.priority.selected_option.value}`
     const team = `team-${values.team.team.selected_option.value}`
-    const area = `area-${values.area.area.selected_option.value}`
-    return [area, team];
+    return [priority, team];
 }
 
 app.view('create_help_request', async ({ ack, body, view, client }) => {
@@ -368,11 +368,13 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
         const helpRequest = {
             user,
             summary: view.state.values.summary.title.value,
+            priority: view.state.values.priority.priority.selected_option.text.text,
+            references: view.state.values.references?.references?.value || "None",
             environment: view.state.values.environment.environment.selected_option?.text.text || "None",
-            prBuildUrl: view.state.values.urls?.title?.value || "None",
             description: view.state.values.description.description.value,
-            checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
             analysis: view.state.values.analysis.analysis.value,
+            replicateSteps: view.state.values.replicateSteps.replicateSteps.value,
+            testAccount: view.state.values.testAccount.testAccount.value,
         }
 
         const jiraId = await createHelpRequest({
@@ -383,7 +385,7 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
 
         const result = await client.chat.postMessage({
             channel: reportChannel,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: helpRequestRaised({
                 ...helpRequest,
                 jiraId
@@ -393,7 +395,7 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
         await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: helpRequestDetails(helpRequest)
         });
 
@@ -585,7 +587,8 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
         });
         
         const documentation = {
-            category:   body.view.state.values.category_block.category.selected_option.value,
+            what: body.view.state.values.what_block.what.value,
+            where: body.view.state.values.where_block.where.value,
             how: body.view.state.values.how_block.how.value,
         };
 
@@ -632,7 +635,7 @@ app.action('start_help_request', async ({
         await client.chat.update({
             channel: body.channel.id,
             ts: body.message.ts,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: blocks
         });
     } catch (error) {
@@ -775,7 +778,7 @@ app.event('message', async ({ event, context, client, say }) => {
             })).messages
 
             if (helpRequestMessages.length > 0 && (
-                helpRequestMessages[0].text === 'New platform help request raised' ||
+                helpRequestMessages[0].text === 'New support request raised' ||
                 helpRequestMessages[0].text === 'Duplicate issue')
             ) {
                 const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)

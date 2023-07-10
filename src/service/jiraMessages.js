@@ -7,18 +7,18 @@ function optionalField(prefix, value) {
 
 function mapFieldsToDescription(
     {
-        prBuildUrl,
+        replicateSteps,
+        references,
+        testAccount,
         environment,
         description,
         analysis,
-        checkedWithTeam,
         slackLink
     }) {
     return `
 h6. _This is an automatically generated ticket created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
-${optionalField('PR / build URLs', prBuildUrl)}
-
+${optionalField('SNOW/Jira References', references)}
 
 ${optionalField('Environment', environment)}
 
@@ -26,9 +26,15 @@ ${optionalField('Environment', environment)}
 
 ${description}
 
-*Analysis done so far*: ${analysis}
+*Steps to replicate*
 
-*Have you checked with your team?*: ${checkedWithTeam}
+${replicateSteps}
+
+*Test Account*: ${testAccount}
+
+*Analysis done so far*: 
+${analysis}
+
 `
 }
 
@@ -41,12 +47,12 @@ ${message}
 `
 }
 
-function createResolveComment({category, how}) {
+function createResolveComment({what, how}) {
 return `
 h6. _Ticket resolved - see documented resolution:_
 
 h6. Issue type: 
-${category}
+${what}
 
 h6. How it was resolved: 
 ${how}

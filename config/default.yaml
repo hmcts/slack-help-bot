@@ -16,4 +16,4 @@ jira:
 
 app_insights:
   #instrumentation_key: no default
-  role_name: platops-slack-help-bot
+  role_name: ccpay-slack-help-bot
