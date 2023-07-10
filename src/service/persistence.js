@@ -225,9 +225,9 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
     }
 }
 
-async function addCommentToHelpRequestResolve(externalSystemId, { category, how} ) {
+async function addCommentToHelpRequestResolve(externalSystemId, { what, where, how} ) {
     try {
-        await jira.addComment(externalSystemId, createResolveComment({category, how}))
+        await jira.addComment(externalSystemId, createResolveComment({what, where, how}))
     } catch (err) {
         console.log("Error creating comment in jira", err)
     }

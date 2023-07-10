@@ -47,12 +47,15 @@ ${message}
 `
 }
 
-function createResolveComment({what, how}) {
+function createResolveComment({what, where, how}) {
 return `
 h6. _Ticket resolved - see documented resolution:_
 
 h6. Issue type: 
 ${what}
+
+h6. Where the issue was:
+${where}
 
 h6. How it was resolved: 
 ${how}
