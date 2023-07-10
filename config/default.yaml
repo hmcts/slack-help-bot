@@ -1,7 +1,7 @@
 # defaults are setup for the platform engineering slack workspace
 slack:
-  #bot_token: no default
-  #app_token: no default
+  # bot_token: no default
+  # app_token: no default
   report_channel: bot-test
   report_channel_id: C01KHKNJUKE
 
@@ -11,9 +11,9 @@ jira:
   project: SBOX
   issue_type_name: Bug
   issue_type_id: 10900
-  #username: no default
-  #api_token: no default
+  # username: no default
+  # api_token: no default
 
 app_insights:
-  #instrumentation_key: no default
+  # instrumentation_key: no default
   role_name: ccpay-slack-help-bot

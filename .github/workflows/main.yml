@@ -28,7 +28,6 @@ jobs:
           cache: 'npm'
       - name: npm install
         run: npm install
-      # End of  setup
 
       - name: "Get Short Sha Hash"
         id: get-short-sha
