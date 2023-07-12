@@ -18,7 +18,7 @@ function mapFieldsToDescription(
     return `
 h6. _This is an automatically generated ticket created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
-${optionalField('SNOW/JIRA References', references)}
+${optionalField('SNow/Jira References', references)}
 
 ${optionalField('Environment', environment)}
 
@@ -47,5 +47,21 @@ ${message}
 `
 }
 
+function createResolveComment({what, where, how}) {
+return `
+h6. _Ticket resolved - see documented resolution:_
+
+h6. Issue type: 
+${what}
+
+h6. Where the issue was:
+${where}
+
+h6. How it was resolved: 
+${how}
+`
+}
+
 module.exports.mapFieldsToDescription = mapFieldsToDescription
 module.exports.createComment = createComment
+module.exports.createResolveComment = createResolveComment

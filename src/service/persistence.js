@@ -1,6 +1,6 @@
 const JiraApi = require('jira-client');
 const config = require('config')
-const {createComment, mapFieldsToDescription} = require("./jiraMessages");
+const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
 
 const systemUser = config.get('jira.username')
 
@@ -104,7 +104,7 @@ async function searchForUnassignedOpenIssues() {
 }
 
 async function assignHelpRequest(issueId, email) {
-    const user = convertEmail(email)
+    const user = await convertEmail(email)
 
     try {
         await jira.updateAssignee(issueId, user)
@@ -136,15 +136,26 @@ function extraJiraId(text) {
     return extractProjectRegex.exec(text)[1]
 }
 
-function convertEmail(email) {
+async function convertEmail(email) {
     if (!email) {
         return systemUser
     }
 
-    return email.split('@')[0]
+    try {
+        res = await jira.searchUsers(options = {
+            username: email,
+            maxResults: 1
+        })
+
+        return res[0].name
+    } catch(ex) {
+        console.log("Querying username failed: " + ex)
+        return systemUser
+    }
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
+    console.log(`Creating help request in Jira for user: ${user}`)
     return await jira.addNewIssue({
         fields: {
             summary: summary,
@@ -169,16 +180,18 @@ async function createHelpRequest({
                                      userEmail,
                                      labels
                                  }) {
-    const user = convertEmail(userEmail)
+    const user = await convertEmail(userEmail)
 
     const project = await jira.getProject(jiraProject);
     console.log(`Preparing to create in project ${jiraProject}/${project.id}, issue id ${issueTypeId}, issue name ${issueTypeName}`);
 
     // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-post
     // note: fields don't match 100%, our Jira version is a bit old (still a supported LTS though)
-    let result = await createHelpRequestInJira(summary, project, user, labels);
 
-    if (!result.key) {
+    let result
+    try {
+        result = await createHelpRequestInJira(summary, project, user, labels);
+    } catch(err) {
         // in case the user doesn't exist in Jira use the system user
         result = await createHelpRequestInJira(summary, project, systemUser, labels);
 
@@ -213,12 +226,37 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
     }
 }
 
+async function addCommentToHelpRequestResolve(externalSystemId, { what, where, how} ) {
+    try {
+        await jira.addComment(externalSystemId, createResolveComment({what, where, how}))
+    } catch (err) {
+        console.log("Error creating comment in jira", err)
+    }
+}
+
+async function addLabel(externalSystemId, { category} ) {
+    try {
+        await jira.updateIssue(externalSystemId, {
+            update: {
+                labels: [{
+                    add: `resolution-${category.toLowerCase().replaceAll(' ', '-')}`
+                }]
+            }
+        })
+    } catch(err) {
+        console.log("Error updating help request description in jira", err)
+    }
+}
+
+
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
 module.exports.createHelpRequest = createHelpRequest
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest
+module.exports.addCommentToHelpRequestResolve = addCommentToHelpRequestResolve
+module.exports.addLabel = addLabel
 module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks

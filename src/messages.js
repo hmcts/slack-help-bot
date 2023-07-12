@@ -46,15 +46,15 @@ function stringTrim(string, maxLength) {
 }
 
 function helpRequestRaised({
-                               user,
-                               summary,
-                               priority,
-                               environment,
-                               references,
-                               replicateSteps,
-                               testAccount,
-                               jiraId
-                           }) {
+    user,
+    summary,
+    priority,
+    environment,
+    references,
+    replicateSteps,
+    testAccount,
+    jiraId
+}) {
     return [
         {
             "type": "section",
@@ -75,7 +75,7 @@ function helpRequestRaised({
                 },
                 {
                     "type": "mrkdwn",
-                    "text": `*Priority* :rotating_light: \n ${priority}`
+                    "text": `*Priority* :chart_with_upwards_trend: \n ${priority}`
                 },
                 {
                     "type": "mrkdwn",
@@ -175,12 +175,12 @@ function helpRequestDetails(
 }
 
 function unassignedOpenIssue({
-                                 summary,
-                                 slackLink,
-                                 jiraId,
-                                 created,
-                                 updated
-                             }) {
+    summary,
+    slackLink,
+    jiraId,
+    created,
+    updated
+}) {
     const link = slackLink ? slackLink : convertJiraKeyToUrl(jiraId)
 
     return [
@@ -237,7 +237,7 @@ function unassignedOpenIssue({
                 }
             ]
         },
-        ]
+    ]
 }
 
 function appHomeUnassignedIssues(openIssueBlocks) {
@@ -349,7 +349,7 @@ function openHelpRequestBlocks() {
                     "action_id": "references",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Related JIRA References..."
+                        "text": "Related Jira References..."
                     }
                 },
                 "label": {
@@ -456,6 +456,7 @@ function openHelpRequestBlocks() {
                     },
                     "options": [
                         option('Access Management', 'am'),
+                        option('Adoption'),
                         option('Architecture'),
                         option('Bulk scan', 'bulkscan'),
                         option('Bulk print', 'bulkprint'),
@@ -475,8 +476,10 @@ function openHelpRequestBlocks() {
                         option('HMI'),
                         option('Management Information', 'mi'),
                         option('IDAM'),
+                        option('Immigration and Asylum', 'iac'),
                         option('Other'),
                         option('Private Law','private-law'),
+                        option('Probate'),
                         option('Reference Data', 'refdata'),
                         option('Reform Software Engineering', 'reform-software-engineering'),
                         option('Security Operations or Secure design', 'security'),
@@ -622,12 +625,13 @@ function superBotMessageBlocks(inputs) {
         },
     ];
 }
+
 function duplicateHelpRequest({
-                                  summary,
-                                  parentJiraId,
-                                  parentSlackUrl,
-                                  currentIssueJiraId,
-                              }) {
+    summary,
+    parentJiraId,
+    parentSlackUrl,
+    currentIssueJiraId,
+}) {
     return [
         {
             type: "section",
