@@ -75,7 +75,7 @@ function helpRequestRaised({
                 },
                 {
                     "type": "mrkdwn",
-                    "text": `*Priority* :rotating_light: \n ${priority}`
+                    "text": `*Priority* :chart_with_upwards_trend: \n ${priority}`
                 },
                 {
                     "type": "mrkdwn",
@@ -349,7 +349,7 @@ function openHelpRequestBlocks() {
                     "action_id": "references",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Related JIRA References..."
+                        "text": "Related Jira References..."
                     }
                 },
                 "label": {

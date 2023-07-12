@@ -18,7 +18,7 @@ function mapFieldsToDescription(
     return `
 h6. _This is an automatically generated ticket created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
-${optionalField('SNOW/Jira References', references)}
+${optionalField('SNow/Jira References', references)}
 
 ${optionalField('Environment', environment)}
 
