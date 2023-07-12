@@ -21,7 +21,6 @@ const crypto = require('crypto')
 const {
     addCommentToHelpRequestResolve,
     addCommentToHelpRequest,
-    addLabel,
     assignHelpRequest,
     createHelpRequest,
     extraJiraId,
@@ -241,7 +240,7 @@ const ws = new WorkflowStep('superbot_help_request', {
 
         const result = await client.chat.postMessage({
             channel: reportChannel,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: helpRequestRaised({
                 ...helpRequest,
                 jiraId
@@ -256,7 +255,7 @@ const ws = new WorkflowStep('superbot_help_request', {
         const response = await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: result.message.ts,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: helpRequestDetails(helpRequest)
         });
 
@@ -426,7 +425,7 @@ app.event('app_mention', async ({ event, context, client, say }) => {
                 limit: 200, // after a thread is 200 long we'll break but good enough for now
             })).messages
 
-            if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New platform help request raised') {
+            if (helpRequestMessages.length > 0 && helpRequestMessages[0].text === 'New support request raised') {
                 if (event.text.includes('help')) {
                     const usageMessage = `Hi <@${event.user}>, here is what I can do:
 \`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID`
@@ -484,7 +483,7 @@ app.event('app_mention', async ({ event, context, client, say }) => {
 
                 } else {
                     await say({
-                        text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
+                        text: `Hi <@${event.user}>, if you want to escalate a request please tag \`cc-payments\`, to see what else I can do reply back with \`help\``,
                         thread_ts: event.thread_ts
                     });
                 }
@@ -522,7 +521,7 @@ app.action('assign_help_request_to_me', async ({
         await client.chat.update({
             channel: body.channel.id,
             ts: body.message.ts,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: blocks
         });
     } catch (error) {
@@ -581,7 +580,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
         await client.chat.update({
             channel: reportChannelId,
             ts: body.view.private_metadata,
-            text: 'New platform help request raised',
+            text: 'New support request raised',
             blocks: blocks
         });
         
@@ -596,7 +595,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
         await client.chat.postMessage({
             channel: reportChannel,
             thread_ts: body.view.private_metadata,
-            text: 'Platform help request documented',
+            text: 'Support request documented',
             blocks: helpRequestDocumentation(documentation)
         });
     } catch (error) {
