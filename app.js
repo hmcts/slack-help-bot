@@ -19,6 +19,7 @@ const {
 const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
 const crypto = require('crypto')
 const {
+    addCommentToHelpRequestResolve,
     addCommentToHelpRequest,
     assignHelpRequest,
     createHelpRequest,
@@ -54,8 +55,6 @@ const { report } = require('process');
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
-    // TODO: Fix so that when App Insights key is not provided this doesn't fail
-    // appInsights.client().trackNodeHttpRequest({request: req, response: res});
     if (req.method !== 'GET') {
         res.statusCode = 405;
         res.end("error")
@@ -543,11 +542,26 @@ app.action('resolve_help_request', async ({
             view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
         });
 
-        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.view('document_help_request', async ({ ack, body, view, client }) => {
+    try{
+        await ack();
+
+        const helpRequestMessages = (await client.conversations.replies({
+            channel: reportChannelId,
+            ts: body.view.private_metadata,
+            limit: 200, // after a thread is 200 long we'll break but good enough for now
+        })).messages
+
+        const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
 
         await resolveHelpRequest(jiraId)
 
-        const blocks = body.message.blocks
+        const blocks = helpRequestMessages[0].blocks
         // TODO less fragile block updating
         blocks[6].elements[2] = {
             "type": "button",
@@ -564,29 +578,19 @@ app.action('resolve_help_request', async ({
         blocks[2].fields[0].text = "Status :snowflake:\n Done"
 
         await client.chat.update({
-            channel: body.channel.id,
-            ts: body.message.ts,
+            channel: reportChannelId,
+            ts: body.view.private_metadata,
             text: 'New support request raised',
             blocks: blocks
         });
-
-
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-app.view('document_help_request', async ({ ack, body, view, client }) => {
-    try{
-        await ack();
-
-        //console.log(JSON.stringify(body, null, 2));
-
+        
         const documentation = {
             what: body.view.state.values.what_block.what.value,
             where: body.view.state.values.where_block.where.value,
             how: body.view.state.values.how_block.how.value,
         };
+
+        await addCommentToHelpRequestResolve(jiraId, documentation)
 
         await client.chat.postMessage({
             channel: reportChannel,
@@ -598,7 +602,6 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
         console.error(error);
     }
 });
-
 
 app.action('start_help_request', async ({
     body, action, ack, client, context
