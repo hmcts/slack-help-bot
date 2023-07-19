@@ -156,7 +156,7 @@ async function convertEmail(email) {
 
 async function createHelpRequestInJira(summary, project, user, labels) {
     console.log(`Creating help request in Jira for user: ${user}`)
-    return await jira.addNewIssue({
+    const issue = await jira.addNewIssue({
         fields: {
             summary: summary,
             issuetype: {
@@ -173,6 +173,18 @@ async function createHelpRequestInJira(summary, project, user, labels) {
             customfield_10008: 'PAY-6381' // TODO: Probably make configurable
         }
     });
+
+    try {
+        await jira.transitionIssue(jiraId, {
+            transition: {
+                id: "251" // Move to "Up Next"
+            }
+        })
+    } catch (err) {
+        console.log("Unable to transition new issue", err)
+    }
+
+    return issue;
 }
 
 async function createHelpRequest({
