@@ -403,10 +403,6 @@ app.action('submit_help_request', async ({
 /////////////////////////////
 //// Setup App Homepage  ////
 /////////////////////////////
-//// I don't think we're ////
-//// actually using this ////
-/////////////////////////////
-
 // TODO: The 'unassigned open issues' and 'my issues' buttons both seem to be broken
 async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()
