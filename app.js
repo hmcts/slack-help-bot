@@ -129,8 +129,6 @@ function checkSlackResponseError(res, message) {
 })();
 
 // Main entry point for the workflow
-//TODO: Turn this back into a basic shortcut?
-//  We're not taking advantage of any of the features workflow steps provide
 const nws = new WorkflowStep('begin_help_request', {
     edit: async ({ ack, step, configure }) => {
         await ack()
@@ -435,11 +433,6 @@ async function reopenAppHome(client, userId) {
 // Publish a App Home
 app.event('app_home_opened', async ({ event, client }) => {
     await reopenAppHome(client, event.user);
-});
-
-// Message Shortcut example
-app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
-    await ack();
 });
 
 // TODO: Break this up into smaller blocks, we're handling every single
