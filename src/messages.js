@@ -14,6 +14,8 @@ const { helpRequestDocumentationBlocks } = require('./messages/helpRequestDocume
 const { appHomeMainBlocks } = require('./messages/appHomeMain')
 const { appHomeUnassignedOpenIssueBlocks } = require('./messages/appHomeUnassignedOpenIssue')
 
+const { configureWorkflowStepBlocks } = require('./messages/configureWorkflowStep')
+
 module.exports.helpFormGreetingBlocks = helpFormGreetingBlocks;
 module.exports.helpFormPlatoBlocks = helpFormPlatoBlocks;
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
@@ -27,3 +29,5 @@ module.exports.helpRequestDocumentationBlocks = helpRequestDocumentationBlocks;
 
 module.exports.appHomeUnassignedOpenIssueBlocks = appHomeUnassignedOpenIssueBlocks;
 module.exports.appHomeMainBlocks = appHomeMainBlocks;
+
+module.exports.configureWorkflowStepBlocks = configureWorkflowStepBlocks

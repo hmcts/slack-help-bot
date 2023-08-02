@@ -17,6 +17,8 @@ const {
 
     appHomeMainBlocks,
     appHomeUnassignedOpenIssueBlocks,
+
+    configureWorkflowStepBlocks
 } = require("./src/messages");
 
 const {
@@ -140,13 +142,14 @@ const nws = new WorkflowStep('begin_help_request', {
     save: async ({ ack, step, view, update, client }) => {
         await ack()
         console.log('Workflow step has been saved: ' + JSON.stringify(step))
+        console.log('Workflow step has been saved: ' + JSON.stringify(view))
 
         const { values } = view.state;
         const user = values.user_block.user_input
 
         const inputs = {
             user: {
-                value: user.value,
+                value: user.selected_user,
                 skip_variable_replacement: false
             },
         }
@@ -446,6 +449,8 @@ app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, clien
     await ack();
 });
 
+// TODO: Break this up into smaller blocks, we're handling every single
+// message interaction in this one function.
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
 app.event('app_mention', async ({ event, context, client, say }) => {
