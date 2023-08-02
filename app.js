@@ -570,7 +570,7 @@ app.action('resolve_help_request', async ({
 });
 
 app.view('document_help_request', async ({ ack, body, view, client }) => {
-    try{
+    try {
         await ack();
 
         const helpRequestMessages = (await client.conversations.replies({
@@ -606,19 +606,9 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             blocks: blocks
         });
 
-
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-app.view('document_help_request', async ({ ack, body, view, client }) => {
-    try {
-        await ack();
-
         const documentation = {
-            category:   body.view.state.values.category_block.category.selected_option.value,
-            how: body.view.state.values.how_block.how.value,
+            category: body.view.state.values.category_block.category.selected_option.value,
+            how:      body.view.state.values.how_block.how.value,
         };
 
         await addCommentToHelpRequestResolve(jiraId, documentation)

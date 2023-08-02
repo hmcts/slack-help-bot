@@ -1,4 +1,4 @@
-function helpRequestDocumentationBlocks({ where, what, how }) {
+function helpRequestDocumentationBlocks({ category, how }) {
     return [
         {
             "type": "section",
