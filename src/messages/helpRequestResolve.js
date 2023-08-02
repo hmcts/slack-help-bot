@@ -1,4 +1,4 @@
-const { option } = require('./util')
+const { optionBlock } = require('./util')
 
 function helpRequestResolveBlocks({ thread_ts }) {
     return {
@@ -39,15 +39,15 @@ function helpRequestResolveBlocks({ thread_ts }) {
                         "emoji": true
                     },
                     "options": [
-                        option('Application code/config issue'),
-                        option('External (GitHub/Azure/SonarCloud) issue'),
-                        option('Lack of access'),
-                        option('Lack of documentation'),
-                        option('Platform issue'),
-                        option('User did not do enough troubleshooting'),
-                        option('User error'),
-                        option('Working as per design'),
-                        option('Other')
+                        optionBlock('Application code/config issue'),
+                        optionBlock('External (GitHub/Azure/SonarCloud) issue'),
+                        optionBlock('Lack of access'),
+                        optionBlock('Lack of documentation'),
+                        optionBlock('Platform issue'),
+                        optionBlock('User did not do enough troubleshooting'),
+                        optionBlock('User error'),
+                        optionBlock('Working as per design'),
+                        optionBlock('Other')
                     ],
                     "action_id": "category"
                 },
