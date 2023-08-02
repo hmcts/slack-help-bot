@@ -134,15 +134,11 @@ function checkSlackResponseError(res, message) {
 const nws = new WorkflowStep('begin_help_request', {
     edit: async ({ ack, step, configure }) => {
         await ack()
-        console.log('Workflow step editor has been opened: ' + JSON.stringify(step))
-
         const blocks = configureWorkflowStepBlocks(step.inputs)
         await configure({ blocks })
     },
     save: async ({ ack, step, view, update, client }) => {
         await ack()
-        console.log('Workflow step has been saved: ' + JSON.stringify(step))
-        console.log('Workflow step has been saved: ' + JSON.stringify(view))
 
         const { values } = view.state;
         const user = values.user_block.user_input
@@ -159,9 +155,6 @@ const nws = new WorkflowStep('begin_help_request', {
     },
     execute: async ({ step, complete, fail, client }) => {
         try {
-            //TODO: we could make this execute whenever someone sends 'help' to the bot via DM
-            console.log('Workflow step executed: ' + JSON.stringify(step))
-    
             const { inputs } = step;
             const userId = inputs.user.value.replace(/<@|>/g, '')
     
@@ -203,7 +196,7 @@ app.action('show_plato_dialogue', async ({
             blocks: helpFormPlatoBlocks({ user: body.user.id, isAdvanced: false })
         })
 
-        checkSlackResponseError(postRes, "An error occured when posting a 'Chat to Plato' message")
+        checkSlackResponseError(postRes, "An error occurred when posting a 'Chat to Plato' message")
 
         // Edit button from last message
         const updateRes = await client.chat.update({
@@ -213,7 +206,7 @@ app.action('show_plato_dialogue', async ({
             blocks: helpFormGreetingBlocks({ user: body.user.id, isAdvanced: true })
         })
 
-        checkSlackResponseError(updateRes, "An error occured when updating a greeting message")
+        checkSlackResponseError(updateRes, "An error occurred when updating a greeting message")
 
     } catch (error) {
         console.error(error);
@@ -233,7 +226,7 @@ app.action('start_help_form', async ({
             blocks: helpFormMainBlocks({ user: body.user.id, isAdvanced: false })
         })
 
-        checkSlackResponseError(postRes, "An error occured when posting a help request form")
+        checkSlackResponseError(postRes, "An error occurred when posting a help request form")
 
         // Edit button from last message
         const updateRes = await client.chat.update({
@@ -243,7 +236,7 @@ app.action('start_help_form', async ({
             blocks: helpFormPlatoBlocks({ user: body.user.id, isAdvanced: true })
         })
 
-        checkSlackResponseError(updateRes, "An error occured when updating a 'Chat to Plato' message")
+        checkSlackResponseError(updateRes, "An error occurred when updating a 'Chat to Plato' message")
     } catch (error) {
         console.error(error);
     }
@@ -297,7 +290,7 @@ app.action('submit_help_request', async ({
             checkedWithTeam: values.team_check  ? values.team_check.selected_option  : blocks[10].element.initial_option,
         }
 
-        errorMessage = null;
+        let errorMessage = null;
 
         // prBuildUrl and analysis are optional, so don't mandate they be populated
         if (!helpRequest.summary) {
@@ -311,7 +304,7 @@ app.action('submit_help_request', async ({
             errorMessage = "Please specify what area you're experiencing problems with."
         } else if (!helpRequest.description) {
             errorMessage = "Please provide a description of your issue."
-        } else if (helpRequest.checkedWithTeam?.value !== 'true') {
+        } else if (!helpRequest.checkedWithTeam) {
             errorMessage = "Please check with your team before submitting a help request."
         }
 
@@ -329,7 +322,7 @@ app.action('submit_help_request', async ({
                 })
             })
 
-            checkSlackResponseError(res, "An error occured when updating an invalid ticket raising form")
+            checkSlackResponseError(res, "An error occurred when updating an invalid ticket raising form")
             return;
         } else {
             const updateRes = await client.chat.update({
@@ -344,7 +337,7 @@ app.action('submit_help_request', async ({
                 })
             })
 
-            checkSlackResponseError(updateRes, "An error occured when updating a valid ticket raising form")
+            checkSlackResponseError(updateRes, "An error occurred when updating a valid ticket raising form")
         }
 
         const userEmail = (await client.users.profile.get({
@@ -403,9 +396,9 @@ app.action('submit_help_request', async ({
             })
         })
 
-        checkSlackResponseError(goodbyeRes, "An error occured when posting a goodbye post to Slack")
+        checkSlackResponseError(goodbyeRes, "An error occurred when posting a goodbye post to Slack")
     } catch (error) {
-        console.error("An error occured when submitting a help form: " + error);
+        console.error("An error occurred when submitting a help form: " + error);
     }
 });
 
@@ -545,17 +538,18 @@ app.action('assign_help_request_to_me', async ({
         await ack();
 
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-        const userEmail = (await client.users.profile.get({
+
+        const userInfo = (await client.users.info({
             user: body.user.id
-        })).profile.email
+        }))
+
+        const userEmail = userInfo.user.profile.email
 
         await assignHelpRequest(jiraId, userEmail)
 
         const blocks = body.message.blocks
         const assignedToSection = blocks[6]
-        assignedToSection.elements[0].initial_user = body.user.id
-        // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
-        // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
+        assignedToSection.elements[0].initial_user = userInfo.user.enterprise_user.id
 
         await client.chat.update({
             channel: body.channel.id,
@@ -632,8 +626,6 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
 app.view('document_help_request', async ({ ack, body, view, client }) => {
     try {
         await ack();
-
-        //console.log(JSON.stringify(body, null, 2));
 
         const documentation = {
             category:   body.view.state.values.category_block.category.selected_option.value,

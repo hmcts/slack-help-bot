@@ -12,7 +12,7 @@ function helpFormGoodbyeBlocks({ helpRequestUrl }) {
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": `Thank you for submitting a help request with PlatOps.\n<${helpRequestUrl}|View your platform ticket>`
+				"text": `Thank you for submitting a help request with PlatOps.\n<${helpRequestUrl}|View your help request>`
 			}
 		}
     ]
