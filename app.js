@@ -608,7 +608,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
 
         const documentation = {
             category: body.view.state.values.category_block.category.selected_option.value,
-            how:      body.view.state.values.how_block.how.value,
+            how:      body.view.state.values.how_block.how.value || "N/A",
         };
 
         await addCommentToHelpRequestResolve(jiraId, documentation)
