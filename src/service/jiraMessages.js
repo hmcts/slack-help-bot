@@ -20,15 +20,15 @@ h6. _This is an automatically generated ticket created from Slack, do not reply 
 ${optionalField('PR / build URLs', prBuildUrl)}
 
 
-${optionalField('Environment', environment)}
+${optionalField('Environment', environment.text.text)}
 
 *Issue description*
 
 ${description}
 
-*Analysis done so far*: ${analysis}
+*Analysis done so far*: ${analysis ?? "None"}
 
-*Have you checked with your team?*: ${checkedWithTeam}
+*Have you checked with your team?*: ${checkedWithTeam.text.text}
 `
 }
 

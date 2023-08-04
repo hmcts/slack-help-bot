@@ -4,19 +4,29 @@ const setupSecrets = require('./src/setupSecrets');
 setupSecrets.setup();
 
 const {
-    appHomeUnassignedIssues,
+    helpFormGreetingBlocks,
+    helpFormPlatoBlocks,
+    helpFormMainBlocks,
+    helpFormGoodbyeBlocks,
+
+    helpRequestMainBlocks,
+    helpRequestDetailBlocks,
+    helpRequestDuplicateBlocks,
+    helpRequestResolveBlocks,
+    helpRequestDocumentationBlocks,
+
+    appHomeMainBlocks,
+    appHomeUnassignedOpenIssueBlocks,
+
+    configureWorkflowStepBlocks
+} = require("./src/messages");
+
+const {
     extractSlackLinkFromText,
     extractSlackMessageIdFromText,
-    helpRequestDetails,
-    helpRequestRaised,
-    openHelpRequestBlocks,
-    superBotMessageBlocks,
-    unassignedOpenIssue,
-    duplicateHelpRequest,
-    resolveHelpRequestBlocks,
-    helpRequestDocumentation,
-} = require("./src/messages");
-const { App, LogLevel, SocketModeReceiver, WorkflowStep } = require('@slack/bolt');
+} = require('./src/messages/util');
+
+const { App, LogLevel, SocketModeReceiver, WorkflowStep, WorkflowStepInitializationError } = require('@slack/bolt');
 const crypto = require('crypto')
 const {
     addCommentToHelpRequestResolve,
@@ -56,7 +66,7 @@ const { report } = require('process');
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
-    appInsights.client().trackNodeHttpRequest({request: req, response: res});
+    appInsights.client().trackNodeHttpRequest({ request: req, response: res });
     if (req.method !== 'GET') {
         res.statusCode = 405;
         res.end("error")
@@ -106,125 +116,231 @@ server.listen(port, () => {
 //// Setup Slack Bolt ////
 //////////////////////////
 
+// Standard way of checking a response from slack
+function checkSlackResponseError(res, message) {
+    if (!res.ok) {
+        throw new Error(message + ': ' + JSON.stringify(res))
+    }
+}
+
 (async () => {
     await app.start();
     console.log('⚡️ Bolt app started');
 })();
 
-const ws = new WorkflowStep('superbot_help_request', {
-    ////////////////////////////////////
-    ////  New workflow for SuperBot ////
-    ////////////////////////////////////
-    //// This can be added directly ////
-    ////  into the workflow builder ////
-    ////   in Slack, just give the  ////
-    ////  user a form or something  ////
-    ////     to fill out first.     ////
-    ////////////////////////////////////
-
+// Main entry point for the workflow
+const nws = new WorkflowStep('begin_help_request', {
     edit: async ({ ack, step, configure }) => {
-        // Called when the workflow step is
-        // added/edited in the Slack workflow
-        // builder. This is what generates the
-        // customization form when you click 'edit'
-        await ack();
-        console.log('Slack workflow editor has been opened: ' + JSON.stringify(step))
-
-        const blocks = superBotMessageBlocks(step.inputs);
-        await configure({ blocks });
+        await ack()
+        const blocks = configureWorkflowStepBlocks(step.inputs)
+        await configure({ blocks })
     },
     save: async ({ ack, step, view, update, client }) => {
-        // Called when the workflow step is
-        // saved in the Slack workflow
-        // builder. This is responsible for
-        // updating the inputs in this stage
-        // when 'save' is clicked on the 'edit'
-        // form
-        await ack();
+        await ack()
+
         const { values } = view.state;
-        
-        console.log('Slack workflow has been changed: ' + JSON.stringify(values));
+        const user = values.user_block.user_input
 
-        // names/paths of these values must match those in the
-        // 'action_id' and 'block_id' parameters in original form.
-        // See src/messages.js:superBotMessageBlocks(inputs)
-        const summary = values.summary_block.summary_input;
-        const env = values.env_block.env_input;
-        const team = values.team_block.team_input;
-        const area = values.area_block.area_input;
-        const build = values.build_block.build_input;
-        const desc = values.desc_block.desc_input;
-        const alsys = values.alsys_block.alsys_input;
-        const team_check = values.team_check_block.team_check_input;
-        const user = values.user_block.user_input;
-
-        // skip_variable_replacement does something,
-        // I honestly can't tell from slack's documentation.
         const inputs = {
-            summary: {
-                value: summary.value,
-                skip_variable_replacement: false
-            },
-            env: {
-                value: env.value,
-                skip_variable_replacement: false
-            },
-            team: {
-                value: team.value,
-                skip_variable_replacement: false
-            },
-            area: {
-                value: area.value,
-                skip_variable_replacement: false
-            },
-            build: {
-                value: build.value,
-                skip_variable_replacement: false
-            },
-            desc: {
-                value: desc.value,
-                skip_variable_replacement: false
-            },
-            alsys: {
-                value: alsys.value,
-                skip_variable_replacement: false
-            },
-            team_check: {
-                value: team_check.value,
-                skip_variable_replacement: false
-            },
             user: {
                 value: user.selected_user,
                 skip_variable_replacement: false
             },
-        };
+        }
+        const outputs = []
 
-        const outputs = [ ];
-
-        await update({ inputs, outputs });
+        await update({ inputs, outputs })
     },
     execute: async ({ step, complete, fail, client }) => {
+        try {
+            const { inputs } = step;
+            const userId = inputs.user.value.replace(/<@|>/g, '')
+    
+            const openDmResponse = await client.conversations.open({
+                users: userId,
+                return_im: true
+            })
 
-        const { inputs } = step;
-        console.log("Slack workflow has been executed: " + JSON.stringify(inputs));
+            const channelId = openDmResponse.channel.id;
+    
+            const postMessageResponse = await client.chat.postMessage({
+                channel: channelId,
+                text: "Hello!",
+                blocks: helpFormGreetingBlocks({ user: userId, isAdvanced: false })
+            })
 
-        const user = inputs.user.value;
+            checkSlackResponseError(postMessageResponse, "An error occurred when posting a direct message")
+    
+            await complete({})
+
+        } catch (error) {
+            console.error(error);
+            await fail()
+        }
+    }
+})
+
+app.step(nws)
+
+app.action('show_plato_dialogue', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack()
+        // Post 'Talk to Plato' message
+        const postRes = await client.chat.postMessage({
+            channel: body.channel.id,
+            text: "Chat to Plato",
+            blocks: helpFormPlatoBlocks({ user: body.user.id, isAdvanced: false })
+        })
+
+        checkSlackResponseError(postRes, "An error occurred when posting a 'Chat to Plato' message")
+
+        // Edit button from last message
+        const updateRes = await client.chat.update({
+            channel: body.channel.id,
+            ts: body.message.ts,
+            text: 'Hello!',
+            blocks: helpFormGreetingBlocks({ user: body.user.id, isAdvanced: true })
+        })
+
+        checkSlackResponseError(updateRes, "An error occurred when updating a greeting message")
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.action('start_help_form', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack()
+
+        // Post Ticket raising form
+        const postRes = await client.chat.postMessage({
+            channel: body.channel.id,
+            text: 'Raise a Ticket With PlatOps',
+            blocks: helpFormMainBlocks({ user: body.user.id, isAdvanced: false })
+        })
+
+        checkSlackResponseError(postRes, "An error occurred when posting a help request form")
+
+        // Edit button from last message
+        const updateRes = await client.chat.update({
+            channel: body.channel.id,
+            ts: body.message.ts,
+            text: 'Chat to Plato',
+            blocks: helpFormPlatoBlocks({ user: body.user.id, isAdvanced: true })
+        })
+
+        checkSlackResponseError(updateRes, "An error occurred when updating a 'Chat to Plato' message")
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.action('submit_help_request', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack()
+
+        const user = body.user.id;
+
+        const values = Object.values(body.state.values).reduce(((r, c) => Object.assign(r, c)), {})
+        const blocks = body.message.blocks
+
+        // New inputs will be found in our 'values' object if present.
+        // If there is a validation problem with the form, it must be re-sent
+        // to the user in its entirety and the submitted data will be lost.
+        //
+        // The only way to keep the data the user entered in the form is to
+        // populate the initial_value or initial_option fields of the form when
+        // it's sent back. We do this by passing 'helpRequest' to the
+        // 'helpRequestRaiseTicketBlocks' function and setting the fields in
+        // there.
+        //
+        // The form can then be re-submitted by the user.
+        // If the user did not change a field when re-submitting the form,
+        // slack will detect this and will not populate the 'values' object
+        // with the value of that field. Instead, we have to read the data from
+        // the 'blocks' object we submitted last time. Thankfully this is
+        // provided to us.
+        
+        // Add an explicit check for when the values block exists, but the
+        // value === null, this is a special case where the user has deleted
+        // what was in the field before submitting and is a distinct case from
+        // the block not being present at all. That simply means the user did
+        // not update that field before submitting and the field may still
+        // have a value in the initial_option block we set.
+        const helpRequest = {
+            user,
+            // Blocks 0 and 1 are labels
+            summary:         values.summary     ? values.summary.value               : blocks[2].element.initial_value,
+            environment:     values.environment ? values.environment.selected_option : blocks[3].element.initial_option,
+            team:            values.team        ? values.team.selected_option        : blocks[4].element.initial_option,
+            area:            values.area        ? values.area.selected_option        : blocks[5].element.initial_option,
+            prBuildUrl:      values.build_url   ? values.build_url.value             : blocks[6].element.initial_value,
+            // Block 7 is a divider
+            description:     values.description ? values.description.value           : blocks[8].element.initial_value,
+            analysis:        values.analysis    ? values.analysis.value              : blocks[9].element.initial_value,
+            checkedWithTeam: values.team_check  ? values.team_check.selected_option  : blocks[10].element.initial_option,
+        }
+
+        let errorMessage = null;
+
+        // prBuildUrl and analysis are optional, so don't mandate they be populated
+        if (!helpRequest.summary) {
+            errorMessage = "Please write a summary for your issue."
+        } else if (!helpRequest.environment) {
+            errorMessage = "Please specify what environment the issue is occuring in."
+        } else if (!helpRequest.team) {
+            // TODO: Tell the user how to request a new team be added to the list
+            errorMessage = "Please specify the team experiencing the problem."
+        } else if (!helpRequest.area) {
+            errorMessage = "Please specify what area you're experiencing problems with."
+        } else if (!helpRequest.description) {
+            errorMessage = "Please provide a description of your issue."
+        } else if (!helpRequest.checkedWithTeam) {
+            errorMessage = "Please check with your team before submitting a help request."
+        }
+
+        //Re-insert current values for text inputs and send the form back
+        if (errorMessage != null) {
+            const res = await client.chat.update({
+                channel: body.channel.id,
+                ts: body.message.ts,
+                text: "Raise a Ticket With PlatOps",
+                blocks: helpFormMainBlocks({
+                    user: body.user.id,
+                    isAdvanced: false,
+                    errorMessage: errorMessage,
+                    helpRequest: helpRequest
+                })
+            })
+
+            checkSlackResponseError(res, "An error occurred when updating an invalid ticket raising form")
+            return;
+        } else {
+            const updateRes = await client.chat.update({
+                channel: body.channel.id,
+                ts: body.message.ts,
+                text: "Raise a Ticket With PlatOps",
+                blocks: helpFormMainBlocks({
+                    user: body.user.id,
+                    isAdvanced: true,
+                    errorMessage: errorMessage,
+                    helpRequest: helpRequest
+                })
+            })
+
+            checkSlackResponseError(updateRes, "An error occurred when updating a valid ticket raising form")
+        }
 
         const userEmail = (await client.users.profile.get({
             user
         })).profile.email
-
-        const helpRequest = {
-            user,
-            summary: inputs.summary.value || "None",
-            environment: inputs.env.value || "None",
-            team: inputs.team.value || "None",
-            area: inputs.area.value || "None",
-            prBuildUrl: inputs.build.value || "None",
-            description: inputs.desc.value,
-            checkedWithTeam: inputs.team_check.value,
-            analysis: inputs.alsys.value
-        }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
         // check if API is up-to-date
@@ -235,41 +351,34 @@ const ws = new WorkflowStep('superbot_help_request', {
             // TODO: Put this in a function?
             // TODO: Add more labels?
             labels: [
-                `area-${inputs.area.value.toLowerCase().replace(' ', '-')}`,
-                `team-${inputs.team.value.toLowerCase().replace(' ', '-')}`
+                `area-${helpRequest.area.value.toLowerCase().replace(' ', '-')}`,
+                `team-${helpRequest.team.value.toLowerCase().replace(' ', '-')}`
             ]
         });
 
-        const result = await client.chat.postMessage({
+        const mainRes = await client.chat.postMessage({
             channel: reportChannel,
             text: 'New platform help request raised',
-            blocks: helpRequestRaised({
+            blocks: helpRequestMainBlocks({
                 ...helpRequest,
                 jiraId
             })
         });
-      
-        if (!result.ok)
-        {
-            console.log("An error occurred when posting to Slack: " + JSON.stringify(result));
-        }
 
-        const response = await client.chat.postMessage({
+        checkSlackResponseError(mainRes, "An error occurred when posting a help request to Slack")
+
+        const detailsRes = await client.chat.postMessage({
             channel: reportChannel,
-            thread_ts: result.message.ts,
+            thread_ts: mainRes.message.ts,
             text: 'New platform help request raised',
-            blocks: helpRequestDetails(helpRequest)
+            blocks: helpRequestDetailBlocks(helpRequest)
         });
 
-        if (!response.ok)
-        {
-            console.log("An error occurred when posting to Slack: " + JSON.stringify(response))
-            return;
-        }
+        checkSlackResponseError(detailsRes, "An error occurred when posting details of a help request to Slack")
 
         const permaLink = (await client.chat.getPermalink({
-            channel: result.channel,
-            'message_ts': result.message.ts
+            channel: mainRes.channel,
+            'message_ts': mainRes.message.ts
         })).permalink
 
         await updateHelpRequestDescription(jiraId, {
@@ -277,24 +386,29 @@ const ws = new WorkflowStep('superbot_help_request', {
             slackLink: permaLink
         });
 
-        complete();
-    },
-});
+        const goodbyeRes = await client.chat.postMessage({
+            channel: body.channel.id,
+            text: 'Help request submitted',
+            blocks: helpFormGoodbyeBlocks({
+                helpRequestUrl: permaLink
+            })
+        })
 
-app.step(ws);
+        checkSlackResponseError(goodbyeRes, "An error occurred when posting a goodbye post to Slack")
+    } catch (error) {
+        console.error("An error occurred when submitting a help form: " + error);
+    }
+});
 
 /////////////////////////////
 //// Setup App Homepage  ////
 /////////////////////////////
-//// I don't think we're ////
-//// actually using this ////
-/////////////////////////////
-
+// TODO: The 'unassigned open issues' and 'my issues' buttons both seem to be broken
 async function reopenAppHome(client, userId) {
     const results = await searchForUnassignedOpenIssues()
 
     const parsedResults = results.issues.flatMap(result => {
-        return unassignedOpenIssue({
+        return appHomeUnassignedOpenIssueBlocks({
             summary: result.fields.summary,
             slackLink: extractSlackLinkFromText(result.fields.description),
             jiraId: result.key,
@@ -307,7 +421,7 @@ async function reopenAppHome(client, userId) {
         user_id: userId,
         view: {
             type: "home",
-            blocks: appHomeUnassignedIssues(parsedResults)
+            blocks: appHomeMainBlocks(parsedResults)
         },
     });
 }
@@ -317,101 +431,8 @@ app.event('app_home_opened', async ({ event, client }) => {
     await reopenAppHome(client, event.user);
 });
 
-// Message Shortcut example
-app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, client }) => {
-    await ack();
-});
-
-// Global Shortcut example
-// setup global shortcut in App config with `launch_shortcut` as callback id
-// add `commands` scope
-app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
-    try {
-        // Acknowledge shortcut request
-        await ack();
-
-        // Un-comment if you want the JSON for block-kit builder (https://app.slack.com/block-kit-builder/T1L0WSW9F)
-        // console.log(JSON.stringify(openHelpRequestBlocks().blocks))
-
-        await client.views.open({
-            trigger_id: shortcut.trigger_id,
-            view: openHelpRequestBlocks()
-        });
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-function extractLabels(values) {
-    const team = `team-${values.team.team.selected_option.value}`
-    const area = `area-${values.area.area.selected_option.value}`
-    return [area, team];
-}
-
-app.view('create_help_request', async ({ ack, body, view, client }) => {
-    ////////////////////////////////////////////////////////////
-    //// SuperBot: This entry point isn't used anymore, but ////
-    ////           we can keep it around just in case :)    ////
-    ////////////////////////////////////////////////////////////
-
-    // Acknowledge the view_submission event
-    await ack();
-
-    const user = body.user.id;
-
-    // Message the user
-    try {
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const helpRequest = {
-            user,
-            summary: view.state.values.summary.title.value,
-            environment: view.state.values.environment.environment.selected_option?.text.text || "None",
-            prBuildUrl: view.state.values.urls?.title?.value || "None",
-            description: view.state.values.description.description.value,
-            checkedWithTeam: view.state.values.checked_with_team.checked_with_team.selected_option.value,
-            analysis: view.state.values.analysis.analysis.value,
-        }
-
-        const jiraId = await createHelpRequest({
-            summary: helpRequest.summary,
-            userEmail,
-            labels: extractLabels(view.state.values)
-        })
-
-        const result = await client.chat.postMessage({
-            channel: reportChannel,
-            text: 'New platform help request raised',
-            blocks: helpRequestRaised({
-                ...helpRequest,
-                jiraId
-            })
-        });
-
-        await client.chat.postMessage({
-            channel: reportChannel,
-            thread_ts: result.message.ts,
-            text: 'New platform help request raised',
-            blocks: helpRequestDetails(helpRequest)
-        });
-
-        const permaLink = (await client.chat.getPermalink({
-            channel: result.channel,
-            'message_ts': result.message.ts
-        })).permalink
-
-        await updateHelpRequestDescription(jiraId, {
-            ...helpRequest,
-            slackLink: permaLink
-        })
-    } catch (error) {
-        console.error(error);
-    }
-
-});
-
+// TODO: Break this up into smaller blocks, we're handling every single
+// message interaction in this one function.
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
 app.event('app_mention', async ({ event, context, client, say }) => {
@@ -459,7 +480,7 @@ app.event('app_mention', async ({ event, context, client, say }) => {
                             channel: event.channel,
                             ts: helpRequestMessages[0].ts,
                             text: 'Duplicate issue',
-                            blocks: duplicateHelpRequest({
+                            blocks: helpRequestDuplicateBlocks({
                                 summary,
                                 parentJiraId,
                                 parentSlackUrl,
@@ -506,17 +527,18 @@ app.action('assign_help_request_to_me', async ({
         await ack();
 
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-        const userEmail = (await client.users.profile.get({
+
+        const userInfo = (await client.users.info({
             user: body.user.id
-        })).profile.email
+        }))
+
+        const userEmail = userInfo.user.profile.email
 
         await assignHelpRequest(jiraId, userEmail)
 
         const blocks = body.message.blocks
         const assignedToSection = blocks[6]
-        assignedToSection.elements[0].initial_user = body.user.id
-        // work around issue where 'initial_user' doesn't update if someone selected a user in dropdown
-        // assignedToSection.block_id = `new_block_id_${randomString().substring(0, 8)}`;
+        assignedToSection.elements[0].initial_user = userInfo.user.enterprise_user.id
 
         await client.chat.update({
             channel: body.channel.id,
@@ -539,7 +561,7 @@ app.action('resolve_help_request', async ({
         // Trigger IDs have a short lifespan, so process them first
         await client.views.open({
             trigger_id: body.trigger_id,
-            view: resolveHelpRequestBlocks({thread_ts: body.message.ts}),
+            view: helpRequestResolveBlocks({ thread_ts: body.message.ts }),
         });
 
     } catch (error) {
@@ -548,7 +570,7 @@ app.action('resolve_help_request', async ({
 });
 
 app.view('document_help_request', async ({ ack, body, view, client }) => {
-    try{
+    try {
         await ack();
 
         const helpRequestMessages = (await client.conversations.replies({
@@ -583,10 +605,10 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             text: 'New platform help request raised',
             blocks: blocks
         });
-        
+
         const documentation = {
-            category:   body.view.state.values.category_block.category.selected_option.value,
-            how: body.view.state.values.how_block.how.value,
+            category: body.view.state.values.category_block.category.selected_option.value,
+            how:      body.view.state.values.how_block.how.value || "N/A",
         };
 
         await addCommentToHelpRequestResolve(jiraId, documentation)
@@ -597,7 +619,7 @@ app.view('document_help_request', async ({ ack, body, view, client }) => {
             channel: reportChannel,
             thread_ts: body.view.private_metadata,
             text: 'Platform help request documented',
-            blocks: helpRequestDocumentation(documentation)
+            blocks: helpRequestDocumentationBlocks(documentation)
         });
     } catch (error) {
         console.error(error);
