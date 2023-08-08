@@ -50,13 +50,14 @@ parameters:
 stages:
   - stage: Precheck
     jobs:
-    timeoutInMinutes: ${{ variables.timeoutInMinutes }}
-    steps:
-      - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
-        parameters:
-            keyvaultName: "infra-vault-nonprod"
-            keyvaultSecret: "azure-devops-sp-token"
-            serviceConnection: "DCD-CFT-Sandbox"
+      - job:
+        timeoutInMinutes: ${{ variables.timeoutInMinutes }}
+        steps:
+          - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
+            parameters:
+              keyvaultName: "infra-vault-nonprod"
+              keyvaultSecret: "azure-devops-sp-token"
+              serviceConnection: "DCD-CFT-Sandbox"
 
   - ${{ each parameter in parameters.environments }}:
     - stage: ${{ parameter.environment }}
