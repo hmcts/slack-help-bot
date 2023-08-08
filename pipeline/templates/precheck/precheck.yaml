@@ -20,7 +20,7 @@ jobs:
       env:
         thisbuild: $(Build.BuildId)
         pipelinedefinition: $(System.DefinitionId)
-        azuredevopstoken: $(azure-devops-token)
+        azuredevopstoken: $(azure-devops-sp-token)
       inputs:
         filePath: pipeline/scripts/builds-check.sh
     - task: PowerShell@2
