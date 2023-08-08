@@ -50,6 +50,8 @@ parameters:
 stages:
   - stage: Precheck
     jobs:
+    timeoutInMinutes: ${{ variables.timeoutInMinutes }}
+    steps:
       - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
         parameters:
             keyvaultName: "infra-vault-nonprod"
