@@ -8,13 +8,6 @@ trigger:
   branches:
     include:
     - main
-resources:
-  repositories:
-  - repository: cnp-azuredevops-libraries
-    type: github
-    ref: refs/heads/master
-    name: hmcts/cnp-azuredevops-libraries
-    endpoint: 'hmcts'
 
 variables:
   terraformVersion: 1.5.4
@@ -49,7 +42,7 @@ parameters:
 stages:
   - stage: Precheck
     jobs:
-      - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
+      - template: templates/precheck/precheck.yaml
         parameters:
           agentPool: ${{ variables.agentPool }} 
           timeoutInMinutes: ${{ variables.timeoutInMinutes}}
