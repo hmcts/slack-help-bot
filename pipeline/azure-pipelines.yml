@@ -8,6 +8,17 @@ trigger:
   branches:
     include:
     - main
+    
+resources:
+  repositories:
+  - repository: cnp-azuredevops-libraries
+    type: github
+    ref: refs/heads/master
+    name: hmcts/cnp-azuredevops-libraries
+    endpoint: 'hmcts'
+    
+pool:
+  vmImage: "ubuntu-latest"
 
 variables:
   terraformVersion: 1.5.4
@@ -15,9 +26,6 @@ variables:
   agentPool: 'ubuntu-latest'
   build: $(Build.BuildNumber)
   isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
-  connectedServiceName: DCD-CFT-Sandbox
-  keyVaultName: infra-vault-sandbox
-  secretsFilter: azure-devops-token
   project: application
 
 parameters:
@@ -42,14 +50,14 @@ parameters:
 stages:
   - stage: Precheck
     jobs:
-      - template: templates/precheck/precheck.yaml
-        parameters:
-          agentPool: ${{ variables.agentPool }} 
-          timeoutInMinutes: ${{ variables.timeoutInMinutes}}
-          terraformVersion: ${{ variables.terraformVersion}}
-          connectedServiceName: ${{ variables.connectedServiceName }}
-          keyVaultName: ${{ variables.keyVaultName }}
-          secretsFilter: ${{ variables.secretsFilter }}
+      - job:
+        timeoutInMinutes: ${{ variables.timeoutInMinutes }}
+        steps:
+          - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
+            parameters:
+              keyvaultName: "infra-vault-nonprod"
+              keyvaultSecret: "azure-devops-sp-token"
+              serviceConnection: "DCD-CFT-Sandbox"
 
   - ${{ each parameter in parameters.environments }}:
     - stage: ${{ parameter.environment }}
