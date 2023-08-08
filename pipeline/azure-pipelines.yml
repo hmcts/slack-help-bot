@@ -42,7 +42,7 @@ parameters:
 stages:
   - stage: Precheck
     jobs:
-      - template: templates/precheck/precheck.yaml
+      - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
         parameters:
           agentPool: ${{ variables.agentPool }} 
           timeoutInMinutes: ${{ variables.timeoutInMinutes}}
