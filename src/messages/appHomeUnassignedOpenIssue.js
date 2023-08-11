@@ -14,9 +14,6 @@ function appHomeUnassignedOpenIssueBlocks({
 
     return [
         {
-            "type": "divider"
-        },
-        {
             "type": "section",
             "block_id": `${jiraId}_link`,
             "text": {
@@ -65,6 +62,9 @@ function appHomeUnassignedOpenIssueBlocks({
                     "text": `*View on Jira*:\n <${convertJiraKeyToUrl(jiraId)}|${jiraId}>`
                 }
             ]
+        },
+        {
+            "type": "divider"
         },
     ]
 }

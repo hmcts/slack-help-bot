@@ -16,7 +16,10 @@ const {
     helpRequestDocumentationBlocks,
 
     appHomeMainBlocks,
+    appHomeIssueBlocks,
     appHomeUnassignedOpenIssueBlocks,
+
+    appHomeHeaderBlocks,
 
     configureWorkflowStepBlocks
 } = require("./src/messages");
@@ -38,6 +41,9 @@ const {
     extractJiraIdFromBlocks,
     resolveHelpRequest,
     searchForUnassignedOpenIssues,
+    searchForOpenIssues,
+    searchForIssuesAssignedTo,
+    searchForIssuesRaisedBy,
     startHelpRequest,
     updateHelpRequestDescription,
     getIssueDescription, markAsDuplicate
@@ -62,7 +68,6 @@ const reportChannelId = config.get('slack.report_channel_id');
 //////////////////////////////////
 
 const http = require('http');
-const { report } = require('process');
 const port = process.env.PORT || 3000
 
 const server = http.createServer((req, res) => {
@@ -400,37 +405,6 @@ app.action('submit_help_request', async ({
     }
 });
 
-/////////////////////////////
-//// Setup App Homepage  ////
-/////////////////////////////
-// TODO: The 'unassigned open issues' and 'my issues' buttons both seem to be broken
-async function reopenAppHome(client, userId) {
-    const results = await searchForUnassignedOpenIssues()
-
-    const parsedResults = results.issues.flatMap(result => {
-        return appHomeUnassignedOpenIssueBlocks({
-            summary: result.fields.summary,
-            slackLink: extractSlackLinkFromText(result.fields.description),
-            jiraId: result.key,
-            created: result.fields.created,
-            updated: result.fields.updated,
-        })
-    })
-
-    await client.views.publish({
-        user_id: userId,
-        view: {
-            type: "home",
-            blocks: appHomeMainBlocks(parsedResults)
-        },
-    });
-}
-
-// Publish a App Home
-app.event('app_home_opened', async ({ event, client }) => {
-    await reopenAppHome(client, event.user);
-});
-
 // TODO: Break this up into smaller blocks, we're handling every single
 // message interaction in this one function.
 // subscribe to 'app_mention' event in your App config
@@ -662,26 +636,6 @@ app.action('start_help_request', async ({
     }
 });
 
-app.action('app_home_unassigned_user_select', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = action.selected_user
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const jiraId = extraJiraId(action.block_id)
-        await assignHelpRequest(jiraId, userEmail)
-
-        await reopenAppHome(client, user);
-    } catch (error) {
-        console.error(error);
-    }
-})
-
 function extractSlackMessageId(body, action) {
     let result
     for (let i = 0; i < body.view.blocks.length; i++) {
@@ -692,55 +646,6 @@ function extractSlackMessageId(body, action) {
     }
     return result
 }
-
-app.action('app_home_take_unassigned_issue', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = body.user.id
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const jiraId = extraJiraId(action.block_id)
-        const slackMessageId = extractSlackMessageId(body, action);
-
-        await assignHelpRequest(jiraId, userEmail)
-
-        await reopenAppHome(client, user);
-    } catch (error) {
-        console.error(error);
-    }
-})
-
-app.action('assign_help_request_to_user', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = action.selected_user
-
-        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        await assignHelpRequest(jiraId, userEmail)
-
-        const actor = body.user.id
-
-        await client.chat.postMessage({
-            channel: body.channel.id,
-            thread_ts: body.message.ts,
-            text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
-        });
-    } catch (error) {
-        console.error(error);
-    }
-});
 
 /**
  * The built in string replace function can't return a promise
@@ -828,3 +733,224 @@ app.event('message', async ({ event, context, client, say }) => {
         console.error(error);
     }
 })
+
+/////////////////////////////
+//// Setup App Homepage  ////
+/////////////////////////////
+async function appHomeUnassignedIssues(userId, client) {
+    const results = await searchForUnassignedOpenIssues()
+
+    const parsedResults = results.issues.flatMap(result => {
+        return appHomeUnassignedOpenIssueBlocks({
+            summary: result.fields.summary,
+            slackLink: extractSlackLinkFromText(result.fields.description),
+            jiraId: result.key,
+            created: result.fields.created,
+            updated: result.fields.updated,
+        })
+    })
+
+    await client.views.publish({
+        user_id: userId,
+        view: {
+            type: "home",
+            blocks: [
+                ...appHomeMainBlocks(),
+                ...appHomeHeaderBlocks(
+                    'Open Unassigned Help Requests',
+                    `${results.issues.length} results.`
+                ),
+                ...parsedResults
+            ]
+        },
+    });
+}
+
+app.event('app_home_opened', async ({ event, client }) => {
+    await appHomeUnassignedIssues(event.user, client);
+});
+
+app.action('view_open_unassigned_requests', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+        await appHomeUnassignedIssues(body.user.id, client);
+        
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.action('view_requests_assigned_to_me', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = body.user.id
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const results = await searchForIssuesAssignedTo(userEmail)
+    
+        const parsedPromises = results.issues.flatMap(async result => {
+            const reporterUser = await client.users.lookupByEmail({
+                email: result.fields.reporter.emailAddress
+            });
+
+            return appHomeIssueBlocks({
+                summary: result.fields.summary,
+                slackLink: extractSlackLinkFromText(result.fields.description),
+                jiraId: result.key,
+                created: result.fields.created,
+                updated: result.fields.updated,
+                state: "Open :fire:",
+                assignee: body.user.id,
+                reporter: reporterUser.user.enterprise_user.id
+            })
+        })
+        
+        const parsedResults = await Promise.all(parsedPromises);
+    
+        await client.views.publish({
+            user_id: user,
+            view: {
+                type: "home",
+                blocks: [
+                    ...appHomeMainBlocks(),
+                    ...appHomeHeaderBlocks(
+                        'Help Requests Assigned to You',
+                        `${results.issues.length} results.`
+                    ),
+                    ...parsedResults.flat()
+                ]
+            },
+        });
+        
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.action('view_requests_raised_by_me', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = body.user.id
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const results = await searchForIssuesRaisedBy(userEmail)
+    
+        const parsedPromises = results.issues.flatMap(async result => {
+            const assigneeUser = await client.users.lookupByEmail({
+                email: result.fields.assignee.emailAddress
+            });
+
+            return appHomeIssueBlocks({
+                summary: result.fields.summary,
+                slackLink: extractSlackLinkFromText(result.fields.description),
+                jiraId: result.key,
+                created: result.fields.created,
+                updated: result.fields.updated,
+                state: "Open :fire:",
+                assignee: assigneeUser.user.enterprise_user.id,
+                reporter: body.user.id
+            })
+        })
+        
+        const parsedResults = await Promise.all(parsedPromises);
+    
+        await client.views.publish({
+            user_id: user,
+            view: {
+                type: "home",
+                blocks: [
+                    ...appHomeMainBlocks(),
+                    ...appHomeHeaderBlocks(
+                        'Help Requests Raised by You',
+                        `${results.issues.length} results.`
+                    ),
+                    ...parsedResults.flat()
+                ]
+            },
+        });
+        
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.action('app_home_take_unassigned_issue', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = body.user.id
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const jiraId = extraJiraId(action.block_id)
+        const slackMessageId = extractSlackMessageId(body, action);
+
+        await assignHelpRequest(jiraId, userEmail)
+
+        await appHomeUnassignedIssues(user, client);
+    } catch (error) {
+        console.error(error);
+    }
+})
+
+app.action('app_home_unassigned_user_select', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = action.selected_user
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        const jiraId = extraJiraId(action.block_id)
+        await assignHelpRequest(jiraId, userEmail)
+
+        await appHomeUnassignedIssues(user, client);
+    } catch (error) {
+        console.error(error);
+    }
+})
+
+app.action('assign_help_request_to_user', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = action.selected_user
+
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        await assignHelpRequest(jiraId, userEmail)
+
+        const actor = body.user.id
+
+        await client.chat.postMessage({
+            channel: body.channel.id,
+            thread_ts: body.message.ts,
+            text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
+        });
+    } catch (error) {
+        console.error(error);
+    }
+});

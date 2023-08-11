@@ -21,6 +21,47 @@ const jira = new JiraApi({
     strictSSL: true
 });
 
+/**
+ * Extracts a jira ID
+ *
+ * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
+ * @param blocks
+ */
+function extractJiraIdFromBlocks(blocks) {
+    let viewOnJiraText
+    if (blocks.length === 3) {
+        viewOnJiraText = blocks[2].fields[0].text
+    } else {
+        viewOnJiraText = blocks[4].elements[0].text
+    }
+
+    project = extractProjectRegex.exec(viewOnJiraText);
+
+    return (project) ? project[1] : 'undefined';
+}
+
+function extraJiraId(text) {
+    return extractProjectRegex.exec(text)[1]
+}
+
+async function convertEmail(email) {
+    if (!email) {
+        return systemUser
+    }
+
+    try {
+        res = await jira.searchUsers(options = {
+            username: email,
+            maxResults: 1
+        })
+
+        return res[0].name
+    } catch(ex) {
+        console.log("Querying username failed: " + ex)
+        return systemUser
+    }
+}
+
 async function resolveHelpRequest(jiraId) {
     try {
         await jira.transitionIssue(jiraId, {
@@ -85,7 +126,7 @@ async function getIssueDescription(issueId) {
 }
 
 async function searchForUnassignedOpenIssues() {
-    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open and assignee is EMPTY AND labels not in ("Heritage") ORDER BY created ASC`;
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open AND assignee IS EMPTY AND labels NOT IN ("Heritage") ORDER BY created ASC`;
     try {
         return await jira.searchJira(
             jqlQuery,
@@ -103,6 +144,59 @@ async function searchForUnassignedOpenIssues() {
     }
 }
 
+async function searchForOpenIssues() {
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("Open", "In Progress") AND labels NOT IN ("Heritage") ORDER BY created ASC`;
+    try {
+        return await jira.searchJira(
+            jqlQuery,
+            {
+                fields: ['created', 'description', 'summary', 'updated', 'status', 'assignee']
+            }
+        )
+    } catch (err) {
+        console.log("Error searching for issues in jira", err)
+        return {
+            issues: []
+        }
+    }
+}
+
+async function searchForIssuesAssignedTo(userEmail) {
+    const user = await convertEmail(userEmail)
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND assignee = "${user}" AND status IN ("Open", "In Progress") AND labels NOT IN ("Heritage") ORDER BY created ASC`;
+    try {
+        return await jira.searchJira(
+            jqlQuery,
+            {
+                fields: ['created', 'description', 'summary', 'updated', 'status', 'reporter']
+            }
+        )
+    } catch (err) {
+        console.log("Error searching for issues in jira", err)
+        return {
+            issues: []
+        }
+    }
+}
+
+async function searchForIssuesRaisedBy(userEmail) {
+    const user = await convertEmail(userEmail)
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND reporter = "${user}" AND status IN ("Open", "In Progress") AND labels NOT IN ("Heritage") ORDER BY created ASC`;
+    try {
+        return await jira.searchJira(
+            jqlQuery,
+            {
+                fields: ['created', 'description', 'summary', 'updated', 'status', 'assignee']
+            }
+        )
+    } catch (err) {
+        console.log("Error searching for issues in jira", err)
+        return {
+            issues: []
+        }
+    }
+}
+
 async function assignHelpRequest(issueId, email) {
     const user = await convertEmail(email)
 
@@ -110,47 +204,6 @@ async function assignHelpRequest(issueId, email) {
         await jira.updateAssignee(issueId, user)
     } catch(err) {
         console.log("Error assigning help request in jira", err)
-    }
-}
-
-/**
- * Extracts a jira ID
- *
- * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
- * @param blocks
- */
-function extractJiraIdFromBlocks(blocks) {
-    let viewOnJiraText
-    if (blocks.length === 3) {
-        viewOnJiraText = blocks[2].fields[0].text
-    } else {
-        viewOnJiraText = blocks[4].elements[0].text
-    }
-
-    project = extractProjectRegex.exec(viewOnJiraText);
-
-    return (project) ? project[1] : 'undefined';
-}
-
-function extraJiraId(text) {
-    return extractProjectRegex.exec(text)[1]
-}
-
-async function convertEmail(email) {
-    if (!email) {
-        return systemUser
-    }
-
-    try {
-        res = await jira.searchUsers(options = {
-            username: email,
-            maxResults: 1
-        })
-
-        return res[0].name
-    } catch(ex) {
-        console.log("Querying username failed: " + ex)
-        return systemUser
     }
 }
 
@@ -246,7 +299,6 @@ async function addLabel(externalSystemId, { category} ) {
     }
 }
 
-
 module.exports.resolveHelpRequest = resolveHelpRequest
 module.exports.startHelpRequest = startHelpRequest
 module.exports.assignHelpRequest = assignHelpRequest
@@ -259,5 +311,8 @@ module.exports.convertEmail = convertEmail
 module.exports.extraJiraId = extraJiraId
 module.exports.extractJiraIdFromBlocks = extractJiraIdFromBlocks
 module.exports.searchForUnassignedOpenIssues = searchForUnassignedOpenIssues
+module.exports.searchForOpenIssues = searchForOpenIssues
+module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo
+module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy
 module.exports.getIssueDescription = getIssueDescription
 module.exports.markAsDuplicate = markAsDuplicate
