@@ -133,7 +133,7 @@ async function searchForUnassignedOpenIssues() {
             {
                 // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
                 // which would probably be better for performance
-                fields: ['created', 'description', 'summary', 'updated']
+                fields: ['created', 'description', 'summary', 'updated', "status", "reporter"]
             }
         )
     } catch (err) {

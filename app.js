@@ -17,7 +17,6 @@ const {
 
     appHomeMainBlocks,
     appHomeIssueBlocks,
-    appHomeUnassignedOpenIssueBlocks,
 
     appHomeHeaderBlocks,
 
@@ -526,6 +525,33 @@ app.action('assign_help_request_to_me', async ({
 
 })
 
+app.action('assign_help_request_to_user', async ({
+    body, action, ack, client, context
+}) => {
+    try {
+        await ack();
+
+        const user = action.selected_user
+
+        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
+        const userEmail = (await client.users.profile.get({
+            user
+        })).profile.email
+
+        await assignHelpRequest(jiraId, userEmail)
+
+        const actor = body.user.id
+
+        await client.chat.postMessage({
+            channel: body.channel.id,
+            thread_ts: body.message.ts,
+            text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
+        });
+    } catch (error) {
+        console.error(error);
+    }
+});
+
 app.action('resolve_help_request', async ({
     body, action, ack, client, context, payload
 }) => {
@@ -740,15 +766,24 @@ app.event('message', async ({ event, context, client, say }) => {
 async function appHomeUnassignedIssues(userId, client) {
     const results = await searchForUnassignedOpenIssues()
 
-    const parsedResults = results.issues.flatMap(result => {
-        return appHomeUnassignedOpenIssueBlocks({
+    const parsedPromises = results.issues.flatMap(async result => {
+        const reporterUser = await client.users.lookupByEmail({
+            email: result.fields.reporter.emailAddress
+        });
+
+        return appHomeIssueBlocks({
             summary: result.fields.summary,
             slackLink: extractSlackLinkFromText(result.fields.description),
             jiraId: result.key,
             created: result.fields.created,
             updated: result.fields.updated,
+            state: "Open :fire:",
+            assignee: null,
+            reporter: reporterUser.user.enterprise_user.id
         })
     })
+    
+    const parsedResults = await Promise.all(parsedPromises);
 
     await client.views.publish({
         user_id: userId,
@@ -760,7 +795,7 @@ async function appHomeUnassignedIssues(userId, client) {
                     'Open Unassigned Help Requests',
                     `${results.issues.length} results.`
                 ),
-                ...parsedResults
+                ...parsedResults.flat()
             ]
         },
     });
@@ -806,7 +841,7 @@ app.action('view_requests_assigned_to_me', async ({
                 jiraId: result.key,
                 created: result.fields.created,
                 updated: result.fields.updated,
-                state: "Open :fire:",
+                state: result.fields.status.name == "Open" ? "Open :fire:" : "In Progress :fire_extinguisher:",
                 assignee: body.user.id,
                 reporter: reporterUser.user.enterprise_user.id
             })
@@ -848,9 +883,11 @@ app.action('view_requests_raised_by_me', async ({
         const results = await searchForIssuesRaisedBy(userEmail)
     
         const parsedPromises = results.issues.flatMap(async result => {
-            const assigneeUser = await client.users.lookupByEmail({
-                email: result.fields.assignee.emailAddress
-            });
+            const assigneeUser = result.fields.assignee === null ? 
+                null :
+                (await client.users.lookupByEmail({
+                    email: result.fields.assignee.emailAddress
+                })).user.enterprise_user.id;
 
             return appHomeIssueBlocks({
                 summary: result.fields.summary,
@@ -858,8 +895,8 @@ app.action('view_requests_raised_by_me', async ({
                 jiraId: result.key,
                 created: result.fields.created,
                 updated: result.fields.updated,
-                state: "Open :fire:",
-                assignee: assigneeUser.user.enterprise_user.id,
+                state: result.fields.status.name == "Open" ? "Open :fire:" : "In Progress :fire_extinguisher:",
+                assignee: assigneeUser,
                 reporter: body.user.id
             })
         })
@@ -881,75 +918,6 @@ app.action('view_requests_raised_by_me', async ({
             },
         });
         
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-app.action('app_home_take_unassigned_issue', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = body.user.id
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const jiraId = extraJiraId(action.block_id)
-        const slackMessageId = extractSlackMessageId(body, action);
-
-        await assignHelpRequest(jiraId, userEmail)
-
-        await appHomeUnassignedIssues(user, client);
-    } catch (error) {
-        console.error(error);
-    }
-})
-
-app.action('app_home_unassigned_user_select', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = action.selected_user
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        const jiraId = extraJiraId(action.block_id)
-        await assignHelpRequest(jiraId, userEmail)
-
-        await appHomeUnassignedIssues(user, client);
-    } catch (error) {
-        console.error(error);
-    }
-})
-
-app.action('assign_help_request_to_user', async ({
-    body, action, ack, client, context
-}) => {
-    try {
-        await ack();
-
-        const user = action.selected_user
-
-        const jiraId = extractJiraIdFromBlocks(body.message.blocks)
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
-
-        await assignHelpRequest(jiraId, userEmail)
-
-        const actor = body.user.id
-
-        await client.chat.postMessage({
-            channel: body.channel.id,
-            thread_ts: body.message.ts,
-            text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`
-        });
     } catch (error) {
         console.error(error);
     }

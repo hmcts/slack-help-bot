@@ -11,7 +11,6 @@ const { helpRequestDocumentationBlocks } = require('./messages/helpRequestDocume
 
 const { appHomeMainBlocks } = require('./messages/appHomeMain')
 const { appHomeIssueBlocks } = require('./messages/appHomeIssue')
-const { appHomeUnassignedOpenIssueBlocks } = require('./messages/appHomeUnassignedOpenIssue')
 
 const { appHomeHeaderBlocks } = require('./messages/appHomeHeader')
 
@@ -30,7 +29,6 @@ module.exports.helpRequestDocumentationBlocks = helpRequestDocumentationBlocks;
 
 module.exports.appHomeMainBlocks = appHomeMainBlocks;
 module.exports.appHomeIssueBlocks = appHomeIssueBlocks;
-module.exports.appHomeUnassignedOpenIssueBlocks = appHomeUnassignedOpenIssueBlocks;
 
 module.exports.appHomeHeaderBlocks = appHomeHeaderBlocks;
 
