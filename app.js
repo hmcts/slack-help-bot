@@ -766,7 +766,9 @@ app.event('message', async ({ event, context, client, say }) => {
 async function appHomeUnassignedIssues(userId, client) {
     const results = await searchForUnassignedOpenIssues()
 
-    const parsedPromises = results.issues.slice(0, 20).flatMap(async result => {
+    const issues = results.issues.slice(0, 20)
+
+    const parsedPromises = issues.flatMap(async result => {
         let reporterUser
         try {
             reporterUser = await client.users.lookupByEmail({
@@ -798,7 +800,7 @@ async function appHomeUnassignedIssues(userId, client) {
                 ...appHomeMainBlocks(),
                 ...appHomeHeaderBlocks(
                     'Open Unassigned Help Requests',
-                    `${results.issues.length} results.`
+                    `Displaying ${issues.length} of ${results.issues.length} results.`
                 ),
                 ...parsedResults.flat()
             ]
