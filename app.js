@@ -766,10 +766,15 @@ app.event('message', async ({ event, context, client, say }) => {
 async function appHomeUnassignedIssues(userId, client) {
     const results = await searchForUnassignedOpenIssues()
 
-    const parsedPromises = results.issues.flatMap(async result => {
-        const reporterUser = await client.users.lookupByEmail({
-            email: result.fields.reporter.emailAddress
-        });
+    const parsedPromises = results.issues.slice(0, 20).flatMap(async result => {
+        let reporterUser
+        try {
+            reporterUser = await client.users.lookupByEmail({
+                email: result.fields.reporter.emailAddress
+            });
+        } catch (error) {
+            console.log("Couldn't find user", result.fields.reporter.emailAddress, error)
+        }
 
         return appHomeIssueBlocks({
             summary: result.fields.summary,
@@ -779,7 +784,7 @@ async function appHomeUnassignedIssues(userId, client) {
             updated: result.fields.updated,
             state: "Open :fire:",
             assignee: null,
-            reporter: reporterUser.user.enterprise_user.id
+            reporter: reporterUser?.user?.enterprise_user?.id
         })
     })
     

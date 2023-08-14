@@ -126,7 +126,7 @@ async function getIssueDescription(issueId) {
 }
 
 async function searchForUnassignedOpenIssues() {
-    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open AND assignee IS EMPTY AND labels NOT IN ("Heritage") ORDER BY created ASC`;
+    const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("Open", "To Do") AND assignee IS EMPTY AND labels NOT IN ("Heritage") ORDER BY created ASC`;
     try {
         return await jira.searchJira(
             jqlQuery,
