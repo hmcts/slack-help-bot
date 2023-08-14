@@ -836,8 +836,10 @@ app.action('view_requests_assigned_to_me', async ({
         })).profile.email
 
         const results = await searchForIssuesAssignedTo(userEmail)
+
+        const issues = results.issues.slice(0, 20)
     
-        const parsedPromises = results.issues.flatMap(async result => {
+        const parsedPromises = issues.flatMap(async result => {
             const reporterUser = await client.users.lookupByEmail({
                 email: result.fields.reporter.emailAddress
             });
@@ -864,7 +866,7 @@ app.action('view_requests_assigned_to_me', async ({
                     ...appHomeMainBlocks(),
                     ...appHomeHeaderBlocks(
                         'Help Requests Assigned to You',
-                        `${results.issues.length} results.`
+                        `Displaying ${issues.length} of ${results.issues.length} results.`
                     ),
                     ...parsedResults.flat()
                 ]
@@ -889,7 +891,9 @@ app.action('view_requests_raised_by_me', async ({
 
         const results = await searchForIssuesRaisedBy(userEmail)
     
-        const parsedPromises = results.issues.flatMap(async result => {
+        const issues = results.issues.slice(0, 20)
+    
+        const parsedPromises = issues.flatMap(async result => {
             const assigneeUser = result.fields.assignee === null ? 
                 null :
                 (await client.users.lookupByEmail({
@@ -918,7 +922,7 @@ app.action('view_requests_raised_by_me', async ({
                     ...appHomeMainBlocks(),
                     ...appHomeHeaderBlocks(
                         'Help Requests Raised by You',
-                        `${results.issues.length} results.`
+                        `Displaying ${issues.length} of ${results.issues.length} results.`
                     ),
                     ...parsedResults.flat()
                 ]

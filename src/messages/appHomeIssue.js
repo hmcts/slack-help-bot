@@ -30,13 +30,15 @@ function appHomeIssueBlocks({
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": assignee === null ?
+                    "text": !assignee ?
                         `*Assigned to :bust_in_silhouette:*\n Unassigned` :
                         `*Assigned to :bust_in_silhouette:*\n <@${assignee}>`
                 },
                 {
                     "type": "mrkdwn",
-                    "text": `*Raised by :man-surfing:*\n <@${reporter}>`
+                    "text": !reporter ?
+                    `*Raised by :man-surfing:*\n Unknown User` :
+                        `*Raised by :man-surfing:*\n <@${reporter}>`
                 },
             ]
         },
