@@ -893,9 +893,9 @@ app.action('view_requests_raised_by_me', async ({
 
         let userEmail
         try {
-            userEmail = await client.users.profile.get({
+            userEmail = (await client.users.profile.get({
                 user
-            }).profile.email;
+            })).profile.email;
         } catch (error) {
             console.log("Couldn't find user", body.user.id, error)
         }
