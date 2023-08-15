@@ -30,6 +30,10 @@ jobs:
         run: npm install
       # End of  setup
 
+      - name: Prettier Checks
+        run: npx prettier -c .
+      # End of  setup
+
       - name: "Get Short Sha Hash"
         id: get-short-sha
         uses: actions/github-script@v6.4.1
