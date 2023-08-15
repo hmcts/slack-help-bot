@@ -6,11 +6,11 @@ const { helpFormGoodbyeBlocks } = require("./messages/helpFormGoodbye");
 const { helpRequestMainBlocks } = require("./messages/helpRequestMain");
 const { helpRequestDetailBlocks } = require("./messages/helpRequestDetails");
 const {
-	helpRequestDuplicateBlocks,
+    helpRequestDuplicateBlocks,
 } = require("./messages/helpRequestDuplicate");
 const { helpRequestResolveBlocks } = require("./messages/helpRequestResolve");
 const {
-	helpRequestDocumentationBlocks,
+    helpRequestDocumentationBlocks,
 } = require("./messages/helpRequestDocumentation");
 
 const { appHomeMainBlocks } = require("./messages/appHomeMain");
@@ -19,7 +19,7 @@ const { appHomeIssueBlocks } = require("./messages/appHomeIssue");
 const { appHomeHeaderBlocks } = require("./messages/appHomeHeader");
 
 const {
-	configureWorkflowStepBlocks,
+    configureWorkflowStepBlocks,
 } = require("./messages/configureWorkflowStep");
 
 module.exports.helpFormGreetingBlocks = helpFormGreetingBlocks;
