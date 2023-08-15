@@ -897,7 +897,7 @@ app.action('view_requests_raised_by_me', async ({
                 user
             }).profile.email;
         } catch (error) {
-            console.log("Couldn't find user", body.uder.id, error)
+            console.log("Couldn't find user", body.user.id, error)
         }
 
         const results = await searchForIssuesRaisedBy(userEmail)
