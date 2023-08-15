@@ -7,23 +7,23 @@ trigger:
   batch: true
   branches:
     include:
-    - main
-    
+      - main
+
 resources:
   repositories:
-  - repository: cnp-azuredevops-libraries
-    type: github
-    ref: refs/heads/master
-    name: hmcts/cnp-azuredevops-libraries
-    endpoint: 'hmcts'
-    
+    - repository: cnp-azuredevops-libraries
+      type: github
+      ref: refs/heads/master
+      name: hmcts/cnp-azuredevops-libraries
+      endpoint: "hmcts"
+
 pool:
   vmImage: "ubuntu-latest"
 
 variables:
   terraformVersion: 1.5.4
   timeoutInMinutes: 60
-  agentPool: 'ubuntu-latest'
+  agentPool: "ubuntu-latest"
   build: $(Build.BuildNumber)
   isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   project: application
@@ -33,19 +33,19 @@ parameters:
     displayName: Environment to run
     type: object
     default:
-      - deployment: 'slack-help-bot'
-        environment: 'cftptl'
-        storageAccountName: 'cftptlintsvc'
-        storageAccountRg: 'core-infra-intsvc-rg'
-        dependsOn: 'Precheck'    
+      - deployment: "slack-help-bot"
+        environment: "cftptl"
+        storageAccountName: "cftptlintsvc"
+        storageAccountRg: "core-infra-intsvc-rg"
+        dependsOn: "Precheck"
 
   - name: location
     displayName: Location
     type: string
-    default: 'UK South'
+    default: "UK South"
     values:
-      - 'UK South'
-      - 'UK West'
+      - "UK South"
+      - "UK West"
 
 stages:
   - stage: Precheck
@@ -60,21 +60,21 @@ stages:
               serviceConnection: "DCD-CFT-Sandbox"
 
   - ${{ each parameter in parameters.environments }}:
-    - stage: ${{ parameter.environment }}
-      displayName: "${{ parameter.environment }}-intsvc"
-      dependsOn: ${{ parameter.dependsOn }}
-      jobs:
-        - job:
-          pool:
-            vmImage: ${{ variables.agentPool }}
-          steps:
-            - template: templates/terraform/terraform.yaml
-              parameters:
-                environment: "${{ parameter.environment }}-intsvc"
-                location: ${{ parameters.location }}
-                stack: ${{ parameter.deployment }}
-                project: ${{ variables.project }}
-                storageAccountName: ${{ parameter.storageAccountName }}
-                storageAccountRg: ${{ parameter.storageAccountRg }}
-                tfversion: ${{ variables.terraformVersion}}
-                serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
+      - stage: ${{ parameter.environment }}
+        displayName: "${{ parameter.environment }}-intsvc"
+        dependsOn: ${{ parameter.dependsOn }}
+        jobs:
+          - job:
+            pool:
+              vmImage: ${{ variables.agentPool }}
+            steps:
+              - template: templates/terraform/terraform.yaml
+                parameters:
+                  environment: "${{ parameter.environment }}-intsvc"
+                  location: ${{ parameters.location }}
+                  stack: ${{ parameter.deployment }}
+                  project: ${{ variables.project }}
+                  storageAccountName: ${{ parameter.storageAccountName }}
+                  storageAccountRg: ${{ parameter.storageAccountRg }}
+                  tfversion: ${{ variables.terraformVersion}}
+                  serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"

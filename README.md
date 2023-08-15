@@ -1,8 +1,9 @@
-# Slack help bot 
+# Slack help bot
 
 Listens for new posts in a designated Slack channel and raises a coresponding request in Jira.
 
-## Creating the Slack App 
+## Creating the Slack App
+
 <details>
   <summary>Steps</summary>
 
@@ -14,7 +15,7 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 <img src="images/step2.png" width=50% height=50% />
 
-3. Head to **Event subscriptions** and enable it. 
+3. Head to **Event subscriptions** and enable it.
 
 <img src="images/step3.png" width=50% height=50% />
 
@@ -26,11 +27,11 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 <img src="images/step5.png" width=50% height=50% />
 
-6. Head to **Interactivity and shortcuts** and create a **Global** shortcut with the following settings and save changes. 
+6. Head to **Interactivity and shortcuts** and create a **Global** shortcut with the following settings and save changes.
 
 <img src="images/step6.png" width=50% height=50% />
 
-7. Head to **Oauth and Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration. 
+7. Head to **Oauth and Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration.
 
 <img src="images/step7.png" width=50% height=50% />
 
@@ -44,9 +45,9 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 Running the application requires the following tools to be installed in your environment:
 
-  * [Node.js](https://nodejs.org/) v14.0.0 or later
-  * [npm](https://www.npmjs.com/)
-  * [Docker](https://www.docker.com)
+- [Node.js](https://nodejs.org/) v14.0.0 or later
+- [npm](https://www.npmjs.com/)
+- [Docker](https://www.docker.com)
 
 You need to create a Slack App as detailed in the steps above. For development purposes, this will have to be created in a new Slack workspace.
 You will also need the JIRA details. For development purposes, these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project.
@@ -55,11 +56,11 @@ Set the relevant environment variables defined in [env.template.txt](env.templat
 
 ## Running the application
 
-We use 'Socket mode' so no need to proxy Slack's requests. 
+We use 'Socket mode' so no need to proxy Slack's requests.
 
 ### Running on Kubernetes
 
-The application can be deployed on Kubernetes using the [HMCTS nodejs chart](https://github.com/hmcts/chart-nodejs). To avoid exposing sensitive data from the configuration above you can add them as secrets from an Azure Key Vault. See the chart documentation for further info. 
+The application can be deployed on Kubernetes using the [HMCTS nodejs chart](https://github.com/hmcts/chart-nodejs). To avoid exposing sensitive data from the configuration above you can add them as secrets from an Azure Key Vault. See the chart documentation for further info.
 
 ### Running locally
 
@@ -69,15 +70,16 @@ Rename "env.template.txt" to ".env" which is gitignored and safe for secrets.
 
 Source into your shell with:
 
- ```bash
+```bash
 $ set -o allexport; source .env; set +o allexport
- ```
+```
 
 Install dependencies by executing the following command:
 
- ```bash
+```bash
 $ npm install
- ```
+```
+
 Run:
 
 ```bash
@@ -86,7 +88,7 @@ $ node app.js
 
 #### Running locally with Docker
 
-There is no need to source your configuration. The ".env" file will be mounted as a volume.  
+There is no need to source your configuration. The ".env" file will be mounted as a volume.
 
 Create docker image:
 
