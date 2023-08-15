@@ -25,14 +25,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org/ # Needed for auth
-          cache: 'npm'
+          cache: "npm"
       - name: npm install
         run: npm install
       # End of  setup
 
       - name: Prettier Checks
         run: npx prettier -c .
-      # End of  setup
 
       - name: "Get Short Sha Hash"
         id: get-short-sha
@@ -42,13 +41,13 @@ jobs:
             const shortSha = context.sha.substring(0, 7)
             core.setOutput('shortSha', shortSha)
 
-      - name: 'Get Commit Timestamp'
+      - name: "Get Commit Timestamp"
         id: get-timestamp
         run: |
           TIMESTAMP=$(git log -1 --format='%cI' | sed -e's/[-T:]//g' -e's/+.*$//g')
           echo "::set-output name=timestamp::$TIMESTAMP"
 
-      - name: 'Build and push image'
+      - name: "Build and push image"
         uses: azure/docker-login@v1
         with:
           login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}

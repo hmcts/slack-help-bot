@@ -1,36 +1,38 @@
-const { convertJiraKeyToUrl } = require('./util')
+const { convertJiraKeyToUrl } = require("./util");
 
 function helpRequestDuplicateBlocks({
-    summary,
-    parentJiraId,
-    parentSlackUrl,
-    currentIssueJiraId,
+  summary,
+  parentJiraId,
+  parentSlackUrl,
+  currentIssueJiraId,
 }) {
-    return [
+  return [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: summary,
+      },
+    },
+    {
+      type: "divider",
+    },
+    {
+      type: "section",
+      fields: [
         {
-            type: "section",
-            text: {
-                type: "mrkdwn",
-                text: summary
-            }
+          type: "mrkdwn",
+          text: `View on Jira: <${convertJiraKeyToUrl(
+            currentIssueJiraId,
+          )}|${currentIssueJiraId}>`,
         },
         {
-            type: "divider"
+          type: "mrkdwn",
+          text: `Duplicate of <${parentSlackUrl}|${parentJiraId}>`,
         },
-        {
-            type: "section",
-            fields: [
-                {
-                    type: "mrkdwn",
-                    text: `View on Jira: <${convertJiraKeyToUrl(currentIssueJiraId)}|${currentIssueJiraId}>`
-                },
-                {
-                    type: "mrkdwn",
-                    text: `Duplicate of <${parentSlackUrl}|${parentJiraId}>`
-                }
-            ]
-        }
-    ]
+      ],
+    },
+  ];
 }
 
-module.exports.helpRequestDuplicateBlocks = helpRequestDuplicateBlocks
+module.exports.helpRequestDuplicateBlocks = helpRequestDuplicateBlocks;
