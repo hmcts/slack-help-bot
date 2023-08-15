@@ -1,19 +1,19 @@
 function optionalField(prefix, value) {
-  if (value) {
-    return `*${prefix}*: ${value}`;
-  }
-  return "";
+	if (value) {
+		return `*${prefix}*: ${value}`;
+	}
+	return "";
 }
 
 function mapFieldsToDescription({
-  prBuildUrl,
-  environment,
-  description,
-  analysis,
-  checkedWithTeam,
-  slackLink,
+	prBuildUrl,
+	environment,
+	description,
+	analysis,
+	checkedWithTeam,
+	slackLink,
 }) {
-  return `
+	return `
 h6. _This is an automatically generated ticket created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
 ${optionalField("PR / build URLs", prBuildUrl)}
@@ -32,7 +32,7 @@ ${description}
 }
 
 function createComment({ slackLink, name, message }) {
-  return `
+	return `
 h6. _This is an automatically added comment created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
 h6. ${name}:
@@ -41,7 +41,7 @@ ${message}
 }
 
 function createResolveComment({ category, how }) {
-  return `
+	return `
 h6. _Ticket resolved - see documented resolution:_
 
 h6. Issue type: 
