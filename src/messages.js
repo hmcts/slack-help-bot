@@ -1,5 +1,3 @@
-const config = require('config')
-
 const { helpFormGreetingBlocks } = require('./messages/helpFormGreeting')
 const { helpFormPlatoBlocks } = require('./messages/helpFormPlato')
 const { helpFormMainBlocks } = require('./messages/helpFormMain')
@@ -12,7 +10,9 @@ const { helpRequestResolveBlocks } = require('./messages/helpRequestResolve')
 const { helpRequestDocumentationBlocks } = require('./messages/helpRequestDocumentation')
 
 const { appHomeMainBlocks } = require('./messages/appHomeMain')
-const { appHomeUnassignedOpenIssueBlocks } = require('./messages/appHomeUnassignedOpenIssue')
+const { appHomeIssueBlocks } = require('./messages/appHomeIssue')
+
+const { appHomeHeaderBlocks } = require('./messages/appHomeHeader')
 
 const { configureWorkflowStepBlocks } = require('./messages/configureWorkflowStep')
 
@@ -27,7 +27,9 @@ module.exports.helpRequestDuplicateBlocks = helpRequestDuplicateBlocks;
 module.exports.helpRequestResolveBlocks = helpRequestResolveBlocks;
 module.exports.helpRequestDocumentationBlocks = helpRequestDocumentationBlocks;
 
-module.exports.appHomeUnassignedOpenIssueBlocks = appHomeUnassignedOpenIssueBlocks;
 module.exports.appHomeMainBlocks = appHomeMainBlocks;
+module.exports.appHomeIssueBlocks = appHomeIssueBlocks;
+
+module.exports.appHomeHeaderBlocks = appHomeHeaderBlocks;
 
 module.exports.configureWorkflowStepBlocks = configureWorkflowStepBlocks
