@@ -45,9 +45,9 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 Running the application requires the following tools to be installed in your environment:
 
--   [Node.js](https://nodejs.org/) v14.0.0 or later
--   [npm](https://www.npmjs.com/)
--   [Docker](https://www.docker.com)
+- [Node.js](https://nodejs.org/) v14.0.0 or later
+- [npm](https://www.npmjs.com/)
+- [Docker](https://www.docker.com)
 
 You need to create a Slack App as detailed in the steps above. For development purposes, this will have to be created in a new Slack workspace.
 You will also need the JIRA details. For development purposes, these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project.

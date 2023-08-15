@@ -1,32 +1,32 @@
 {
-    "name": "slack-help-bot",
-    "version": "1.0.0",
-    "description": "",
-    "main": "app.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Platform Operations",
-    "license": "MIT",
-    "dependencies": {
-        "@hmcts/properties-volume": "^1.0.0",
-        "@slack/bolt": "^3.6.0",
-        "@types/config": "3.3.0",
-        "@types/jira-client": "^7.0.0",
-        "applicationinsights": "^2.2.2",
-        "config": "^3.3.6",
-        "jira-client": "^8.1.0",
-        "js-yaml": "^4.1.0",
-        "lodash": "^4.17.21",
-        "prettier": "^3.0.1"
-    },
-    "devDependencies": {
-        "jest": "29.6.2",
-        "jest-extended": "4.0.1"
-    },
-    "jest": {
-        "setupFilesAfterEnv": [
-            "jest-extended"
-        ]
-    }
+  "name": "slack-help-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Platform Operations",
+  "license": "MIT",
+  "dependencies": {
+    "@hmcts/properties-volume": "^1.0.0",
+    "@slack/bolt": "^3.6.0",
+    "@types/config": "3.3.0",
+    "@types/jira-client": "^7.0.0",
+    "applicationinsights": "^2.2.2",
+    "config": "^3.3.6",
+    "jira-client": "^8.1.0",
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
+    "prettier": "^3.0.1"
+  },
+  "devDependencies": {
+    "jest": "29.6.2",
+    "jest-extended": "4.0.1"
+  },
+  "jest": {
+    "setupFilesAfterEnv": [
+      "jest-extended"
+    ]
+  }
 }
