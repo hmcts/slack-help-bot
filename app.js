@@ -840,9 +840,14 @@ app.action('view_requests_assigned_to_me', async ({
         const issues = results.issues.slice(0, 20)
     
         const parsedPromises = issues.flatMap(async result => {
-            const reporterUser = await client.users.lookupByEmail({
-                email: result.fields.reporter.emailAddress
-            });
+            let reporterUser
+            try {
+                reporterUser = await client.users.lookupByEmail({
+                    email: result.fields.reporter.emailAddress
+                });
+            } catch (error) {
+                console.log("Couldn't find user", result.fields.reporter.emailAddress, error)
+            }
 
             return appHomeIssueBlocks({
                 summary: result.fields.summary,
@@ -885,9 +890,15 @@ app.action('view_requests_raised_by_me', async ({
         await ack();
 
         const user = body.user.id
-        const userEmail = (await client.users.profile.get({
-            user
-        })).profile.email
+
+        let userEmail
+        try {
+            userEmail = await client.users.profile.get({
+                user
+            }).profile.email;
+        } catch (error) {
+            console.log("Couldn't find user", body.uder.id, error)
+        }
 
         const results = await searchForIssuesRaisedBy(userEmail)
     
