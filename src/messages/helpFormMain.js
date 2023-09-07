@@ -102,7 +102,10 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
           optionBlock("Private Law", "private-law"),
           optionBlock("Probate"),
           optionBlock("Reference Data", "refdata"),
-          optionBlock("Reform Software Engineering", "reform-software-engineering"),
+          optionBlock(
+            "Reform Software Engineering",
+            "reform-software-engineering",
+          ),
           optionBlock("Residential Property", "rpts"),
           optionBlock("Retain and Dispose", "disposer"),
           optionBlock("Security Operations / Secure Design", "security"),
