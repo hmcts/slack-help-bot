@@ -26,7 +26,7 @@ Service.prototype.toString = function () {
 
     const now = new Date();
     const lastSeen = new Date(this.lastSeen);
-    let text = `:x:   *${this.name}* - Last seen at ${lastSeen.toLocaleTimeString('en-GB', { timeZone: 'UTC' })} (UTC) `;
+    let text = `:x:   <${this.url}/health|*${this.name}*> - Last seen at ${lastSeen.toLocaleTimeString('en-GB', { timeZone: 'UTC' })} (UTC) `;
 
     if(now.getDate() === lastSeen.getDate()) {
         return text;
