@@ -52,6 +52,8 @@ function getServiceStatusWorkflowStep() {
                 }
             });
 
+            console.log(blocks);
+
             try {
                 await client.chat.postEphemeral({
                     channel: reportChannelId,
