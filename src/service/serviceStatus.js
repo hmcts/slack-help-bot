@@ -2,6 +2,12 @@ const fetch = require('node-fetch-retry');
 const {ServiceTemplate} = require("./ServiceTemplate");
 const {Service} = require("./Service");
 
+const PROD = 'prod';
+const AAT = 'aat';
+const DEMO = 'demo';
+const PERFTEST = 'perftest';
+const ITHC = 'ithc';
+
 const refreshDelay = 15;
 const serviceTemplates = {
     "ccd": [
@@ -9,19 +15,21 @@ const serviceTemplates = {
         new ServiceTemplate("ccd-definition-store-api", env => `http://ccd-definition-store-api-${env}.service.core-compute-${env}.internal`)
     ],
     "xui": [
-        new ServiceTemplate("rpx-xui-webapp", env => prodOverride(env, `https://manage-case.platform.hmcts.net`, `https://manage-case.${env}.platform.hmcts.net`))
+        new ServiceTemplate("xui-webapp", env => prodOverride(env, `https://manage-case.platform.hmcts.net`, `https://manage-case.${env}.platform.hmcts.net`)),
+        new ServiceTemplate("xui-webapp-hearings-integration", () => `https://manage-case-hearings-int.demo.platform.hmcts.net`, [ DEMO ])
     ]
 }
 const services = {
-    'AAT': getServices('aat'),
-    'PERFTEST': getServices('perftest'),
-    'ITHC': getServices('ithc'),
-    'DEMO': getServices('demo'),
-    'PROD': getServices('prod')
+    'AAT': getServices(AAT),
+    'PERFTEST': getServices(PERFTEST),
+    'ITHC': getServices(ITHC),
+    'DEMO': getServices(DEMO),
+    'PROD': getServices(PROD)
 }
+console.log(services)
 
 function prodOverride(env, prodUrl, defaultTemplateUrl) {
-    return env == 'prod' ? prodUrl : defaultTemplateUrl;
+    return env === PROD ? prodUrl : defaultTemplateUrl;
 }
 
 function getAllServiceStatus() {
@@ -33,7 +41,9 @@ function getServices(env) {
 
     Object.entries(serviceTemplates).forEach(([product, templates]) => {
         templates.forEach(template => {
-            resolvedServices.push(new Service(template.name, template.getUrl(env)));
+            if (template.existsInEnv(env)){
+                resolvedServices.push(new Service(template.name, template.getUrl(env)));
+            }
         })
     })
 

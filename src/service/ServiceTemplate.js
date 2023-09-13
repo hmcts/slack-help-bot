@@ -1,15 +1,15 @@
-function ServiceTemplate(name, urlFunction) {
+function ServiceTemplate(name, urlFunction, exclusiveEnvs = []) {
     this.name = name;
     this.urlFunction = urlFunction;
-    this.envs = [];
+    this.exclusiveEnvs = exclusiveEnvs;
 }
 
 ServiceTemplate.prototype.getUrl = function(env) {
     return this.urlFunction(env);
 }
 
-ServiceTemplate.prototype.getName = function() {
-    return this.name;
+ServiceTemplate.prototype.existsInEnv = function(env) {
+    return this.exclusiveEnvs.length === 0 || this.exclusiveEnvs.includes(env);
 }
 
 module.exports.ServiceTemplate = ServiceTemplate;
