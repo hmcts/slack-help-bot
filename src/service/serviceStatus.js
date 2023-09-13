@@ -8,7 +8,7 @@ const DEMO = 'demo';
 const PERFTEST = 'perftest';
 const ITHC = 'ithc';
 
-const refreshDelay = 15;
+const refreshDelay = 60;
 const serviceTemplates = {
     "ccd": [
         new ServiceTemplate("ccd-admin-web", env => prodOverride(env, `https://ccd-admin-web.platform.hmcts.net`, `https://ccd-admin-web.${env}.platform.hmcts.net`)),
