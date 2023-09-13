@@ -21,8 +21,9 @@ function getServiceStatusWorkflowStep() {
         },
         execute: async ({ step, complete, fail, client }) => {
             const blocks = [];
+            const allServiceStatuses = getAllServiceStatus();
 
-            Object.entries(getAllServiceStatus()).forEach(([envName, services]) => {
+            Object.keys(allServiceStatuses).forEach((envName) => {
                 blocks.push({
                     "type": "header",
                     "text": {
@@ -31,15 +32,13 @@ function getServiceStatusWorkflowStep() {
                     }
                 });
 
-                services.forEach(service => {
-                    blocks.push({
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": service.toString()
-                        }
-                    });
-                })
+                blocks.push({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": allServiceStatuses[envName].join('\n')
+                    }
+                });
 
                 blocks.push({ "type": "divider" });
             })

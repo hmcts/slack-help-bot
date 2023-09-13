@@ -46,10 +46,10 @@ function getAllServiceStatus() {
 function getServices(env) {
     const resolvedServices = []; 
 
-    Object.entries(serviceTemplates).forEach(([product, templates]) => {
+    Object.entries(serviceTemplates).forEach(([namespace, templates]) => {
         templates.forEach(template => {
             if (template.existsInEnv(env)){
-                resolvedServices.push(new Service(template.name, template.getUrl(env)));
+                resolvedServices.push(new Service(template.name, template.getUrl(env), namespace));
             }
         })
     })
@@ -58,7 +58,7 @@ function getServices(env) {
 }
 
 function monitorStatus() { 
-    // TODO: Ensure current time is during expected working hours of clusters
+    // TODO: Only bother running checks if current time is during expected cluster running hours
     Object.entries(services).forEach(([env, services]) => {
         services.forEach(service => {
             const controller = new AbortController();
