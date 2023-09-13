@@ -31,6 +31,7 @@ const {
     updateHelpRequestDescription,
     getIssueDescription, markAsDuplicate
 } = require("./src/service/persistence");
+const {getServiceStatusWorkflowStep} = require("./src/workflow/getServiceStatusStep");
 const appInsights = require('./src/modules/appInsights')
 
 appInsights.enableAppInsights()
@@ -280,6 +281,7 @@ const ws = new WorkflowStep('superbot_help_request', {
 });
 
 app.step(ws);
+app.step(getServiceStatusWorkflowStep());
 
 /////////////////////////////
 //// Setup App Homepage  ////
