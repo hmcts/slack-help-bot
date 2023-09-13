@@ -1,27 +1,43 @@
 const fetch = require('node-fetch-retry');
+const {ServiceTemplate} = require("./ServiceTemplate");
 const {Service} = require("./Service");
 
 const refreshDelay = 15;
-const services = {
-    'AAT': getNonProdServices('aat'),
-    'PERFTEST': getNonProdServices('perftest'),
-    'ITHC': getNonProdServices('ithc'),
-    'DEMO': getNonProdServices('demo'),
-    'PROD': [
-        new Service('rpx-xui-webapp', `https://manage-case.platform.hmcts.net`),
-        new Service('ccd-data-store-api', `http://ccd-data-store-api-prod.service.core-compute-prod.internal`)
+const serviceTemplates = {
+    "ccd": [
+        new ServiceTemplate("ccd-data-store-api", env => `http://ccd-data-store-api-${env}.service.core-compute-${env}.internal`),
+        new ServiceTemplate("ccd-definition-store-api", env => `http://ccd-definition-store-api-${env}.service.core-compute-${env}.internal`)
+    ],
+    "xui": [
+        new ServiceTemplate("rpx-xui-webapp", env => prodOverride(env, `https://manage-case.platform.hmcts.net`, `https://manage-case.${env}.platform.hmcts.net`))
     ]
+}
+const services = {
+    'AAT': getServices('aat'),
+    'PERFTEST': getServices('perftest'),
+    'ITHC': getServices('ithc'),
+    'DEMO': getServices('demo'),
+    'PROD': getServices('prod')
+}
+
+function prodOverride(env, prodUrl, defaultTemplateUrl) {
+    return env == 'prod' ? prodUrl : defaultTemplateUrl;
 }
 
 function getAllServiceStatus() {
     return services;
 }
 
-function getNonProdServices(env) {
-    return [
-        new Service('rpx-xui-webapp', `https://manage-case.${env}.platform.hmcts.net`),
-        new Service('ccd-data-store-api', `http://ccd-data-store-api-${env}.service.core-compute-${env}.internal`)
-    ]
+function getServices(env) {
+    const resolvedServices = []; 
+
+    Object.entries(serviceTemplates).forEach(([product, templates]) => {
+        templates.forEach(template => {
+            resolvedServices.push(new Service(template.name, template.getUrl(env)));
+        })
+    })
+
+    return resolvedServices;
 }
 
 function monitorStatus() {
