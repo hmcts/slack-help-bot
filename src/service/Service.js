@@ -17,7 +17,7 @@ Service.prototype.setLastSeen = function (lastSeenTime) {
 
 Service.prototype.toString = function () {
     if(this.isAvailable()) {
-        return `:white_check_mark:   *${this.name}* - Responded within the last few seconds.`;
+        return `:white_check_mark:   <${this.url}/health|*${this.name}*> - Responded within the last few seconds.`;
     }
 
     const now = new Date();
