@@ -1,9 +1,13 @@
-const refreshDelay = 15;
+const refreshDelay = 60;
 
-function Service(name, url) {
+function Service(name, url, namespace) {
     this.name = name;
     this.url = url;
+    this.namespace = namespace;
     this.lastSeen = 0;
+    this.reportedDown = false;
+    this.reportedDownSlackChannel = '';
+    this.reportedDownSlackThread = '';
 }
 
 Service.prototype.isAvailable = function () {
