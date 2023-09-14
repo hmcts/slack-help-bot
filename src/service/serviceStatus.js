@@ -95,6 +95,6 @@ function monitorStatus() {
 }
 
 monitorStatus();
-// setInterval(monitorStatus, refreshDelay * 1000)
+setInterval(monitorStatus, refreshDelay * 1000)
 
 module.exports.getAllServiceStatus = getAllServiceStatus;
