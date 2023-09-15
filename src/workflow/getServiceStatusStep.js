@@ -16,6 +16,8 @@ function getServiceStatusWorkflowStep() {
             await ack();
 
             const { values } = view.state;
+            console.log('view', view.state);
+            console.log('values', values);
             const inputs = workflowStepView(values);
             const outputs = [];
             await update({ inputs, outputs });
