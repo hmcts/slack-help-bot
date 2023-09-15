@@ -19,6 +19,10 @@ Service.prototype.setLastSeen = function (lastSeenTime) {
     this.lastSeen = lastSeenTime;
 }
 
+Service.prototype.getMarkdownLink = function () {
+    return `<${this.url}/health|${this.name}>`;
+}
+
 Service.prototype.toString = function () {
     if(this.isAvailable()) {
         return `:white_check_mark:   <${this.url}/health|*${this.name}*> - Responded within the last few seconds.`;

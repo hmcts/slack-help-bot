@@ -1,5 +1,6 @@
 const {WorkflowStep} = require("@slack/bolt");
 const {getAllServiceStatus} = require("../service/serviceStatus");
+const {getAllProducts} = require("../service/serviceStatus");
 const config = require("config");
 const reportChannelId = config.get('slack.report_channel_id');
 
@@ -21,28 +22,31 @@ function getServiceStatusWorkflowStep() {
         },
         execute: async ({ step, complete, fail, client }) => {
             const blocks = [];
-            const allServiceStatuses = getAllServiceStatus();
+            const products = getAllProducts();
+            const env = step.inputs.env.value;
 
-            Object.keys(allServiceStatuses).forEach((envName) => {
-                blocks.push({
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Common Services " + envName,
-                    }
-                });
-
-                blocks.push({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": allServiceStatuses[envName].join('\n')
-                    }
-                });
-
-                blocks.push({ "type": "divider" });
-            })
-
+            blocks.push({
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Common Services " + env.toUpperCase(),
+                }
+            });
+        
+            products.forEach(product => {
+                if (product.services[env].length > 0) {
+                    blocks.push({
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": product.getMarkdown(env)
+                        }
+                    });
+                }
+            });
+        
+            blocks.push({ "type": "divider" });
+            
             blocks.push({
                 "type": "section",
                 "text": {
@@ -51,7 +55,7 @@ function getServiceStatusWorkflowStep() {
                 }
             });
 
-            console.log(blocks);
+            console.log(JSON.stringify(blocks));
 
             try {
                 await client.chat.postEphemeral({
@@ -82,6 +86,65 @@ function workflowStepBlocks(inputs) {
                 "action_id": "user",
                 "initial_user": inputs?.user?.value ?? " ",
             }
+        },
+        {
+            "type": "input",
+            "block_id": "env",
+            "label": {
+                "type": "plain_text",
+                "text": "Environment"
+            },
+            "element": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select an environment",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Production",
+							"emoji": true
+						},
+						"value": "prod"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "AAT",
+							"emoji": true
+						},
+						"value": "aat"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Demo",
+							"emoji": true
+						},
+						"value": "demo"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Perftest",
+							"emoji": true
+						},
+						"value": "perftest"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "ITHC",
+							"emoji": true
+						},
+						"value": "ithc"
+					}
+				],
+				"action_id": "env"
+			}
         }
     ];
 }
@@ -90,6 +153,9 @@ function workflowStepView(values) {
     return {
         user: {
             value: values.user.user.selected_user
+        },
+        env: {
+            value: values.env.env.selected_option.value
         }
     }
 }
