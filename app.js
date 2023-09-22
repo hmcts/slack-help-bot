@@ -281,7 +281,6 @@ const ws = new WorkflowStep('superbot_help_request', {
 });
 
 app.step(ws);
-app.step(getServiceStatusWorkflowStep());
 
 /////////////////////////////
 //// Setup App Homepage  ////
