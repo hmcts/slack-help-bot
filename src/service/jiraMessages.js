@@ -9,6 +9,8 @@ function mapFieldsToDescription(
     {
         replicateSteps,
         references,
+        ccdReferences,
+        rcReferences,
         testAccount,
         environment,
         description,
@@ -19,6 +21,10 @@ function mapFieldsToDescription(
 h6. _This is an automatically generated ticket created from Slack, do not reply or update in here, [view in Slack|${slackLink}]_
 
 ${optionalField('SNow/Jira References', references)}
+
+${optionalField('CCD Case References', ccdReferences)}
+
+${optionalField('RC References', rcReferences)}
 
 ${optionalField('Environment', environment)}
 

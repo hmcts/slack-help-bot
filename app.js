@@ -221,7 +221,9 @@ const ws = new WorkflowStep('superbot_help_request', {
             analysis: inputs.alsys.value,
             replicateSteps: inputs.replicateSteps.value,
             testAccount: inputs.testAccount.value,
-            references: inputs.references.value
+            references: inputs.references.value,
+            ccdReferences: inputs.ccdReferences.value,
+            rcReferences: inputs.rcReferences.value,
         }
 
         // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
@@ -368,6 +370,8 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
             summary: view.state.values.summary.title.value,
             priority: view.state.values.priority.priority.selected_option.text.text,
             references: view.state.values.references?.references?.value || "None",
+            ccdReferences: view.state.values.ccdReferences?.ccdReferences?.value || "None",
+            rcReferences: view.state.values.rcReferences?.rcReferences?.value || "None",
             environment: view.state.values.environment.environment.selected_option?.text.text || "None",
             description: view.state.values.description.description.value,
             analysis: view.state.values.analysis.analysis.value,
