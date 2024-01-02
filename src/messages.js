@@ -385,7 +385,7 @@ function openHelpRequestBlocks() {
                     "action_id": "rcReferences",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "RC reference..."
+                        "text": "RC references.."
                     }
                 },
                 "label": {
