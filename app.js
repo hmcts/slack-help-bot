@@ -31,7 +31,6 @@ const {
     updateHelpRequestDescription,
     getIssueDescription, markAsDuplicate
 } = require("./src/service/persistence");
-const {getServiceStatusWorkflowStep} = require("./src/workflow/getServiceStatusStep");
 const appInsights = require('./src/modules/appInsights')
 
 appInsights.enableAppInsights()
