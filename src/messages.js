@@ -95,6 +95,14 @@ function helpRequestRaised({
                 {
                     "type": "mrkdwn",
                     "text": `*Jira/ServiceNow references* :pencil: \n${references}`
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": `*CCD references* :briefcase: \n${ccdReferences}`
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": `*RC references* :credit_card: \n${rcReferences}`
                 }
             ]
         },
