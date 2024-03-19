@@ -139,64 +139,33 @@ function checkSlackResponseError(res, message) {
   console.log("⚡️ Bolt app started");
 })();
 
-// Main entry point for the workflow
-const nws = new WorkflowStep("begin_help_request", {
-  edit: async ({ ack, step, configure }) => {
-    await ack();
-    const blocks = configureWorkflowStepBlocks(step.inputs);
-    await configure({ blocks });
-  },
-  save: async ({ ack, step, view, update, client }) => {
-    await ack();
+// New main entry point for the application
+app.shortcut("begin_help_request_sc", async({body, context, client, ack}) => {
+  await ack();
 
-    const { values } = view.state;
-    const user = values.user_block.user_input;
+  const userId = context.userId;
 
-    const inputs = {
-      user: {
-        value: user.selected_user,
-        skip_variable_replacement: false,
-      },
-    };
-    const outputs = [];
+  const openDmResponse = await client.conversations.open({
+    users: userId,
+    return_im: true,
+  });
 
-    await update({ inputs, outputs });
-  },
-  execute: async ({ step, complete, fail, client }) => {
-    try {
-      const { inputs } = step;
-      const userId = inputs.user.value.replace(/<@|>/g, "");
+  const channelId = openDmResponse.channel.id;
 
-      const openDmResponse = await client.conversations.open({
-        users: userId,
-        return_im: true,
-      });
+  const postMessageResponse = await client.chat.postMessage({
+    channel: channelId,
+    text: "Hello!",
+    blocks: helpFormGreetingBlocks({
+      user: userId,
+      isAdvanced: false,
+    }),
+  });
 
-      const channelId = openDmResponse.channel.id;
-
-      const postMessageResponse = await client.chat.postMessage({
-        channel: channelId,
-        text: "Hello!",
-        blocks: helpFormGreetingBlocks({
-          user: userId,
-          isAdvanced: false,
-        }),
-      });
-
-      checkSlackResponseError(
-        postMessageResponse,
-        "An error occurred when posting a direct message",
-      );
-
-      await complete({});
-    } catch (error) {
-      console.error(error);
-      await fail();
-    }
-  },
-});
-
-app.step(nws);
+  checkSlackResponseError(
+    postMessageResponse,
+    "An error occurred when posting a direct message",
+  );
+})
 
 app.action(
   "show_plato_dialogue",
