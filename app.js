@@ -140,32 +140,35 @@ function checkSlackResponseError(res, message) {
 })();
 
 // New main entry point for the application
-app.shortcut("begin_help_request_sc", async({body, context, client, ack}) => {
-  await ack();
+app.shortcut(
+  "begin_help_request_sc",
+  async ({ body, context, client, ack }) => {
+    await ack();
 
-  const userId = context.userId;
+    const userId = context.userId;
 
-  const openDmResponse = await client.conversations.open({
-    users: userId,
-    return_im: true,
-  });
+    const openDmResponse = await client.conversations.open({
+      users: userId,
+      return_im: true,
+    });
 
-  const channelId = openDmResponse.channel.id;
+    const channelId = openDmResponse.channel.id;
 
-  const postMessageResponse = await client.chat.postMessage({
-    channel: channelId,
-    text: "Hello!",
-    blocks: helpFormGreetingBlocks({
-      user: userId,
-      isAdvanced: false,
-    }),
-  });
+    const postMessageResponse = await client.chat.postMessage({
+      channel: channelId,
+      text: "Hello!",
+      blocks: helpFormGreetingBlocks({
+        user: userId,
+        isAdvanced: false,
+      }),
+    });
 
-  checkSlackResponseError(
-    postMessageResponse,
-    "An error occurred when posting a direct message",
-  );
-})
+    checkSlackResponseError(
+      postMessageResponse,
+      "An error occurred when posting a direct message",
+    );
+  },
+);
 
 app.action(
   "show_plato_dialogue",
