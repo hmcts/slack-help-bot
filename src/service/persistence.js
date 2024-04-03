@@ -170,7 +170,8 @@ async function createHelpRequestInJira(summary, project, user, labels) {
             reporter: {
                 name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
             },
-            customfield_10008: 'PAY-6381' // TODO: Probably make configurable
+            customfield_10008: 'PAY-6381', // TODO: Probably make configurable
+            fixVersions: [ { name: "F&P No Release Required" } ] // TODO Make this configurable
         }
     });
 
