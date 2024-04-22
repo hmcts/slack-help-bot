@@ -162,7 +162,7 @@ async function begin_help_request(userId, client) {
       "An error occurred when posting a direct message",
     );
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 }
 
@@ -466,7 +466,6 @@ app.action(
 // need app_mentions:read and chat:write scopes
 app.event("app_mention", async ({ event, context, client, say }) => {
   try {
-
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
     if (event.channel === reportChannelId && event.thread_ts) {
@@ -774,7 +773,6 @@ function convertProfileToName(profile) {
 // Processes whenever the bot receives a message
 app.event("message", async ({ event, context, client, say }) => {
   try {
-
     // Filters for direct(instant) messages
     if (event.channel_type === "im") {
       switch (event.text.toLowerCase()) {
@@ -783,8 +781,10 @@ app.event("message", async ({ event, context, client, say }) => {
           await begin_help_request(context.userId, client);
           return;
         default:
-          // 
-          await say("Sorry, I didn't catch that. Here's what I can help you with:\n`help` Open a Platform Help Request");
+          //
+          await say(
+            "Sorry, I didn't catch that. Here's what I can help you with:\n`help` Open a Platform Help Request",
+          );
           return;
       }
     }
@@ -1025,10 +1025,10 @@ app.action(
           result.fields.assignee === null
             ? null
             : (
-              await client.users.lookupByEmail({
-                email: result.fields.assignee.emailAddress,
-              })
-            ).user.enterprise_user.id;
+                await client.users.lookupByEmail({
+                  email: result.fields.assignee.emailAddress,
+                })
+              ).user.enterprise_user.id;
 
         return appHomeIssueBlocks({
           summary: result.fields.summary,
