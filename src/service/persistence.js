@@ -333,6 +333,28 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
+async function searchForInactiveIssues() {
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
+  try {
+    console.log('In try condition')
+    return await jira.searchJira(jqlQuery, {
+      fields: [
+        "created",
+        "description",
+        "summary",
+        "updated",
+        "status",
+        "reporter",
+      ],
+    });
+  } catch (err) {
+    console.log("Error searching for issues in jira", err);
+    return {
+      issues: [],
+    };
+  }
+}
+
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
 module.exports.assignHelpRequest = assignHelpRequest;
@@ -348,5 +370,6 @@ module.exports.searchForUnassignedOpenIssues = searchForUnassignedOpenIssues;
 module.exports.searchForOpenIssues = searchForOpenIssues;
 module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
+module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;

@@ -1,5 +1,7 @@
 const config = require("@hmcts/properties-volume").addTo(require("config"));
 const setupSecrets = require("./src/setupSecrets");
+const schedule = require('node-schedule');
+
 // must be called before any config.get calls
 setupSecrets.setup();
 
@@ -49,6 +51,7 @@ const {
   searchForOpenIssues,
   searchForIssuesAssignedTo,
   searchForIssuesRaisedBy,
+  searchForInactiveIssues,
   startHelpRequest,
   updateHelpRequestDescription,
   getIssueDescription,
@@ -1066,3 +1069,30 @@ app.action(
     }
   },
 );
+
+
+//////////////////////////////////////
+//// Auto close inactive tickets  ////
+//////////////////////////////////////
+
+function autoCloseInactiveIssues() {
+  console.log('Daily issue clear down triggered');
+
+  // Get list of inactive tickets
+    try {
+      console.log('trying jira query')
+      const results = searchForInactiveIssues();
+      console.log(results);
+    } catch (error) {
+      console.error(error);
+    }
+}
+
+const job = schedule.scheduleJob('*/1 * * * *', function(){
+  autoCloseInactiveIssues();
+});
+
+
+
+
+
