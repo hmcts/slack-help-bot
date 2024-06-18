@@ -12,23 +12,17 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.x]
-
     steps:
       - uses: actions/checkout@v4
 
-      # Beginning of yarn setup, keep in sync between all workflows, see ci.yml
-      - name: use node.js ${{ matrix.node-version }}
+      - name: use node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org/ # Needed for auth
           cache: "npm"
       - name: npm install
         run: npm install
-      # End of  setup
 
       - name: Prettier Checks
         run: npx prettier -c .
