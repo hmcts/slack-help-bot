@@ -774,7 +774,7 @@ function convertProfileToName(profile) {
 app.event("message", async ({ event, context, client, say }) => {
   try {
     // Filters for direct(instant) messages
-    if (event.channel_type === "im") {
+    if (event.channel_type === "im" && event.subtype !== "message_changed") {
       switch (event.text.toLowerCase()) {
         case "help":
           // Open the PlatOps help request form. Alternative to the shortcut above
@@ -876,11 +876,7 @@ async function appHomeUnassignedIssues(userId, client) {
         email: result.fields.reporter.emailAddress,
       });
     } catch (error) {
-      console.log(
-        "Couldn't find user",
-        result.fields.reporter.emailAddress,
-        error,
-      );
+      console.log("Couldn't find user", result.fields.reporter.emailAddress);
     }
 
     return appHomeIssueBlocks({
