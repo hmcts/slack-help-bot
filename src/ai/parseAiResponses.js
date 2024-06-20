@@ -12,18 +12,4 @@ function mapEnvironments(value) {
   return value;
 }
 
-function parseResponseToRecommendation(str) {
-  let obj = {};
-  let pairs = str.split(",");
-
-  for (const kvPair of pairs) {
-    const pair = kvPair.split("=");
-    const key = pair[0].trim();
-    if (key === "environment" || key === "team" || key === "area") {
-      obj[key] = mapEnvironments(pair[1].trim());
-    }
-  }
-  return obj;
-}
-
-module.exports.parseResponseToRecommendation = parseResponseToRecommendation;
+module.exports.mapEnvironments = mapEnvironments;

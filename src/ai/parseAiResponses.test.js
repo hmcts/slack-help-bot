@@ -1,15 +1,18 @@
-const { parseResponseToRecommendation } = require("./parseAiResponses");
+const { mapEnvironments } = require("./parseAiResponses");
 
-describe("parseResponseToRecommendation", () => {
-  it("parses known response to expected format", () => {
+describe("mapEnvironments", () => {
+  it("converts duel named environment to joined one", () => {
     expect(
-      parseResponseToRecommendation(
-        "environment=Production, team=No fault divorce, area=GitHub,",
+      mapEnvironments(
+        "Test",
       ),
-    ).toStrictEqual({
-      environment: "Production",
-      team: "No fault divorce",
-      area: "GitHub",
-    });
+    ).toStrictEqual("Perftest / Test");
+  });
+  it("handles simple case", () => {
+    expect(
+      mapEnvironments(
+        "Production",
+      ),
+    ).toStrictEqual("Production");
   });
 });
