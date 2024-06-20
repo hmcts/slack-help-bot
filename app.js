@@ -634,6 +634,46 @@ app.action(
   },
 );
 
+async function handleDuplicate({ event, client, helpRequestMessages, say }) {
+  const result = event.text.match(/.+duplicate ([A-Z]+-[0-9]+)/);
+  if (result) {
+    const blocks = helpRequestMessages[0].blocks;
+    const summary = extractSummaryFromBlocks(blocks);
+    const parentJiraId = result[1];
+    const issueDescription = await getIssueDescription(parentJiraId);
+
+    if (issueDescription === undefined) {
+      await say({
+        text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
+        thread_ts: event.thread_ts,
+      });
+      return;
+    }
+    const parentSlackUrl = extractSlackLinkFromText(issueDescription);
+    const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
+
+    await markAsDuplicate(currentIssueJiraId, parentJiraId);
+
+    await client.chat.update({
+      channel: event.channel,
+      ts: helpRequestMessages[0].ts,
+      text: "Duplicate issue",
+      blocks: helpRequestDuplicateBlocks({
+        summary,
+        parentJiraId,
+        parentSlackUrl,
+        currentIssueJiraId,
+      }),
+    });
+
+    await client.reactions.add({
+      name: "white_check_mark",
+      timestamp: event.ts,
+      channel: event.channel,
+    });
+  }
+}
+
 // TODO: Break this up into smaller blocks, we're handling every single
 // message interaction in this one function.
 // subscribe to 'app_mention' event in your App config
@@ -664,55 +704,22 @@ app.event("app_mention", async ({ event, context, client, say }) => {
             thread_ts: event.thread_ts,
           });
         } else if (event.text.includes("duplicate")) {
-          const result = event.text.match(/.+duplicate ([A-Z]+-[0-9]+)/);
-          if (result) {
-            const blocks = helpRequestMessages[0].blocks;
-            const summary = extractSummaryFromBlocks(blocks);
-            const parentJiraId = result[1];
-            const issueDescription = await getIssueDescription(parentJiraId);
-
-            if (issueDescription === undefined) {
-              await say({
-                text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
-                thread_ts: event.thread_ts,
-              });
-              return;
-            }
-
-            const parentSlackUrl = extractSlackLinkFromText(issueDescription);
-            const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
-
-            await markAsDuplicate(currentIssueJiraId, parentJiraId);
-
-            await client.chat.update({
-              channel: event.channel,
-              ts: helpRequestMessages[0].ts,
-              text: "Duplicate issue",
-              blocks: helpRequestDuplicateBlocks({
-                summary,
-                parentJiraId,
-                parentSlackUrl,
-                currentIssueJiraId,
-              }),
-            });
-
-            await client.reactions.add({
-              name: "white_check_mark",
-              timestamp: event.ts,
-              channel: event.channel,
-            });
-          } else {
-            await say({
-              text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
-              thread_ts: event.thread_ts,
-            });
-          }
+          await handleDuplicate({
+            event,
+            client,
+            helpRequestMessages,
+          });
         } else {
           await say({
-            text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
+            text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
             thread_ts: event.thread_ts,
           });
         }
+      } else {
+        await say({
+          text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
+          thread_ts: event.thread_ts,
+        });
       }
     }
   } catch (error) {
