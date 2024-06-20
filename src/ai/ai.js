@@ -3,7 +3,7 @@ const {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } = require("@azure/identity");
-const { mapEnvironments} = require("./parseAiResponses");
+const { mapEnvironments } = require("./parseAiResponses");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -80,18 +80,17 @@ Pull requests are used in the preview environment
 
   const content = result.choices.pop().message.content;
 
-  const parsed = JSON.parse(content)
+  const parsed = JSON.parse(content);
 
   // in case someone is trying to do dodgy things and override other fields
   const sanitised = {
     team: parsed.team,
     area: parsed.area,
-    environment: mapEnvironments(parsed.environment)
-  }
+    environment: mapEnvironments(parsed.environment),
+  };
   console.log("LLM recommended", parsed);
 
-  return sanitised
-
+  return sanitised;
 }
 
 module.exports.analyticsRecommendations = analyticsRecommendations;
