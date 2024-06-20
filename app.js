@@ -19,8 +19,6 @@ const {
   appHomeIssueBlocks,
 
   appHomeHeaderBlocks,
-
-  configureWorkflowStepBlocks,
 } = require("./src/messages");
 
 const {
@@ -28,13 +26,7 @@ const {
   extractSlackMessageIdFromText,
 } = require("./src/messages/util");
 
-const {
-  App,
-  LogLevel,
-  SocketModeReceiver,
-  WorkflowStep,
-  WorkflowStepInitializationError,
-} = require("@slack/bolt");
+const { App } = require("@slack/bolt");
 const crypto = require("crypto");
 const {
   addCommentToHelpRequestResolve,
@@ -42,11 +34,9 @@ const {
   addLabel,
   assignHelpRequest,
   createHelpRequest,
-  extraJiraId,
   extractJiraIdFromBlocks,
   resolveHelpRequest,
   searchForUnassignedOpenIssues,
-  searchForOpenIssues,
   searchForIssuesAssignedTo,
   searchForIssuesRaisedBy,
   startHelpRequest,
@@ -74,6 +64,8 @@ const reportChannelId = config.get("slack.report_channel_id");
 //////////////////////////////////
 
 const http = require("http");
+const { helpFormAnalyticsBlocks } = require("./src/messages/helpFormMain");
+const { analyticsRecommendations } = require("./src/ai/ai");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
@@ -99,7 +91,6 @@ const server = http.createServer((req, res) => {
       },
     };
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify(myResponse));
   } else if (req.url === "/health/liveness") {
     if (app.receiver.client.badConnection) {
       res.statusCode = 500;
@@ -258,6 +249,179 @@ app.action(
   },
 );
 
+function validateInitialRequest(helpRequest) {
+  let errorMessage = null;
+
+  // prBuildUrl and analysis are optional, so don't mandate they be populated
+  if (!helpRequest.summary) {
+    errorMessage = "Please write a summary for your issue.";
+  } else if (!helpRequest.description) {
+    errorMessage = "Please provide a description of your issue.";
+  }
+  return errorMessage;
+}
+
+app.action(
+  "submit_initial_help_request",
+  async ({ body, action, ack, client, context }) => {
+    try {
+      await ack();
+
+      const user = body.user.id;
+
+      const values = Object.values(body.state.values).reduce(
+        (r, c) => Object.assign(r, c),
+        {},
+      );
+      const blocks = body.message.blocks;
+
+      // New inputs will be found in our 'values' object if present.
+      // If there is a validation problem with the form, it must be re-sent
+      // to the user in its entirety and the submitted data will be lost.
+      //
+      // The only way to keep the data the user entered in the form is to
+      // populate the initial_value or initial_option fields of the form when
+      // it's sent back. We do this by passing 'helpRequest' to the
+      // 'helpRequestRaiseTicketBlocks' function and setting the fields in
+      // there.
+      //
+      // The form can then be re-submitted by the user.
+      // If the user did not change a field when re-submitting the form,
+      // slack will detect this and will not populate the 'values' object
+      // with the value of that field. Instead, we have to read the data from
+      // the 'blocks' object we submitted last time. Thankfully this is
+      // provided to us.
+
+      // Add an explicit check for when the values block exists, but the
+      // value === null, this is a special case where the user has deleted
+      // what was in the field before submitting and is a distinct case from
+      // the block not being present at all. That simply means the user did
+      // not update that field before submitting and the field may still
+      // have a value in the initial_option block we set.
+
+      const helpRequest = {
+        user,
+        // Blocks 0 and 1 are labels
+        summary: values.summary
+          ? values.summary.value
+          : blocks[2].element.initial_value,
+        prBuildUrl: values.build_url
+          ? values.build_url.value
+          : blocks[3].element.initial_value,
+        // 4 is a divider
+        description: values.description
+          ? values.description.value
+          : blocks[5].element.initial_value,
+        analysis: values.analysis
+          ? values.analysis.value
+          : blocks[6].element.initial_value,
+      };
+
+      const errorMessage = validateInitialRequest(helpRequest);
+      //Re-insert current values for text inputs and send the form back
+      if (errorMessage != null) {
+        const res = await client.chat.update({
+          channel: body.channel.id,
+          ts: body.message.ts,
+          text: "Raise a Ticket With PlatOps",
+          blocks: helpFormMainBlocks({
+            user: body.user.id,
+            isAdvanced: false,
+            errorMessage: errorMessage,
+            helpRequest: helpRequest,
+          }),
+        });
+
+        checkSlackResponseError(
+          res,
+          "An error occurred when updating an invalid ticket raising form",
+        );
+      } else {
+        const mainBlocks = helpFormMainBlocks({
+          user: body.user.id,
+          errorMessage: errorMessage,
+          isAdvanced: true,
+          helpRequest: helpRequest,
+        });
+
+        const notifyProcessingRequest = await client.chat.update({
+          channel: body.channel.id,
+          ts: body.message.ts,
+          text: "Raise a Ticket With PlatOps",
+          blocks: [
+            ...mainBlocks,
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: ":spinner2: Processing, please wait",
+              },
+            },
+          ],
+        });
+        checkSlackResponseError(
+          notifyProcessingRequest,
+          "An error occurred when updating a valid ticket raising form",
+        );
+
+        let aiRecommendation = {};
+        try {
+          aiRecommendation = await analyticsRecommendations(
+            `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis} ${helpRequest.prBuildUrl}`,
+          );
+        } catch (error) {
+          console.log(
+            "An error occurred when fetching AI recommendations: ",
+            error,
+          );
+        }
+
+        const analyticsBlocks = helpFormAnalyticsBlocks({
+          user: body.user.id,
+          errorMessage: errorMessage,
+          helpRequest: {
+            ...helpRequest,
+            ...aiRecommendation,
+          },
+        });
+
+        const blocks = [...mainBlocks, ...analyticsBlocks];
+
+        const updateRes = await client.chat.update({
+          channel: body.channel.id,
+          ts: body.message.ts,
+          text: "Raise a Ticket With PlatOps",
+          blocks,
+        });
+
+        checkSlackResponseError(
+          updateRes,
+          "An error occurred when updating a valid ticket raising form",
+        );
+      }
+    } catch (error) {
+      console.error("An error occurred when submitting a help form: ", error);
+    }
+  },
+);
+
+function validateFullRequest(helpRequest) {
+  // prBuildUrl and analysis are optional, so don't mandate they be populated
+  if (!helpRequest.summary) {
+    return "Please write a summary for your issue.";
+  } else if (!helpRequest.environment) {
+    return "Please specify what environment the issue is occuring in.";
+  } else if (!helpRequest.team) {
+    // TODO: Tell the user how to request a new team be added to the list
+    return "Please specify the team experiencing the problem.";
+  } else if (!helpRequest.area) {
+    return "Please specify what area you're experiencing problems with.";
+  } else if (!helpRequest.description) {
+    return "Please provide a description of your issue.";
+  }
+  return null;
+}
+
 app.action(
   "submit_help_request",
   async ({ body, action, ack, client, context }) => {
@@ -295,69 +459,68 @@ app.action(
       // the block not being present at all. That simply means the user did
       // not update that field before submitting and the field may still
       // have a value in the initial_option block we set.
+
+      // environment: values.environment
+      //     ? values.environment.selected_option
+      //     : blocks[3].element.initial_option,
+      //     team: values.team
+      //     ? values.team.selected_option
+      //     : blocks[4].element.initial_option,
+      //     area: values.area
+      //     ? values.area.selected_option
+      //     : blocks[5].element.initial_option,
+
       const helpRequest = {
         user,
         // Blocks 0 and 1 are labels
         summary: values.summary
           ? values.summary.value
           : blocks[2].element.initial_value,
-        environment: values.environment
-          ? values.environment.selected_option
-          : blocks[3].element.initial_option,
-        team: values.team
-          ? values.team.selected_option
-          : blocks[4].element.initial_option,
-        area: values.area
-          ? values.area.selected_option
-          : blocks[5].element.initial_option,
         prBuildUrl: values.build_url
           ? values.build_url.value
-          : blocks[6].element.initial_value,
-        // Block 7 is a divider
+          : blocks[3].element.initial_value,
+        // 4 is a divider
         description: values.description
           ? values.description.value
-          : blocks[8].element.initial_value,
+          : blocks[5].element.initial_value,
         analysis: values.analysis
           ? values.analysis.value
-          : blocks[9].element.initial_value,
-        checkedWithTeam: values.team_check
-          ? values.team_check.selected_option
+          : blocks[6].element.initial_value,
+        // 7 is a divider, 8 is a heading
+        environment: values.environment
+          ? values.environment.selected_option
+          : blocks[9].element.initial_option,
+        team: values.team
+          ? values.team.selected_option
           : blocks[10].element.initial_option,
+        area: values.area
+          ? values.area.selected_option
+          : blocks[11].element.initial_option,
       };
 
-      let errorMessage = null;
-
-      // prBuildUrl and analysis are optional, so don't mandate they be populated
-      if (!helpRequest.summary) {
-        errorMessage = "Please write a summary for your issue.";
-      } else if (!helpRequest.environment) {
-        errorMessage =
-          "Please specify what environment the issue is occuring in.";
-      } else if (!helpRequest.team) {
-        // TODO: Tell the user how to request a new team be added to the list
-        errorMessage = "Please specify the team experiencing the problem.";
-      } else if (!helpRequest.area) {
-        errorMessage =
-          "Please specify what area you're experiencing problems with.";
-      } else if (!helpRequest.description) {
-        errorMessage = "Please provide a description of your issue.";
-      } else if (!helpRequest.checkedWithTeam) {
-        errorMessage =
-          "Please check with your team before submitting a help request.";
-      }
-
+      const errorMessage = validateFullRequest(helpRequest);
       //Re-insert current values for text inputs and send the form back
-      if (errorMessage != null) {
+      if (errorMessage !== null) {
+        let mainBlocks = helpFormMainBlocks({
+          user: body.user.id,
+          isAdvanced: true,
+          helpRequest: helpRequest,
+        });
+
+        const analyticsBlocks = helpFormAnalyticsBlocks({
+          user: body.user.id,
+          errorMessage: errorMessage,
+          helpRequest,
+        });
+
+        const blocks = [...mainBlocks, ...analyticsBlocks];
+
         const res = await client.chat.update({
           channel: body.channel.id,
           ts: body.message.ts,
           text: "Raise a Ticket With PlatOps",
-          blocks: helpFormMainBlocks({
-            user: body.user.id,
-            isAdvanced: false,
-            errorMessage: errorMessage,
-            helpRequest: helpRequest,
-          }),
+          errorMessage: errorMessage,
+          blocks,
         });
 
         checkSlackResponseError(
@@ -366,16 +529,27 @@ app.action(
         );
         return;
       } else {
+        const mainBlocks = helpFormMainBlocks({
+          user: body.user.id,
+          errorMessage: errorMessage,
+          isAdvanced: true,
+          helpRequest: helpRequest,
+        });
+
+        const analyticsBlocks = helpFormAnalyticsBlocks({
+          user: body.user.id,
+          errorMessage: errorMessage,
+          isAdvanced: true,
+          helpRequest,
+        });
+
+        const blocks = [...mainBlocks, ...analyticsBlocks];
+
         const updateRes = await client.chat.update({
           channel: body.channel.id,
           ts: body.message.ts,
           text: "Raise a Ticket With PlatOps",
-          blocks: helpFormMainBlocks({
-            user: body.user.id,
-            isAdvanced: true,
-            errorMessage: errorMessage,
-            helpRequest: helpRequest,
-          }),
+          blocks,
         });
 
         checkSlackResponseError(
@@ -455,7 +629,7 @@ app.action(
         "An error occurred when posting a goodbye post to Slack",
       );
     } catch (error) {
-      console.error("An error occurred when submitting a help form: " + error);
+      console.error("An error occurred when submitting a help form: ", error);
     }
   },
 );

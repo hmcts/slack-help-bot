@@ -1,35 +1,32 @@
-const { optionBlock } = require("./util");
+const {
+  environments,
+  lookupEnvironment,
+  lookupTeam,
+  teams,
+  areas,
+  lookupArea,
+} = require("./helpFormData");
 
-function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
+function helpFormAnalyticsBlocks({
+  user,
+  helpRequest,
+  isAdvanced,
+  errorMessage,
+}) {
   return [
     {
-      type: "header",
-      text: {
-        type: "plain_text",
-        text: "Platform Help Request",
-        emoji: true,
-      },
+      type: "divider",
     },
     {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "Please fill out the following form and we'll raise a platform help ticket for you:",
-      },
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: "*Additional information*\nSome of it may be preselected:",
+        },
+      ],
     },
-    {
-      type: "input",
-      element: {
-        type: "plain_text_input",
-        action_id: "summary",
-        initial_value: helpRequest?.summary ?? "",
-      },
-      label: {
-        type: "plain_text",
-        text: "Issue Summary",
-        emoji: true,
-      },
-    },
+
     {
       type: "input",
       element: {
@@ -39,20 +36,14 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
           text: "Select an item",
           emoji: true,
         },
-        options: [
-          optionBlock("AAT / Staging", "staging"),
-          optionBlock("Preview / Dev", "dev"),
-          optionBlock("Production"),
-          optionBlock("Perftest / Test", "test"),
-          optionBlock("ITHC"),
-          optionBlock("Demo", "demo"),
-          optionBlock("Sandbox", "sbox"),
-        ],
+        options: environments,
         action_id: "environment",
         // Arcane javascript alchemy to only provide initial_option if we have a value for it
-        ...(helpRequest?.environment && {
-          initial_option: helpRequest.environment,
-        }),
+        ...(helpRequest?.environment && helpRequest.environment.text
+          ? {
+              initial_option: helpRequest.environment,
+            }
+          : { initial_option: lookupEnvironment(helpRequest.environment) }),
       },
       label: {
         type: "plain_text",
@@ -69,55 +60,13 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
           text: "Select an item",
           emoji: true,
         },
-        options: [
-          optionBlock("Access Management", "am"),
-          optionBlock("Adoption"),
-          optionBlock("Architecture"),
-          optionBlock("Bulk print", "bulkprint"),
-          optionBlock("Bulk scan", "bulkscan"),
-          optionBlock("CCD"),
-          optionBlock("Civil", "civil"),
-          optionBlock("CMC"),
-          optionBlock("Divorce"),
-          optionBlock("Employment Tribunals", "et"),
-          optionBlock("Ethos"),
-          optionBlock("Evidence Management", "em"),
-          optionBlock("Expert UI", "xui"),
-          optionBlock("Family Integration Stream", "fis"),
-          optionBlock("Family Private Law", "FPRL"),
-          optionBlock("Fees/Pay", "fees-pay"),
-          optionBlock("Financial Remedy", "finrem"),
-          optionBlock("Find a Court or Tribunal", "FACT"),
-          optionBlock("Future Hearings", "HMI"),
-          optionBlock("Heritage"),
-          optionBlock("HMI"),
-          optionBlock("IDAM"),
-          optionBlock("Immigration"),
-          optionBlock("Log and Audit", "LAU"),
-          optionBlock("Management Information", "mi"),
-          optionBlock("No fault divorce", "nfdiv"),
-          optionBlock("PayBubble"),
-          optionBlock("PDDA"),
-          optionBlock("PET"),
-          optionBlock("Private Law", "private-law"),
-          optionBlock("Probate"),
-          optionBlock("Reference Data", "refdata"),
-          optionBlock(
-            "Reform Software Engineering",
-            "reform-software-engineering",
-          ),
-          optionBlock("Residential Property", "rpts"),
-          optionBlock("Retain and Dispose", "disposer"),
-          optionBlock("Security Operations / Secure Design", "security"),
-          optionBlock("Special Tribunals", "sptribs"),
-          optionBlock("SSCS"),
-          optionBlock("Tax Tribunals", "tax-tribunals"),
-          optionBlock("Video Hearings", "vh"),
-          optionBlock("Work Allocation", "wa"),
-          optionBlock("Other"),
-        ],
+        options: teams,
         action_id: "team",
-        ...(helpRequest?.team && { initial_option: helpRequest.team }),
+        ...(helpRequest?.team && helpRequest.team.text
+          ? {
+              initial_option: helpRequest.team,
+            }
+          : { initial_option: lookupTeam(helpRequest.team) }),
       },
       label: {
         type: "plain_text",
@@ -134,26 +83,75 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
           text: "Select an item",
           emoji: true,
         },
-        options: [
-          optionBlock("AKS"),
-          optionBlock("Azure"),
-          optionBlock("Azure DevOps", "azure-devops"),
-          optionBlock("Database read", "DBQuery"),
-          optionBlock("Database update", "DBUpdate"),
-          optionBlock("Elasticsearch"),
-          optionBlock("GitHub"),
-          optionBlock("Jenkins"),
-          optionBlock("Question"),
-          optionBlock("SSL"),
-          optionBlock("VPN"),
-          optionBlock("Other"),
-        ],
+        options: areas,
         action_id: "area",
-        ...(helpRequest?.area && { initial_option: helpRequest.area }),
+        ...(helpRequest?.area && helpRequest.area.text
+          ? {
+              initial_option: helpRequest.area,
+            }
+          : { initial_option: lookupArea(helpRequest.area) }),
       },
       label: {
         type: "plain_text",
         text: "Area :globe_with_meridians:",
+        emoji: true,
+      },
+    },
+    isAdvanced
+      ? {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `<@${user}> submitted *Platform Help Request*`,
+          },
+        }
+      : {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `${errorMessage?.length > 0 ? ":x: " + errorMessage : " "}`,
+          },
+          accessory: {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Create",
+              emoji: true,
+            },
+            value: "submit_help_request",
+            action_id: "submit_help_request",
+          },
+        },
+  ];
+}
+
+function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
+  return [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: "Platform Help Request",
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "Please fill out the following request:",
+      },
+    },
+    {
+      type: "input",
+      element: {
+        type: "plain_text_input",
+        action_id: "summary",
+        initial_value: helpRequest?.summary ?? "",
+      },
+      label: {
+        type: "plain_text",
+        text: "Issue Summary",
         emoji: true,
       },
     },
@@ -187,6 +185,11 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
         text: "Description :spiral_note_pad:",
         emoji: true,
       },
+      hint: {
+        type: "plain_text",
+        text: "What is the problem? What have you tried so far?",
+        emoji: true,
+      },
     },
     {
       type: "input",
@@ -198,70 +201,39 @@ function helpFormMainBlocks({ user, isAdvanced, errorMessage, helpRequest }) {
       },
       label: {
         type: "plain_text",
-        text: "Analysis :thinking_face: (Optional)",
+        text: "Suggested fix or additional information :thinking_face: (Optional)",
+        emoji: true,
+      },
+      hint: {
+        type: "plain_text",
+        text: "If you have any links, have found something on stackoverflow or have seen something similar before.",
         emoji: true,
       },
       optional: true,
     },
-    {
-      type: "input",
-      element: {
-        type: "radio_buttons",
-        options: [
+    ...(isAdvanced
+      ? []
+      : [
           {
+            type: "section",
             text: {
-              type: "plain_text",
-              text: "Yes",
-              emoji: true,
+              type: "mrkdwn",
+              text: `${errorMessage?.length > 0 ? ":x: " + errorMessage : " "}`,
             },
-            value: "true",
-          },
-          {
-            text: {
-              type: "plain_text",
-              text: "No",
-              emoji: true,
+            accessory: {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Next",
+                emoji: true,
+              },
+              value: "submit_initial_help_request",
+              action_id: "submit_initial_help_request",
             },
-            value: "false",
           },
-        ],
-        action_id: "team_check",
-        ...(helpRequest?.checkedWithTeam && {
-          initial_option: helpRequest.checkedWithTeam,
-        }),
-      },
-      label: {
-        type: "plain_text",
-        text: "Have You Checked With Your Team? :speech_balloon:",
-        emoji: true,
-      },
-    },
-    isAdvanced
-      ? {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `<@${user}> submitted *Platform Help Request*`,
-          },
-        }
-      : {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `${errorMessage?.length > 0 ? ":x: " + errorMessage : " "}`,
-          },
-          accessory: {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "Submit",
-              emoji: true,
-            },
-            value: "submit_help_request",
-            action_id: "submit_help_request",
-          },
-        },
+        ]),
   ];
 }
 
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
+module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
