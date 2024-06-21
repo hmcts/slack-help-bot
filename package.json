@@ -16,6 +16,7 @@
     "@types/config": "3.3.4",
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
+    "cacheables": "^2.0.0",
     "config": "^3.3.6",
     "jira-client": "^8.1.0",
     "js-yaml": "^4.1.0",

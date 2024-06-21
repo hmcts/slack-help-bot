@@ -1,7 +1,15 @@
-const config = require("@hmcts/properties-volume").addTo(require("config"));
-const setupSecrets = require("./src/setupSecrets");
-// must be called before any config.get calls
-setupSecrets.setup();
+// some things gated by this take a bit of time to initialise and delay startup
+// decrease iteration time by turning off feature not needed locally
+const fastStartup = process.env.FAST_STARTUP === "true";
+let config;
+if (fastStartup) {
+  config = require("config");
+} else {
+  config = require("@hmcts/properties-volume").addTo(require("config"));
+  const setupSecrets = require("./src/setupSecrets");
+  // must be called before any config.get calls
+  setupSecrets.setup();
+}
 
 const {
   helpFormGreetingBlocks,
@@ -26,8 +34,9 @@ const {
   extractSlackMessageIdFromText,
 } = require("./src/messages/util");
 
+const { Cacheables } = require("cacheables");
+
 const { App } = require("@slack/bolt");
-const crypto = require("crypto");
 const {
   addCommentToHelpRequestResolve,
   addCommentToHelpRequest,
@@ -44,15 +53,24 @@ const {
   getIssueDescription,
   markAsDuplicate,
 } = require("./src/service/persistence");
-const appInsights = require("./src/modules/appInsights");
 
-appInsights.enableAppInsights();
+let appInsights;
+if (!fastStartup) {
+  appInsights = require("./src/modules/appInsights");
+
+  appInsights.enableAppInsights();
+}
 
 const app = new App({
   token: config.get("slack.bot_token"), //disable this if enabling OAuth in socketModeReceiver
   // logLevel: LogLevel.DEBUG,
   appToken: config.get("slack.app_token"),
   socketMode: true,
+});
+
+const cache = new Cacheables({
+  logTiming: false,
+  log: false,
 });
 
 const reportChannel = config.get("slack.report_channel");
@@ -65,11 +83,13 @@ const reportChannelId = config.get("slack.report_channel_id");
 
 const http = require("http");
 const { helpFormAnalyticsBlocks } = require("./src/messages/helpFormMain");
-const { analyticsRecommendations } = require("./src/ai/ai");
+const { analyticsRecommendations, summariseThread } = require("./src/ai/ai");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
-  appInsights.client().trackNodeHttpRequest({ request: req, response: res });
+  if (!fastStartup) {
+    appInsights.client().trackNodeHttpRequest({ request: req, response: res });
+  }
   if (req.method !== "GET") {
     res.statusCode = 405;
     res.end("error");
@@ -558,11 +578,7 @@ app.action(
         );
       }
 
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
+      const userEmail = await lookupUsersEmail({ user, client });
 
       // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
       // check if API is up-to-date
@@ -674,6 +690,67 @@ async function handleDuplicate({ event, client, helpRequestMessages, say }) {
   }
 }
 
+async function lookupUser({ client, user }) {
+  return cache.cacheable(
+    () => {
+      return client.users.profile.get({
+        user,
+      });
+    },
+    {
+      cachePolicy: "max-age",
+      maxAge: 86400,
+    },
+  );
+}
+
+async function lookupUsersName({ client, user }) {
+  return lookupUser({ client, user }).then((result) => {
+    if (result.ok) {
+      return convertProfileToName(result.profile);
+    } else {
+      throw new Error(`Failed to lookup user ${result}`);
+    }
+  });
+}
+
+async function lookupUsersEmail({ client, user }) {
+  return lookupUser({ client, user }).then((result) => {
+    if (result.ok) {
+      return result.profile.email;
+    } else {
+      throw new Error(`Failed to lookup user ${result}`);
+    }
+  });
+}
+
+async function extractReplies({ client, messages }) {
+  return Promise.all(
+    messages
+      .filter((message) => {
+        if (message.bot_id) {
+          return false;
+        }
+        const messageText = message.text;
+        return !(
+          messageText.endsWith("summarise") ||
+          messageText.endsWith("summarize") ||
+          messageText.endsWith("summary")
+        );
+      })
+      .map(async (message) => {
+        const user = await lookupUsersName({ client, user: message.user });
+        return `From: ${user}\nMessage: ${message.text}`;
+      }),
+  );
+}
+
+const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
+\`summarise\` - Summarises the thread using AI
+
+If you want to escalate a request please tag \`platformops-bau\`
+`;
+
 // TODO: Break this up into smaller blocks, we're handling every single
 // message interaction in this one function.
 // subscribe to 'app_mention' event in your App config
@@ -683,13 +760,19 @@ app.event("app_mention", async ({ event, context, client, say }) => {
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
     if (event.channel === reportChannelId && event.thread_ts) {
-      const helpRequestMessages = (
-        await client.conversations.replies({
-          channel: reportChannelId,
-          ts: event.thread_ts,
-          limit: 200, // after a thread is 200 long we'll break but good enough for now
-        })
-      ).messages;
+      const helpRequestResult = await client.conversations.replies({
+        channel: reportChannelId,
+        ts: event.thread_ts,
+        limit: 200, // after a thread is 200 long we'll break but good enough for now
+      });
+
+      if (helpRequestResult.has_more === true) {
+        console.log(
+          "WARNING: Thread is longer than 200 messages, some messages may be missing",
+        );
+      }
+
+      const helpRequestMessages = helpRequestResult.messages;
 
       if (
         helpRequestMessages.length > 0 &&
@@ -697,7 +780,8 @@ app.event("app_mention", async ({ event, context, client, say }) => {
       ) {
         if (event.text.includes("help")) {
           const usageMessage = `Hi <@${event.user}>, here is what I can do:
-\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID`;
+
+${helpText}`;
 
           await say({
             text: usageMessage,
@@ -709,15 +793,47 @@ app.event("app_mention", async ({ event, context, client, say }) => {
             client,
             helpRequestMessages,
           });
+        } else if (
+          event.text.includes("summarise") ||
+          event.text.includes("summarize") ||
+          event.text.includes("summary")
+        ) {
+          await client.reactions.add({
+            name: "eyes",
+            timestamp: event.ts,
+            channel: event.channel,
+          });
+
+          const messages = await extractReplies({
+            client,
+            messages: helpRequestMessages,
+          });
+
+          const summary = await summariseThread(messages);
+
+          await say({
+            text: `Hi <@${event.user}>, here is an AI Generated summary of the issue:\n\n${summary}\n\n_If this was useful, give me a :thumbsup: or if it wasn't then a :thumbsdown:_`,
+            thread_ts: event.thread_ts,
+          });
+
+          await client.reactions.remove({
+            name: "eyes",
+            timestamp: event.ts,
+            channel: event.channel,
+          });
         } else {
           await say({
-            text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
+            text: `Hi <@${event.user}>, I didn't understand that. Here is what I can do:
+
+${helpText}`,
             thread_ts: event.thread_ts,
           });
         }
       } else {
         await say({
-          text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
+          text: `Hi <@${event.user}>, here is what I can do:
+
+${helpText}`,
           thread_ts: event.thread_ts,
         });
       }
@@ -739,12 +855,9 @@ app.action(
 
       const jiraId = extractJiraIdFromBlocks(body.message.blocks);
 
-      const userInfo = await client.users.info({
-        user: body.user.id,
-      });
+      const userInfo = await lookupUsersEmail({ user: body.user.id, client });
 
-      const userEmail = userInfo.user.profile.email;
-
+      const userEmail = userInfo.profile.email;
       await assignHelpRequest(jiraId, userEmail);
 
       const blocks = body.message.blocks;
@@ -773,11 +886,7 @@ app.action(
       const user = action.selected_user;
 
       const jiraId = extractJiraIdFromBlocks(body.message.blocks);
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
+      const userEmail = await lookupUsersEmail({ user, client });
 
       await assignHelpRequest(jiraId, userEmail);
 
@@ -972,7 +1081,7 @@ app.event("message", async ({ event, context, client, say }) => {
 
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
-    if (event.channel != reportChannelId) return;
+    if (event.channel !== reportChannelId) return;
     if (!event.thread_ts) return;
 
     // The code below here monitors the thread of any help request and
@@ -985,11 +1094,7 @@ app.event("message", async ({ event, context, client, say }) => {
       })
     ).permalink;
 
-    const user = await client.users.profile.get({
-      user: event.user,
-    });
-
-    const name = convertProfileToName(user.profile);
+    const name = await lookupUsersName({ user: event.user, client });
 
     // Should be able to get root message using timestamp
     const helpRequestMessages = (
@@ -1113,11 +1218,7 @@ app.action(
       await ack();
 
       const user = body.user.id;
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
+      const userEmail = lookupUsersEmail({ user, client });
 
       const results = await searchForIssuesAssignedTo(userEmail);
 
@@ -1184,11 +1285,7 @@ app.action(
 
       let userEmail;
       try {
-        userEmail = (
-          await client.users.profile.get({
-            user,
-          })
-        ).profile.email;
+        userEmail = lookupUsersEmail({ user, client });
       } catch (error) {
         console.log("Couldn't find user", body.user.id, error);
       }

@@ -22,7 +22,7 @@ function helpFormAnalyticsBlocks({
       elements: [
         {
           type: "mrkdwn",
-          text: "*Additional information*\nSome of it may be preselected:",
+          text: "*Additional information*\nThese may have been pre-filled, please check for accuracy and change if needed:",
         },
       ],
     },

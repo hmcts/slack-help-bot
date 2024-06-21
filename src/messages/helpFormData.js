@@ -10,7 +10,9 @@ const environments = [
 ];
 
 function lookupEnvironment(value) {
-  return environments.find((env) => env.text.text === value);
+  return environments.find(
+    (env) => env.text.text.toLowerCase() === value.toLowerCase(),
+  );
 }
 
 const teams = [
