@@ -1,4 +1,5 @@
 const { AzureOpenAI } = require("openai");
+const config = require("config");
 const {
   DefaultAzureCredential,
   getBearerTokenProvider,
@@ -10,7 +11,7 @@ const azureADTokenProvider = getBearerTokenProvider(
   new DefaultAzureCredential(),
   scope,
 );
-const deployment = "gpt-4-turbo-preview";
+const deployment = config.get("openai.deployment_name");
 const apiVersion = "2024-04-01-preview";
 const client = new AzureOpenAI({
   azureADTokenProvider,
