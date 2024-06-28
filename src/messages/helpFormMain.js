@@ -6,6 +6,7 @@ const {
   areas,
   lookupArea,
 } = require("./helpFormData");
+const { DateTime } = require("luxon");
 
 function helpFormAnalyticsBlocks({
   user,
@@ -14,9 +15,6 @@ function helpFormAnalyticsBlocks({
   errorMessage,
 }) {
   return [
-    {
-      type: "divider",
-    },
     {
       type: "context",
       elements: [
@@ -123,6 +121,83 @@ function helpFormAnalyticsBlocks({
           },
         },
   ];
+}
+
+function mapStatus(status) {
+  switch (status) {
+    case "In Progress":
+      return ":fire_extinguisher:";
+    case "Done":
+      return ":snowflake:";
+    case "Open":
+      return ":fire:";
+    default:
+      return "";
+  }
+}
+
+function formatDate(date) {
+  if (!date) {
+    return "No created date";
+  }
+
+  return DateTime.fromISO(date.toISOString()).toLocaleString(DateTime.DATE_MED);
+}
+
+function relatedIssueBlock(issue) {
+  return [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*${issue.title}*`,
+      },
+    },
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `Status ${mapStatus(issue.status)} ${issue.status}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `Created on ${formatDate(issue.created_at)}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `<https://example.com|${issue.key}>`,
+        },
+      ],
+    },
+    { type: "divider" },
+  ];
+}
+
+function helpFormRelatedIssuesBlocks({ relatedIssues }) {
+  const header = [
+    {
+      type: "divider",
+    },
+    {
+      type: "context",
+      elements: [
+        {
+          type: "plain_text",
+          text: "Below are issues that are potentially related, please take a look at them first:",
+          emoji: true,
+        },
+      ],
+    },
+    {
+      type: "divider",
+    },
+  ];
+  const relatedIssueBlocks = relatedIssues
+    .map((issue) => relatedIssueBlock(issue))
+    .flatMap((block) => block);
+
+  return [...header, ...relatedIssueBlocks];
 }
 
 function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
@@ -237,3 +312,4 @@ function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
 
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
 module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
+module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;

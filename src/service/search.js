@@ -18,7 +18,7 @@ async function searchDocuments(query) {
     semanticSearchOptions: {
       configurationName: "help-requests",
     },
-    top: 5,
+    top: 3,
   });
 
   const filteredResults = [];

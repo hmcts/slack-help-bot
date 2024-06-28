@@ -1,7 +1,11 @@
 const { helpFormMainBlocks } = require("../messages");
 const { analyticsRecommendations } = require("../ai/ai");
-const { helpFormAnalyticsBlocks } = require("../messages/helpFormMain");
+const {
+  helpFormAnalyticsBlocks,
+  helpFormRelatedIssuesBlocks,
+} = require("../messages/helpFormMain");
 const { checkSlackResponseError } = require("./errorHandling");
+const { searchDocuments } = require("../service/search");
 
 function validateInitialRequest(helpRequest) {
   let errorMessage = null;
@@ -114,6 +118,16 @@ async function submitInitialHelpRequest(body, client) {
         "An error occurred when updating a valid ticket raising form",
       );
 
+      let relatedIssues = [];
+      try {
+        relatedIssues = await searchDocuments(
+          `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
+        );
+        console.log(relatedIssues);
+      } catch (error) {
+        console.log("An error occurred when fetching related issues", error);
+      }
+
       let aiRecommendation = {};
       try {
         aiRecommendation = await analyticsRecommendations(
@@ -121,7 +135,7 @@ async function submitInitialHelpRequest(body, client) {
         );
       } catch (error) {
         console.log(
-          "An error occurred when fetching AI recommendations: ",
+          "An error occurred when fetching AI recommendations",
           error,
         );
       }
@@ -135,7 +149,15 @@ async function submitInitialHelpRequest(body, client) {
         },
       });
 
-      const blocks = [...mainBlocks, ...analyticsBlocks];
+      const relatedIssuesBlocks = helpFormRelatedIssuesBlocks({
+        relatedIssues,
+      });
+
+      const blocks = [
+        ...mainBlocks,
+        ...relatedIssuesBlocks,
+        ...analyticsBlocks,
+      ];
 
       const updateRes = await client.chat.update({
         channel: body.channel.id,
