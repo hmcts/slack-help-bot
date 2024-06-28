@@ -120,3 +120,5 @@ dist
 .pnp.*
 .tokens.json
 .DS_Store
+
+documents*.json

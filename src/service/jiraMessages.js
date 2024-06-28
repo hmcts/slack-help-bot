@@ -26,8 +26,6 @@ ${optionalField("Environment", environment.text.text)}
 ${description}
 
 *Analysis done so far*: ${analysis ?? "None"}
-
-*Have you checked with your team?*: ${checkedWithTeam.text.text}
 `;
 }
 

@@ -217,6 +217,21 @@ async function searchForIssuesRaisedBy(userEmail) {
   }
 }
 
+async function search(jqlQuery, startAt, fields) {
+  try {
+    return await jira.searchJira(jqlQuery, {
+      fields: fields,
+      maxResults: 750,
+      startAt,
+    });
+  } catch (err) {
+    console.log("Error searching for issues in jira", err);
+    return {
+      issues: [],
+    };
+  }
+}
+
 async function assignHelpRequest(issueId, email) {
   const user = await convertEmail(email);
 
@@ -333,6 +348,14 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
+async function getIssue(jiraId, fields) {
+  try {
+    return await jira.getIssue(jiraId, fields);
+  } catch (err) {
+    console.log("Error extracting document from jira", err);
+  }
+}
+
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
 module.exports.assignHelpRequest = assignHelpRequest;
@@ -350,3 +373,4 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.search = search;
