@@ -333,6 +333,48 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
+async function searchForInactiveIssues() {
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
+  try {
+    return await jira.searchJira(jqlQuery, {
+      fields: ["created", "summary", "updated", "status", "reporter"],
+    });
+  } catch (err) {
+    console.log("Error searching for issues in jira", err);
+    return {
+      issues: [],
+    };
+  }
+}
+
+async function addWithdrawnLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: "auto-withdrawn",
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(`Error adding label to issue ${issueId} in jira`, err);
+  }
+}
+
+async function withdrawIssue(issueId) {
+  try {
+    await jira.transitionIssue(issueId, {
+      transition: {
+        id: "101",
+      },
+    });
+  } catch (err) {
+    console.log(`Error withdrawing issue ${issueId} in jira`, err);
+  }
+}
+
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
 module.exports.assignHelpRequest = assignHelpRequest;
@@ -350,3 +392,6 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.withdrawIssue = withdrawIssue;
+module.exports.addWithdrawnLabel = addWithdrawnLabel;
