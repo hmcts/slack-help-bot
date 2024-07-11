@@ -93,10 +93,12 @@ const commentOnSlackThread = async (channel, timestamp) => {
 const withdrawInactiveIssues = async () => {
   const results = await searchForInactiveIssues();
 
+  // Loop through inactive issues
   if (results.issues.length > 0) {
     for (const issue of results.issues) {
       const issueId = issue["key"];
 
+      // Withdraw issue and add withdrawn label in Jira
       console.log(`Withdrawing issue ${issueId}...`);
       await addWithdrawnLabel(issueId);
       await withdrawIssue(issueId);
@@ -114,6 +116,8 @@ const withdrawInactiveIssues = async () => {
         /https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+\/[\w.-]+\?[\w=&.-]+/,
       );
 
+      // If the issue was created from Slack, send dm to reporter and comment on the thread
+      // Otherwise, just send dm to reporter
       if (urlMatch) {
         const urlString = urlMatch[0];
         const url = new URL(urlString);
