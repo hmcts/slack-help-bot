@@ -29,10 +29,6 @@ variables:
   project: application
 
 parameters:
-  - name: component
-    displayName: Component
-    type: string
-    default: "infrastructure"
   - name: environments
     displayName: Environment to run
     type: object
