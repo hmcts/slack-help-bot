@@ -1,0 +1,26 @@
+name: Auto Withdraw Workflow
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  auto_withdraw:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: use node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org/ # Needed for auth
+          cache: "npm"
+
+      - name: npm install
+        run: npm install
+
+      - name: Run autoWithdraw.js
+        run: node ./src/scripts/autoWithdraw.js
