@@ -334,10 +334,18 @@ async function addLabel(externalSystemId, { category }) {
 }
 
 async function searchForInactiveIssues() {
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
+  // const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND issueKey in (DTSPO-18257)`;
   try {
     return await jira.searchJira(jqlQuery, {
-      fields: ["created", "summary", "updated", "status", "reporter"],
+      fields: [
+        "created",
+        "description",
+        "summary",
+        "updated",
+        "status",
+        "reporter",
+      ],
     });
   } catch (err) {
     console.log("Error searching for issues in jira", err);
@@ -375,6 +383,32 @@ async function withdrawIssue(issueId) {
   }
 }
 
+// Using fetch to hit API as getUser in jira-client uses different api version with different parameters
+async function getUserByKey(key) {
+  const token = config.get("jira.api_token");
+  try {
+    const response = await fetch(
+      `https://tools.hmcts.net/jira/rest/api/2/user?key=${key}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer: ${token}`,
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching user with key ${key}`, error);
+  }
+}
+
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
 module.exports.assignHelpRequest = assignHelpRequest;
@@ -395,3 +429,4 @@ module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.getUserByKey = getUserByKey;
