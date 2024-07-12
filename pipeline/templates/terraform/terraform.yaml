@@ -1,5 +1,5 @@
 steps:
-  - task: TerraformInstaller@1
+  - task: TerraformInstaller@0
     displayName: Terraform install
     inputs:
       terraformVersion: ${{ parameters.tfversion }}
@@ -18,13 +18,13 @@ steps:
         echo "##vso[task.setvariable variable=ServicePrincipalKey;]$servicePrincipalKey"
         echo "##vso[task.setvariable variable=TenantId;]$tenantId"
 
-  - task: TerraformTaskV4@4
+  - task: TerraformCLI@0
     displayName: terraform init
     inputs:
       command: init
-      provider: azurerm
       terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: "$(System.DefaultWorkingDirectory)/infrastructure"
+      backendType: azurerm
       backendServiceArm: ${{ parameters.serviceConnection }}
       backendAzureRmResourceGroupName: "${{ parameters.storageAccountRg }}"
       backendAzureRmResourceGroupLocation: ${{ parameters.location }}
@@ -33,11 +33,10 @@ steps:
       backendAzureRmContainerName: "tfstate"
       backendAzureRmKey: "${{ parameters.stack }}.tfstate"
 
-  - task: TerraformTaskV4@4
+  - task: TerraformCLI@0
     displayName: terraform plan
     inputs:
       command: plan
-      provider: azurerm
       terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
