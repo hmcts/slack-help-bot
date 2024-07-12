@@ -29,6 +29,11 @@ variables:
   project: application
 
 parameters:
+  - name: component
+    displayName: Component
+    type: string
+    default: "infrastructure"
+
   - name: environments
     displayName: Environment to run
     type: object
@@ -71,6 +76,7 @@ stages:
               - template: templates/terraform/terraform.yaml
                 parameters:
                   environment: "${{ parameter.environment }}-intsvc"
+                  component: ${{ parameters.component }}
                   location: ${{ parameters.location }}
                   stack: ${{ parameter.deployment }}
                   project: ${{ variables.project }}
