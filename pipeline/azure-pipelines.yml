@@ -71,6 +71,7 @@ stages:
               - template: templates/terraform/terraform.yaml
                 parameters:
                   environment: "${{ parameter.environment }}-intsvc"
+                  component: "infrastructure"
                   location: ${{ parameters.location }}
                   stack: ${{ parameter.deployment }}
                   project: ${{ variables.project }}
