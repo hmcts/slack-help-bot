@@ -71,7 +71,6 @@ stages:
               - template: templates/terraform/terraform.yaml
                 parameters:
                   environment: "${{ parameter.environment }}-intsvc"
-                  component: "infrastructure"
                   location: ${{ parameters.location }}
                   stack: ${{ parameter.deployment }}
                   project: ${{ variables.project }}
@@ -79,5 +78,3 @@ stages:
                   storageAccountRg: ${{ parameter.storageAccountRg }}
                   tfversion: ${{ variables.terraformVersion}}
                   serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
-                  initCommandOptions: >
-                    -reconfigure
