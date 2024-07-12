@@ -21,7 +21,7 @@ pool:
   vmImage: "ubuntu-latest"
 
 variables:
-  terraformVersion: 1.5.5
+  terraformVersion: 1.5.4
   timeoutInMinutes: 60
   agentPool: "ubuntu-latest"
   build: $(Build.BuildNumber)
