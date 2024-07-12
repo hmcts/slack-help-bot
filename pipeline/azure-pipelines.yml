@@ -27,7 +27,6 @@ variables:
   build: $(Build.BuildNumber)
   isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   project: application
-  terraformInitSubscription: 04d27a32-7a07-48b3-95b8-3c8691e1a263
 
 parameters:
   - name: environments
@@ -79,5 +78,4 @@ stages:
                   storageAccountName: ${{ parameter.storageAccountName }}
                   storageAccountRg: ${{ parameter.storageAccountRg }}
                   tfversion: ${{ variables.terraformVersion}}
-                  terraformInitSubscription: ${{ variables.terraformInitSubscription }}
                   serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
