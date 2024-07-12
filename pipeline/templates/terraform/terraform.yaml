@@ -58,7 +58,7 @@ steps:
     inputs:
       command: apply
       terraformVersion: ${{ parameters.tfversion }}
-      workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+      workingDirectory: $(System.DefaultWorkingDirectory)/components/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
       commandOptions: "--auto-approve tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}"
 
