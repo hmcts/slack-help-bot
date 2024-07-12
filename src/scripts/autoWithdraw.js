@@ -41,9 +41,9 @@ const getSlackUserInfo = async (userEmail) => {
 const sendSlackMessage = async (channel, jiraIssue, thread) => {
   let message;
   if (thread === undefined) {
-    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please let PlatOps know by commenting on this thread.`;
+    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact PlatOps.`;
   } else {
-    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please let PlatOps know by commenting on the thread - ${thread}.`;
+    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, you can do so from this thread - ${thread}.`;
   }
 
   try {
@@ -78,7 +78,7 @@ const commentOnSlackThread = async (channel, timestamp) => {
       body: JSON.stringify({
         channel: channel,
         thread_ts: timestamp,
-        text: "This issue has been withdrawn due to inactivity. If you require this issue to be re-opened, please let PlatOps know by commenting on this thread.",
+        text: "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread.",
       }),
     });
 
