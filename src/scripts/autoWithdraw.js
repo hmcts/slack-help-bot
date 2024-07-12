@@ -90,6 +90,60 @@ const commentOnSlackThread = async (channel, timestamp) => {
   }
 };
 
+const setRequestStatusSlack = async (channel, timestamp) => {
+  try {
+    const response = await fetch(
+      `${slackApiUrl}conversations.replies?channel=${channel}&ts=${timestamp}&limit=200`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${slackBotToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const helpRequestMessages = data.messages;
+    const blocks = helpRequestMessages[0].blocks;
+
+    blocks[6].elements[2] = {
+      type: "button",
+      text: {
+        type: "plain_text",
+        text: ":snow_cloud: Re-open",
+        emoji: true,
+      },
+      style: "primary",
+      value: "start_help_request",
+      action_id: "start_help_request",
+    };
+
+    blocks[2].fields[0].text = "Status :snowflake:\n Done";
+
+    await fetch(`${slackApiUrl}chat.update`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${slackBotToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel: channel,
+        ts: timestamp,
+        text: "New platform help request raised",
+        blocks: blocks,
+      }),
+    });
+  } catch (error) {
+    console.error(`Error setting status in Slack thread ${channel}`, error);
+  }
+};
+
 const withdrawInactiveIssues = async () => {
   const results = await searchForInactiveIssues();
 
@@ -131,6 +185,10 @@ const withdrawInactiveIssues = async () => {
         console.log(`Commenting on Slack thread ${cid}...`);
         await commentOnSlackThread(cid, thread_ts);
         console.log(`Commented on Slack thread ${cid}`);
+
+        console.log(`Setting status in Slack thread ${cid}...`);
+        await setRequestStatusSlack(cid, thread_ts);
+        console.log(`Status set in Slack thread ${cid}`);
       } else {
         console.log(`Sending message to user ${slackUserId}...`);
         await sendSlackMessage(slackUserId, issueId);
