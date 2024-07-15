@@ -1222,6 +1222,6 @@ const withdrawInactiveIssues = async () => {
   }
 };
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("0 8 * * *", async () => {
   await withdrawInactiveIssues();
 });
