@@ -3,7 +3,7 @@ const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,
 } = require("../service/persistence");
-const { lookupUsersName } = require("./utils/lookupUser");
+const { lookupUsersName, convertProfileToName} = require("./utils/lookupUser");
 const config = require("config");
 
 const reportChannelId = config.get("slack.report_channel_id");

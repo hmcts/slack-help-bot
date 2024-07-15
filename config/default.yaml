@@ -25,4 +25,4 @@ openai:
 
 search:
   endpoint: "https://ai-tim-slack-bot570094706456.search.windows.net"
-  index_name: "cosmosdb-index"
+  index_name: "cosmosdb-index2"

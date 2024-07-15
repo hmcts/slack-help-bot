@@ -54,3 +54,4 @@ function convertProfileToName(profile) {
 module.exports.lookupUser = lookupUser;
 module.exports.lookupUsersName = lookupUsersName;
 module.exports.lookupUsersEmail = lookupUsersEmail;
+module.exports.convertProfileToName = convertProfileToName;

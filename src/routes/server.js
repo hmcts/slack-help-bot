@@ -8,11 +8,6 @@ if (!fastStartup) {
 
 function requestListener(app) {
   return (req, res) => {
-    if (!fastStartup) {
-      appInsights
-        .client()
-        .trackNodeHttpRequest({ request: req, response: res });
-    }
     if (req.method !== "GET") {
       res.statusCode = 405;
       res.end("error");
