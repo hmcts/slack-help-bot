@@ -25,6 +25,12 @@ async function findIssues(results, startAt) {
 
 async function extractInfo(results) {
   return results.map((result) => {
+    const url = extractSection({
+      beginning: "[view in Slack|",
+      end: "]_",
+      content: result.fields.description,
+    });
+
     const description = extractSection({
       beginning: "*Issue description*",
       end: "*Analysis done so far*",
@@ -64,6 +70,7 @@ async function extractInfo(results) {
       title: result.fields.summary,
       description,
       analysis,
+      url,
       resolution_type: resolution?.resolution_type,
       resolution: resolution?.resolution,
     };

@@ -166,7 +166,7 @@ function relatedIssueBlock(issue) {
         },
         {
           type: "mrkdwn",
-          text: `<https://example.com|${issue.key}>`,
+          text: `<${issue.url}|${issue.key}>`,
         },
       ],
     },
@@ -178,6 +178,13 @@ function helpFormRelatedIssuesBlocks({ relatedIssues }) {
   const header = [
     {
       type: "divider",
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "*Related issues*"
+      }
     },
     {
       type: "context",
