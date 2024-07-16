@@ -119,20 +119,20 @@ async function submitInitialHelpRequest(body, client) {
       );
 
       let relatedIssues = [];
-      try {
-        relatedIssues = await searchDocuments(
-          `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
-        );
-        console.log(relatedIssues);
-      } catch (error) {
-        console.log("An error occurred when fetching related issues", error);
-      }
-
       let aiRecommendation = {};
       try {
-        aiRecommendation = await analyticsRecommendations(
+        const relatedIssuesPromise = await searchDocuments(
+          `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
+        );
+
+        const aiRecommendationPromise = analyticsRecommendations(
           `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis} ${helpRequest.prBuildUrl}`,
         );
+
+        relatedIssues = await relatedIssuesPromise
+        aiRecommendation = await aiRecommendationPromise
+
+        console.log(relatedIssues);
       } catch (error) {
         console.log(
           "An error occurred when fetching AI recommendations",
