@@ -370,6 +370,22 @@ async function addWithdrawnLabel(issueId) {
   }
 }
 
+async function removeWithdrawnLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            remove: "auto-withdrawn",
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(`Error removing label from issue ${issueId} in jira`, err);
+  }
+}
+
 async function withdrawIssue(issueId) {
   try {
     await jira.transitionIssue(issueId, {
@@ -428,4 +444,5 @@ module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
 module.exports.getUserByKey = getUserByKey;
