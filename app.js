@@ -57,6 +57,7 @@ const {
   withdrawIssue,
   addWithdrawnLabel,
   getUserByKey,
+  removeWithdrawnLabel,
 } = require("./src/service/persistence");
 const appInsights = require("./src/modules/appInsights");
 
@@ -703,6 +704,8 @@ app.action(
       const jiraId = extractJiraIdFromBlocks(body.message.blocks);
 
       await startHelpRequest(jiraId); // TODO add optional resolution comment
+
+      await removeWithdrawnLabel(jiraId); // Require when re-opening a withdrawn issue via slack
 
       const blocks = body.message.blocks;
       // TODO less fragile block updating
