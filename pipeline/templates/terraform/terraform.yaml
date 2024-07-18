@@ -40,7 +40,7 @@ steps:
       terraformVersion: ${{ parameters.tfversion }}
       workingDirectory: $(System.DefaultWorkingDirectory)/components/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
-      commandOptions: "-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }} -var activity_name=${{ parameters.stack }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false"
+      commandOptions: "-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false"
       publishPlanResults: "${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}"
 
   - task: Bash@3
