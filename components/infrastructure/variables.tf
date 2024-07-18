@@ -1,7 +1,17 @@
 variable "environment" {}
 
-variable "product" {}
+variable "short_environment" {
+  default = "ptl"
+}
 
-variable "location" {}
+variable "product" {
+  default = "slack-help-bot"
+}
 
-variable "activity_name" {}
+variable "location" {
+  default = "uksouth"
+}
+
+variable "model_id" {
+  default = "azureml://registries/azure-openai/models/gpt-4"
+}
