@@ -11,7 +11,3 @@ variable "product" {
 variable "location" {
   default = "uksouth"
 }
-
-variable "model_id" {
-  default = "azureml://registries/azure-openai/models/gpt-4"
-}
