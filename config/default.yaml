@@ -10,6 +10,7 @@ slack:
 jira:
   start_transition_id: 21
   done_transition_id: 41
+  withdrawn_transition_id: 101
   project: SBOX
   issue_type_name: Bug
   issue_type_id: 10900

@@ -77,7 +77,7 @@ async function submitInitialHelpRequest(body, client) {
       const res = await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
-        text: "Raise a Ticket With PlatOps",
+        text: "Raise a help request with Platform Operations",
         blocks: helpFormMainBlocks({
           user: body.user.id,
           isAdvanced: false,
@@ -101,7 +101,7 @@ async function submitInitialHelpRequest(body, client) {
       const notifyProcessingRequest = await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
-        text: "Raise a Ticket With PlatOps",
+        text: "Raise a help request with Platform Operations",
         blocks: [
           ...mainBlocks,
           {
@@ -162,7 +162,7 @@ async function submitInitialHelpRequest(body, client) {
       const updateRes = await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
-        text: "Raise a Ticket With PlatOps",
+        text: "Raise a help request with Platform Operations",
         blocks,
       });
 

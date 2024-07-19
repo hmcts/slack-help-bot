@@ -23,7 +23,7 @@ steps:
     inputs:
       command: init
       terraformVersion: ${{ parameters.tfversion }}
-      workingDirectory: "$(System.DefaultWorkingDirectory)/infrastructure"
+      workingDirectory: "$(System.DefaultWorkingDirectory)/components/infrastructure"
       backendType: azurerm
       backendServiceArm: ${{ parameters.serviceConnection }}
       backendAzureRmResourceGroupName: "${{ parameters.storageAccountRg }}"
@@ -38,9 +38,9 @@ steps:
     inputs:
       command: plan
       terraformVersion: ${{ parameters.tfversion }}
-      workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+      workingDirectory: $(System.DefaultWorkingDirectory)/components/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
-      commandOptions: "-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }} -var activity_name=${{ parameters.stack }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false"
+      commandOptions: "-out tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}  -var environment=${{ parameters.environment }}  -var-file $(System.DefaultWorkingDirectory)/environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars -lock=false"
       publishPlanResults: "${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}"
 
   - task: Bash@3
@@ -48,7 +48,7 @@ steps:
     name: "CheckFileChanges"
     displayName: "CheckFileChanges"
     env:
-      files_list: "infrastructure environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars environments/variable.tf"
+      files_list: "components/infrastructure environments/${{ parameters.environment }}/${{ parameters.environment }}.tfvars environments/variable.tf"
     inputs:
       filePath: pipeline/scripts/file-check-changes.sh
 
@@ -58,7 +58,7 @@ steps:
     inputs:
       command: apply
       terraformVersion: ${{ parameters.tfversion }}
-      workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+      workingDirectory: $(System.DefaultWorkingDirectory)/components/infrastructure
       environmentServiceName: ${{ parameters.serviceConnection }}
       commandOptions: "--auto-approve tfplan-${{ parameters.project }}-${{ parameters.environment }}-${{ parameters.stack }}"
 
@@ -66,7 +66,7 @@ steps:
     displayName: "Remove local tfstate"
     inputs:
       targetType: "inline"
-      workingDirectory: "$(System.DefaultWorkingDirectory)/infrastructure"
+      workingDirectory: "$(System.DefaultWorkingDirectory)/components/infrastructure"
       script: |
         rm -f terraform.tfstate* && rm -rf .terraform/
 

@@ -76,32 +76,32 @@ async function submitHelpRequest(body, client) {
     //     ? values.area.selected_option
     //     : blocks[5].element.initial_option,
 
+    const inputBlocks = blocks.filter(block => block.type === "input");
+
     const helpRequest = {
       user,
       // Blocks 0 and 1 are labels
       summary: values.summary
         ? values.summary.value
-        : blocks[2].element.initial_value,
+        : inputBlocks[0].element.initial_value,
       prBuildUrl: values.build_url
         ? values.build_url.value
-        : blocks[3].element.initial_value,
-      // 4 is a divider
+        : inputBlocks[1].element.initial_value,
       description: values.description
         ? values.description.value
-        : blocks[5].element.initial_value,
+        : inputBlocks[2].element.initial_value,
       analysis: values.analysis
         ? values.analysis.value
-        : blocks[6].element.initial_value,
-      // 7 is a divider, 8 is a heading
+        : inputBlocks[3].element.initial_value,
       environment: values.environment
         ? values.environment.selected_option
-        : blocks[9].element.initial_option,
+        : inputBlocks[4].element.initial_option,
       team: values.team
         ? values.team.selected_option
-        : blocks[10].element.initial_option,
+        : inputBlocks[5].element.initial_option,
       area: values.area
         ? values.area.selected_option
-        : blocks[11].element.initial_option,
+        : inputBlocks[6].element.initial_option,
     };
 
     const errorMessage = validateFullRequest(helpRequest);
@@ -124,7 +124,7 @@ async function submitHelpRequest(body, client) {
       const res = await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
-        text: "Raise a Ticket With PlatOps",
+        text: "Raise a help request With Platform Operations",
         errorMessage: errorMessage,
         blocks,
       });
@@ -154,7 +154,7 @@ async function submitHelpRequest(body, client) {
       const updateRes = await client.chat.update({
         channel: body.channel.id,
         ts: body.message.ts,
-        text: "Raise a Ticket With PlatOps",
+        text: "Raise a help request with Platform Operations",
         blocks,
       });
 

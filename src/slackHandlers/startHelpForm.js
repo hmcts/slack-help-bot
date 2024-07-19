@@ -6,7 +6,7 @@ async function startHelpForm(client, body) {
     // Post Ticket raising form
     const postRes = await client.chat.postMessage({
       channel: body.channel.id,
-      text: "Raise a Ticket With PlatOps",
+      text: "Raise a help request with Platform Operations",
       blocks: helpFormMainBlocks({
         user: body.user.id,
         isAdvanced: false,

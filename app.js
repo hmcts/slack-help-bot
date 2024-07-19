@@ -32,6 +32,7 @@ const app = new App({
 //////////////////////////////////
 
 const http = require("http");
+const cron = require("node-cron");
 const { requestListener } = require("./src/routes/server");
 const { beginHelpRequest } = require("./src/slackHandlers/beginHelpRequest");
 const { showPlatoDialogue } = require("./src/slackHandlers/showPlatoDialogue");
@@ -66,6 +67,7 @@ const {
 const {
   documentHelpRequest,
 } = require("./src/slackHandlers/documentHelpRequest");
+const {withdrawInactiveIssues} = require("./src/slackHandlers/withdrawInactiveIssues");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -195,3 +197,7 @@ app.action(
     await viewRequestsRaisedByMe(body, client);
   },
 );
+
+cron.schedule("0 8 * * 1-5", async () => {
+  await withdrawInactiveIssues(app);
+});

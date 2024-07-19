@@ -122,3 +122,8 @@ dist
 .DS_Store
 
 documents*.json
+
+tfplan
+.terraform.lock.hcl
+.terraform/
+terraform.tfstate

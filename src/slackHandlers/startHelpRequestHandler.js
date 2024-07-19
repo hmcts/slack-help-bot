@@ -1,6 +1,6 @@
 const {
   extractJiraIdFromBlocks,
-  startHelpRequest,
+  startHelpRequest, removeWithdrawnLabel,
 } = require("../service/persistence");
 
 async function startHelpRequestHandler(body, client) {
@@ -8,6 +8,8 @@ async function startHelpRequestHandler(body, client) {
     const jiraId = extractJiraIdFromBlocks(body.message.blocks);
 
     await startHelpRequest(jiraId); // TODO add optional resolution comment
+
+    await removeWithdrawnLabel(jiraId); // Require when re-opening a withdrawn issue via slack
 
     const blocks = body.message.blocks;
     // TODO less fragile block updating

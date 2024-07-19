@@ -14,6 +14,7 @@ const issueTypeName = config.get("jira.issue_type_name");
 const jiraProject = config.get("jira.project");
 
 const jiraStartTransitionId = config.get("jira.start_transition_id");
+const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
 const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`);
 
@@ -262,7 +263,7 @@ async function createHelpRequestInJira(summary, project, user, labels) {
   });
 }
 
-async function createHelpRequest({ summary, userEmail, labels }) {
+async function createHelpRequest({summary, userEmail, labels}) {
   const user = await convertEmail(userEmail);
 
   const project = await jira.getProject(jiraProject);
@@ -320,19 +321,19 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(
   externalSystemId,
-  { category, how },
+  {category, how},
 ) {
   try {
     await jira.addComment(
       externalSystemId,
-      createResolveComment({ category, how }),
+      createResolveComment({category, how}),
     );
   } catch (err) {
     console.log("Error creating comment in jira", err);
   }
 }
 
-async function addLabel(externalSystemId, { category }) {
+async function addLabel(externalSystemId, {category}) {
   try {
     await jira.updateIssue(externalSystemId, {
       update: {
@@ -348,11 +349,91 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
-async function getIssue(jiraId, fields) {
+async function searchForInactiveIssues() {
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
   try {
-    return await jira.getIssue(jiraId, fields);
+    return await jira.searchJira(jqlQuery, {
+      fields: [
+        "created",
+        "description",
+        "summary",
+        "updated",
+        "status",
+        "reporter",
+      ],
+    });
   } catch (err) {
-    console.log("Error extracting document from jira", err);
+    console.log("Error searching for issues in jira", err);
+    return {
+      issues: [],
+    };
+  }
+}
+
+async function addWithdrawnLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: "auto-withdrawn",
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(`Error adding label to issue ${issueId} in jira`, err);
+  }
+}
+
+async function removeWithdrawnLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            remove: "auto-withdrawn",
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(`Error removing label from issue ${issueId} in jira`, err);
+  }
+}
+
+async function withdrawIssue(issueId) {
+  console.log(`Withdrawing issue ${issueId}...`, jiraWithdrawnTransitionId);
+  await jira.transitionIssue(issueId, {
+    transition: {
+      id: jiraWithdrawnTransitionId,
+    },
+  });
+}
+
+// Using fetch to hit API as getUser in jira-client uses different api version with different parameters
+async function getUserByKey(key) {
+  const token = config.get("jira.api_token");
+  try {
+    const response = await fetch(
+      `https://tools.hmcts.net/jira/rest/api/2/user?key=${key}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer: ${token}`,
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.error(`Error fetching user with key ${key}, HTTP error! status: ${response.status}`);
+      return
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching user with key ${key}`, error);
   }
 }
 
@@ -374,3 +455,8 @@ module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.search = search;
+module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.withdrawIssue = withdrawIssue;
+module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
+module.exports.getUserByKey = getUserByKey;
