@@ -263,7 +263,7 @@ async function createHelpRequestInJira(summary, project, user, labels) {
   });
 }
 
-async function createHelpRequest({summary, userEmail, labels}) {
+async function createHelpRequest({ summary, userEmail, labels }) {
   const user = await convertEmail(userEmail);
 
   const project = await jira.getProject(jiraProject);
@@ -321,19 +321,19 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(
   externalSystemId,
-  {category, how},
+  { category, how },
 ) {
   try {
     await jira.addComment(
       externalSystemId,
-      createResolveComment({category, how}),
+      createResolveComment({ category, how }),
     );
   } catch (err) {
     console.log("Error creating comment in jira", err);
   }
 }
 
-async function addLabel(externalSystemId, {category}) {
+async function addLabel(externalSystemId, { category }) {
   try {
     await jira.updateIssue(externalSystemId, {
       update: {
@@ -427,8 +427,10 @@ async function getUserByKey(key) {
     );
 
     if (!response.ok) {
-      console.error(`Error fetching user with key ${key}, HTTP error! status: ${response.status}`);
-      return
+      console.error(
+        `Error fetching user with key ${key}, HTTP error! status: ${response.status}`,
+      );
+      return;
     }
 
     return await response.json();

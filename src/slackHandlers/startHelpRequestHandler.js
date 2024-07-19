@@ -1,6 +1,7 @@
 const {
   extractJiraIdFromBlocks,
-  startHelpRequest, removeWithdrawnLabel,
+  startHelpRequest,
+  removeWithdrawnLabel,
 } = require("../service/persistence");
 
 async function startHelpRequestHandler(body, client) {

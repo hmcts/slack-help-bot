@@ -3,7 +3,7 @@
 const { SearchClient } = require("@azure/search-documents");
 const { DefaultAzureCredential } = require("@azure/identity");
 const config = require("config");
-const {DateTime} = require("luxon");
+const { DateTime } = require("luxon");
 
 const credential = new DefaultAzureCredential();
 
@@ -15,7 +15,9 @@ const searchClient = new SearchClient(
 
 async function searchDocuments(query) {
   // don't look at ancient results, this should be tuned keeping in mind the stability of the platform and when major changes happen
-  const somewhatRecentResultsOnly = DateTime.now().minus({ months: 18 }).toISO()
+  const somewhatRecentResultsOnly = DateTime.now()
+    .minus({ months: 18 })
+    .toISO();
 
   const searchResults = await searchClient.search(query, {
     queryType: "semantic",

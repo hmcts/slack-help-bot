@@ -67,7 +67,9 @@ const {
 const {
   documentHelpRequest,
 } = require("./src/slackHandlers/documentHelpRequest");
-const {withdrawInactiveIssues} = require("./src/slackHandlers/withdrawInactiveIssues");
+const {
+  withdrawInactiveIssues,
+} = require("./src/slackHandlers/withdrawInactiveIssues");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));

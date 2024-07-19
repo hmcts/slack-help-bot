@@ -1,4 +1,9 @@
-const {searchForInactiveIssues, addWithdrawnLabel, withdrawIssue, getUserByKey} = require("../service/persistence");
+const {
+  searchForInactiveIssues,
+  addWithdrawnLabel,
+  withdrawIssue,
+  getUserByKey,
+} = require("../service/persistence");
 const getSlackUserInfo = async (app, userEmail) => {
   try {
     return await app.client.users.lookupByEmail({
@@ -25,7 +30,6 @@ const sendSlackMessage = async (app, channel, jiraIssue, thread) => {
       channel: channel,
       text: message,
     });
-
   } catch (error) {
     console.error(`Error sending message to user ${channel}`, error);
   }
@@ -38,12 +42,10 @@ const commentOnSlackThread = async (app, channel, timestamp) => {
       thread_ts: timestamp,
       text: "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread.",
     });
-
   } catch (error) {
     console.error(`Error replying to Slack thread ${channel}`, error);
   }
 };
-
 
 const setRequestStatusSlack = async (app, channel, timestamp) => {
   try {
@@ -90,7 +92,6 @@ const withdrawInactiveIssues = async (app) => {
     for (const issue of results.issues) {
       const issueId = issue.key;
       try {
-
         // Withdraw issue and add withdrawn label in Jira
         console.log(`Withdrawing issue ${issueId}...`);
         await addWithdrawnLabel(issueId);
@@ -134,4 +135,4 @@ const withdrawInactiveIssues = async (app) => {
   }
 };
 
-module.exports.withdrawInactiveIssues = withdrawInactiveIssues
+module.exports.withdrawInactiveIssues = withdrawInactiveIssues;

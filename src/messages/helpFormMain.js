@@ -183,8 +183,8 @@ function helpFormRelatedIssuesBlocks({ relatedIssues }) {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: "*Related issues*"
-      }
+        text: "*Related issues*",
+      },
     },
     {
       type: "context",

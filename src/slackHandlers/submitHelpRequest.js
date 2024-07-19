@@ -76,7 +76,7 @@ async function submitHelpRequest(body, client) {
     //     ? values.area.selected_option
     //     : blocks[5].element.initial_option,
 
-    const inputBlocks = blocks.filter(block => block.type === "input");
+    const inputBlocks = blocks.filter((block) => block.type === "input");
 
     const helpRequest = {
       user,

@@ -129,8 +129,8 @@ async function submitInitialHelpRequest(body, client) {
           `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis} ${helpRequest.prBuildUrl}`,
         );
 
-        relatedIssues = await relatedIssuesPromise
-        aiRecommendation = await aiRecommendationPromise
+        relatedIssues = await relatedIssuesPromise;
+        aiRecommendation = await aiRecommendationPromise;
 
         console.log(relatedIssues);
       } catch (error) {
