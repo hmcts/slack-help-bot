@@ -10,6 +10,7 @@ slack:
 jira:
   start_transition_id: 21
   done_transition_id: 41
+  withdrawn_transition_id: 101
   project: SBOX
   issue_type_name: Bug
   issue_type_id: 10900
@@ -19,3 +20,11 @@ jira:
 app_insights:
   #instrumentation_key: no default
   role_name: platops-slack-help-bot
+
+openai:
+  endpoint: "https://platops-slack-help-bot-ptl.openai.azure.com/"
+  deployment_name: "gpt-4"
+
+search:
+  endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
+  index_name: "help-requests"

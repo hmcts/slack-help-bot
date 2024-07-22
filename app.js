@@ -1,67 +1,24 @@
-const config = require("@hmcts/properties-volume").addTo(require("config"));
-const setupSecrets = require("./src/setupSecrets");
-// must be called before any config.get calls
-setupSecrets.setup();
+// some things gated by this take a bit of time to initialise and delay startup
+// decrease iteration time by turning off feature not needed locally
+const fastStartup = process.env.FAST_STARTUP === "true";
+let config;
+if (fastStartup) {
+  config = require("config");
+} else {
+  config = require("@hmcts/properties-volume").addTo(require("config"));
+  const setupSecrets = require("./src/setupSecrets");
+  // must be called before any config.get calls
+  setupSecrets.setup();
+}
 
-const {
-  helpFormGreetingBlocks,
-  helpFormPlatoBlocks,
-  helpFormMainBlocks,
-  helpFormGoodbyeBlocks,
+const { App } = require("@slack/bolt");
 
-  helpRequestMainBlocks,
-  helpRequestDetailBlocks,
-  helpRequestDuplicateBlocks,
-  helpRequestResolveBlocks,
-  helpRequestDocumentationBlocks,
+let appInsights;
+if (!fastStartup) {
+  appInsights = require("./src/modules/appInsights");
 
-  appHomeMainBlocks,
-  appHomeIssueBlocks,
-
-  appHomeHeaderBlocks,
-
-  configureWorkflowStepBlocks,
-} = require("./src/messages");
-
-const {
-  extractSlackLinkFromText,
-  extractSlackMessageIdFromText,
-} = require("./src/messages/util");
-
-const {
-  App,
-  LogLevel,
-  SocketModeReceiver,
-  WorkflowStep,
-  WorkflowStepInitializationError,
-} = require("@slack/bolt");
-const crypto = require("crypto");
-const {
-  addCommentToHelpRequestResolve,
-  addCommentToHelpRequest,
-  addLabel,
-  assignHelpRequest,
-  createHelpRequest,
-  extraJiraId,
-  extractJiraIdFromBlocks,
-  resolveHelpRequest,
-  searchForUnassignedOpenIssues,
-  searchForOpenIssues,
-  searchForIssuesAssignedTo,
-  searchForIssuesRaisedBy,
-  startHelpRequest,
-  updateHelpRequestDescription,
-  getIssueDescription,
-  markAsDuplicate,
-  searchForInactiveIssues,
-  withdrawIssue,
-  addWithdrawnLabel,
-  getUserByKey,
-  removeWithdrawnLabel,
-} = require("./src/service/persistence");
-const appInsights = require("./src/modules/appInsights");
-
-appInsights.enableAppInsights();
+  appInsights.enableAppInsights();
+}
 
 const app = new App({
   token: config.get("slack.bot_token"), //disable this if enabling OAuth in socketModeReceiver
@@ -70,852 +27,150 @@ const app = new App({
   socketMode: true,
 });
 
-const reportChannel = config.get("slack.report_channel");
-// can't find an easy way to look this up via API unfortunately :(
-const reportChannelId = config.get("slack.report_channel_id");
-
 //////////////////////////////////
 //// Setup health check page /////
 //////////////////////////////////
 
 const http = require("http");
 const cron = require("node-cron");
+const { requestListener } = require("./src/routes/server");
+const { beginHelpRequest } = require("./src/slackHandlers/beginHelpRequest");
+const { showPlatoDialogue } = require("./src/slackHandlers/showPlatoDialogue");
+const { startHelpForm } = require("./src/slackHandlers/startHelpForm");
+const {
+  submitInitialHelpRequest,
+} = require("./src/slackHandlers/submitInitialHelpRequest");
+const { submitHelpRequest } = require("./src/slackHandlers/submitHelpRequest");
+const { appMention } = require("./src/slackHandlers/appMention");
+const {
+  assignHelpRequestToMe,
+} = require("./src/slackHandlers/assignHelpRequestToMe");
+const {
+  assignHelpRequestToUser,
+} = require("./src/slackHandlers/assignHelpRequestToUser");
+const {
+  resolveHelpRequestHandler,
+} = require("./src/slackHandlers/resolveHelpRequest");
+const {
+  appHomeUnassignedIssues,
+} = require("./src/slackHandlers/appHome/appHomeOpened");
+const {
+  viewRequestsAssignedToMe,
+} = require("./src/slackHandlers/appHome/viewRequestsAssignedToMe");
+const { appMessaged } = require("./src/slackHandlers/appMessaged");
+const {
+  viewRequestsRaisedByMe,
+} = require("./src/slackHandlers/appHome/viewRequestsRaisedByMe");
+const {
+  startHelpRequestHandler,
+} = require("./src/slackHandlers/startHelpRequestHandler");
+const {
+  documentHelpRequest,
+} = require("./src/slackHandlers/documentHelpRequest");
+const {
+  withdrawInactiveIssues,
+} = require("./src/slackHandlers/withdrawInactiveIssues");
 const port = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-  appInsights.client().trackNodeHttpRequest({ request: req, response: res });
-  if (req.method !== "GET") {
-    res.statusCode = 405;
-    res.end("error");
-  } else if (req.url === "/health") {
-    const connectionError = app.receiver.client.badConnection;
-    if (connectionError) {
-      res.statusCode = 500;
-    } else {
-      res.statusCode = 200;
-    }
-    const myResponse = {
-      status: "UP",
-      slack: {
-        connection: connectionError ? "DOWN" : "UP",
-      },
-      node: {
-        uptime: process.uptime(),
-        time: new Date().toString(),
-      },
-    };
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify(myResponse));
-  } else if (req.url === "/health/liveness") {
-    if (app.receiver.client.badConnection) {
-      res.statusCode = 500;
-      res.end("Internal Server Error");
-      return;
-    }
-    res.end("OK");
-  } else if (req.url === "/health/readiness") {
-    res.end(`<h1>slack-help-bot</h1>`);
-  } else if (req.url === "/health/error") {
-    // Dummy error page
-    res.statusCode = 500;
-    res.end(`{"error": "${http.STATUS_CODES[500]}"}`);
-  } else {
-    res.statusCode = 404;
-    res.end(`{"error": "${http.STATUS_CODES[404]}"}`);
-  }
-});
-
+const server = http.createServer(requestListener(app));
 server.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
-
-//////////////////////////
-//// Setup Slack Bolt ////
-//////////////////////////
-
-// Standard way of checking a response from slack
-function checkSlackResponseError(res, message) {
-  if (!res.ok) {
-    throw new Error(message + ": " + JSON.stringify(res));
-  }
-}
 
 (async () => {
   await app.start();
   console.log("⚡️ Bolt app started");
 })();
 
-async function begin_help_request(userId, client) {
-  try {
-    const openDmResponse = await client.conversations.open({
-      users: userId,
-      return_im: true,
-    });
-
-    const channelId = openDmResponse.channel.id;
-
-    const postMessageResponse = await client.chat.postMessage({
-      channel: channelId,
-      text: "Hello!",
-      blocks: helpFormGreetingBlocks({
-        user: userId,
-        isAdvanced: false,
-      }),
-    });
-
-    checkSlackResponseError(
-      postMessageResponse,
-      "An error occurred when posting a direct message",
-    );
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// New main entry point for the application
 app.shortcut(
   "begin_help_request_sc",
   async ({ body, context, client, ack }) => {
     await ack();
-    await begin_help_request(context.userId, client);
+    await beginHelpRequest(context.userId, client);
   },
 );
 
 app.action(
   "show_plato_dialogue",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-      // Post 'Talk to Plato' message
-      const postRes = await client.chat.postMessage({
-        channel: body.channel.id,
-        text: "Chat to Plato",
-        blocks: helpFormPlatoBlocks({
-          user: body.user.id,
-          isAdvanced: false,
-        }),
-      });
-
-      checkSlackResponseError(
-        postRes,
-        "An error occurred when posting a 'Chat to Plato' message",
-      );
-
-      // Edit button from last message
-      const updateRes = await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: "Hello!",
-        blocks: helpFormGreetingBlocks({
-          user: body.user.id,
-          isAdvanced: true,
-        }),
-      });
-
-      checkSlackResponseError(
-        updateRes,
-        "An error occurred when updating a greeting message",
-      );
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await showPlatoDialogue(client, body);
   },
 );
 
 app.action(
   "start_help_form",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
+    await ack();
+    await startHelpForm(client, body);
+  },
+);
 
-      // Post Ticket raising form
-      const postRes = await client.chat.postMessage({
-        channel: body.channel.id,
-        text: "Raise a Ticket With PlatOps",
-        blocks: helpFormMainBlocks({
-          user: body.user.id,
-          isAdvanced: false,
-        }),
-      });
-
-      checkSlackResponseError(
-        postRes,
-        "An error occurred when posting a help request form",
-      );
-
-      // Edit button from last message
-      const updateRes = await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: "Chat to Plato",
-        blocks: helpFormPlatoBlocks({
-          user: body.user.id,
-          isAdvanced: true,
-        }),
-      });
-
-      checkSlackResponseError(
-        updateRes,
-        "An error occurred when updating a 'Chat to Plato' message",
-      );
-    } catch (error) {
-      console.error(error);
-    }
+app.action(
+  "submit_initial_help_request",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client);
   },
 );
 
 app.action(
   "submit_help_request",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-
-      const user = body.user.id;
-
-      const values = Object.values(body.state.values).reduce(
-        (r, c) => Object.assign(r, c),
-        {},
-      );
-      const blocks = body.message.blocks;
-
-      // New inputs will be found in our 'values' object if present.
-      // If there is a validation problem with the form, it must be re-sent
-      // to the user in its entirety and the submitted data will be lost.
-      //
-      // The only way to keep the data the user entered in the form is to
-      // populate the initial_value or initial_option fields of the form when
-      // it's sent back. We do this by passing 'helpRequest' to the
-      // 'helpRequestRaiseTicketBlocks' function and setting the fields in
-      // there.
-      //
-      // The form can then be re-submitted by the user.
-      // If the user did not change a field when re-submitting the form,
-      // slack will detect this and will not populate the 'values' object
-      // with the value of that field. Instead, we have to read the data from
-      // the 'blocks' object we submitted last time. Thankfully this is
-      // provided to us.
-
-      // Add an explicit check for when the values block exists, but the
-      // value === null, this is a special case where the user has deleted
-      // what was in the field before submitting and is a distinct case from
-      // the block not being present at all. That simply means the user did
-      // not update that field before submitting and the field may still
-      // have a value in the initial_option block we set.
-      const helpRequest = {
-        user,
-        // Blocks 0 and 1 are labels
-        summary: values.summary
-          ? values.summary.value
-          : blocks[2].element.initial_value,
-        environment: values.environment
-          ? values.environment.selected_option
-          : blocks[3].element.initial_option,
-        team: values.team
-          ? values.team.selected_option
-          : blocks[4].element.initial_option,
-        area: values.area
-          ? values.area.selected_option
-          : blocks[5].element.initial_option,
-        prBuildUrl: values.build_url
-          ? values.build_url.value
-          : blocks[6].element.initial_value,
-        // Block 7 is a divider
-        description: values.description
-          ? values.description.value
-          : blocks[8].element.initial_value,
-        analysis: values.analysis
-          ? values.analysis.value
-          : blocks[9].element.initial_value,
-        checkedWithTeam: values.team_check
-          ? values.team_check.selected_option
-          : blocks[10].element.initial_option,
-      };
-
-      let errorMessage = null;
-
-      // prBuildUrl and analysis are optional, so don't mandate they be populated
-      if (!helpRequest.summary) {
-        errorMessage = "Please write a summary for your issue.";
-      } else if (!helpRequest.environment) {
-        errorMessage =
-          "Please specify what environment the issue is occuring in.";
-      } else if (!helpRequest.team) {
-        // TODO: Tell the user how to request a new team be added to the list
-        errorMessage = "Please specify the team experiencing the problem.";
-      } else if (!helpRequest.area) {
-        errorMessage =
-          "Please specify what area you're experiencing problems with.";
-      } else if (!helpRequest.description) {
-        errorMessage = "Please provide a description of your issue.";
-      } else if (!helpRequest.checkedWithTeam) {
-        errorMessage =
-          "Please check with your team before submitting a help request.";
-      }
-
-      //Re-insert current values for text inputs and send the form back
-      if (errorMessage != null) {
-        const res = await client.chat.update({
-          channel: body.channel.id,
-          ts: body.message.ts,
-          text: "Raise a Ticket With PlatOps",
-          blocks: helpFormMainBlocks({
-            user: body.user.id,
-            isAdvanced: false,
-            errorMessage: errorMessage,
-            helpRequest: helpRequest,
-          }),
-        });
-
-        checkSlackResponseError(
-          res,
-          "An error occurred when updating an invalid ticket raising form",
-        );
-        return;
-      } else {
-        const updateRes = await client.chat.update({
-          channel: body.channel.id,
-          ts: body.message.ts,
-          text: "Raise a Ticket With PlatOps",
-          blocks: helpFormMainBlocks({
-            user: body.user.id,
-            isAdvanced: true,
-            errorMessage: errorMessage,
-            helpRequest: helpRequest,
-          }),
-        });
-
-        checkSlackResponseError(
-          updateRes,
-          "An error occurred when updating a valid ticket raising form",
-        );
-      }
-
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
-
-      // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
-      // check if API is up-to-date
-      const jiraId = await createHelpRequest({
-        summary: helpRequest.summary,
-        userEmail,
-        // Jira labels go here, can't contain spaces btw
-        // TODO: Put this in a function?
-        // TODO: Add more labels?
-        labels: [
-          `area-${helpRequest.area.value.toLowerCase().replace(" ", "-")}`,
-          `team-${helpRequest.team.value.toLowerCase().replace(" ", "-")}`,
-        ],
-      });
-
-      const mainRes = await client.chat.postMessage({
-        channel: reportChannel,
-        text: "New platform help request raised",
-        blocks: helpRequestMainBlocks({
-          ...helpRequest,
-          jiraId,
-        }),
-      });
-
-      checkSlackResponseError(
-        mainRes,
-        "An error occurred when posting a help request to Slack",
-      );
-
-      const detailsRes = await client.chat.postMessage({
-        channel: reportChannel,
-        thread_ts: mainRes.message.ts,
-        text: "New platform help request raised",
-        blocks: helpRequestDetailBlocks(helpRequest),
-      });
-
-      checkSlackResponseError(
-        detailsRes,
-        "An error occurred when posting details of a help request to Slack",
-      );
-
-      const permaLink = (
-        await client.chat.getPermalink({
-          channel: mainRes.channel,
-          message_ts: mainRes.message.ts,
-        })
-      ).permalink;
-
-      await updateHelpRequestDescription(jiraId, {
-        ...helpRequest,
-        slackLink: permaLink,
-      });
-
-      const goodbyeRes = await client.chat.postMessage({
-        channel: body.channel.id,
-        text: "Help request submitted",
-        blocks: helpFormGoodbyeBlocks({
-          helpRequestUrl: permaLink,
-        }),
-      });
-
-      checkSlackResponseError(
-        goodbyeRes,
-        "An error occurred when posting a goodbye post to Slack",
-      );
-    } catch (error) {
-      console.error("An error occurred when submitting a help form: " + error);
-    }
+    await ack();
+    await submitHelpRequest(body, client);
   },
 );
 
-// TODO: Break this up into smaller blocks, we're handling every single
-// message interaction in this one function.
-// subscribe to 'app_mention' event in your App config
-// need app_mentions:read and chat:write scopes
 app.event("app_mention", async ({ event, context, client, say }) => {
-  try {
-    // filter unwanted channels in case someone invites the bot to it
-    // and only look at threaded messages
-    if (event.channel === reportChannelId && event.thread_ts) {
-      const helpRequestMessages = (
-        await client.conversations.replies({
-          channel: reportChannelId,
-          ts: event.thread_ts,
-          limit: 200, // after a thread is 200 long we'll break but good enough for now
-        })
-      ).messages;
-
-      if (
-        helpRequestMessages.length > 0 &&
-        helpRequestMessages[0].text === "New platform help request raised"
-      ) {
-        if (event.text.includes("help")) {
-          const usageMessage = `Hi <@${event.user}>, here is what I can do:
-\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID`;
-
-          await say({
-            text: usageMessage,
-            thread_ts: event.thread_ts,
-          });
-        } else if (event.text.includes("duplicate")) {
-          const result = event.text.match(/.+duplicate ([A-Z]+-[0-9]+)/);
-          if (result) {
-            const blocks = helpRequestMessages[0].blocks;
-            const summary = extractSummaryFromBlocks(blocks);
-            const parentJiraId = result[1];
-            const issueDescription = await getIssueDescription(parentJiraId);
-
-            if (issueDescription === undefined) {
-              await say({
-                text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
-                thread_ts: event.thread_ts,
-              });
-              return;
-            }
-
-            const parentSlackUrl = extractSlackLinkFromText(issueDescription);
-            const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
-
-            await markAsDuplicate(currentIssueJiraId, parentJiraId);
-
-            await client.chat.update({
-              channel: event.channel,
-              ts: helpRequestMessages[0].ts,
-              text: "Duplicate issue",
-              blocks: helpRequestDuplicateBlocks({
-                summary,
-                parentJiraId,
-                parentSlackUrl,
-                currentIssueJiraId,
-              }),
-            });
-
-            await client.reactions.add({
-              name: "white_check_mark",
-              timestamp: event.ts,
-              channel: event.channel,
-            });
-          } else {
-            await say({
-              text: `Hi <@${event.user}>, I couldn't find that Jira ID, please check and try again.`,
-              thread_ts: event.thread_ts,
-            });
-          }
-        } else {
-          await say({
-            text: `Hi <@${event.user}>, if you want to escalate a request please tag \`platformops-bau\`, to see what else I can do reply back with \`help\``,
-            thread_ts: event.thread_ts,
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.error(error);
-  }
+  await appMention(event, client, say);
 });
-
-function extractSummaryFromBlocks(blocks) {
-  return blocks[0].text.text;
-}
 
 app.action(
   "assign_help_request_to_me",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-
-      const jiraId = extractJiraIdFromBlocks(body.message.blocks);
-
-      const userInfo = await client.users.info({
-        user: body.user.id,
-      });
-
-      const userEmail = userInfo.user.profile.email;
-
-      await assignHelpRequest(jiraId, userEmail);
-
-      const blocks = body.message.blocks;
-      const assignedToSection = blocks[6];
-      assignedToSection.elements[0].initial_user =
-        userInfo.user.enterprise_user.id;
-
-      await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: "New platform help request raised",
-        blocks: blocks,
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await assignHelpRequestToMe(body, client);
   },
 );
 
 app.action(
   "assign_help_request_to_user",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-
-      const user = action.selected_user;
-
-      const jiraId = extractJiraIdFromBlocks(body.message.blocks);
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
-
-      await assignHelpRequest(jiraId, userEmail);
-
-      const actor = body.user.id;
-
-      await client.chat.postMessage({
-        channel: body.channel.id,
-        thread_ts: body.message.ts,
-        text: `Hi, <@${user}>, you've just been assigned to this help request by <@${actor}>`,
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await assignHelpRequestToUser(action, body, client);
   },
 );
 
 app.action(
   "resolve_help_request",
   async ({ body, action, ack, client, context, payload }) => {
-    try {
-      await ack();
-
-      // Trigger IDs have a short lifespan, so process them first
-      await client.views.open({
-        trigger_id: body.trigger_id,
-        view: helpRequestResolveBlocks({ thread_ts: body.message.ts }),
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await resolveHelpRequestHandler(client, body);
   },
 );
 
 app.view("document_help_request", async ({ ack, body, view, client }) => {
-  try {
-    await ack();
-
-    const helpRequestMessages = (
-      await client.conversations.replies({
-        channel: reportChannelId,
-        ts: body.view.private_metadata,
-        limit: 200, // after a thread is 200 long we'll break but good enough for now
-      })
-    ).messages;
-
-    const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks);
-
-    await resolveHelpRequest(jiraId);
-
-    const blocks = helpRequestMessages[0].blocks;
-    // TODO less fragile block updating
-    blocks[6].elements[2] = {
-      type: "button",
-      text: {
-        type: "plain_text",
-        text: ":snow_cloud: Re-open",
-        emoji: true,
-      },
-      style: "primary",
-      value: "start_help_request",
-      action_id: "start_help_request",
-    };
-
-    blocks[2].fields[0].text = "Status :snowflake:\n Done";
-
-    await client.chat.update({
-      channel: reportChannelId,
-      ts: body.view.private_metadata,
-      text: "New platform help request raised",
-      blocks: blocks,
-    });
-
-    const documentation = {
-      category:
-        body.view.state.values.category_block.category.selected_option.value,
-      how: body.view.state.values.how_block.how.value || "N/A",
-    };
-
-    await addCommentToHelpRequestResolve(jiraId, documentation);
-
-    await addLabel(jiraId, documentation);
-
-    await client.chat.postMessage({
-      channel: reportChannel,
-      thread_ts: body.view.private_metadata,
-      text: "Platform help request documented",
-      blocks: helpRequestDocumentationBlocks(documentation),
-    });
-  } catch (error) {
-    console.error(error);
-  }
+  await ack();
+  await documentHelpRequest(client, body);
 });
 
 app.action(
   "start_help_request",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-      const jiraId = extractJiraIdFromBlocks(body.message.blocks);
-
-      await startHelpRequest(jiraId); // TODO add optional resolution comment
-
-      await removeWithdrawnLabel(jiraId); // Require when re-opening a withdrawn issue via slack
-
-      const blocks = body.message.blocks;
-      // TODO less fragile block updating
-      blocks[6].elements[2] = {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: ":snow_cloud: Resolve",
-          emoji: true,
-        },
-        style: "primary",
-        value: "resolve_help_request",
-        action_id: "resolve_help_request",
-      };
-
-      blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress";
-
-      await client.chat.update({
-        channel: body.channel.id,
-        ts: body.message.ts,
-        text: "New platform help request raised",
-        blocks: blocks,
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await startHelpRequestHandler(body, client);
   },
 );
 
-function extractSlackMessageId(body, action) {
-  let result;
-  for (let i = 0; i < body.view.blocks.length; i++) {
-    if (body.view.blocks[i].block_id === action.block_id) {
-      const slackLink = body.view.blocks[i - 1].text.text;
-      return extractSlackMessageIdFromText(slackLink);
-    }
-  }
-  return result;
-}
-
-/**
- * The built in string replace function can't return a promise
- * This is an adapted version that is able to do that
- * Source: https://stackoverflow.com/a/48032528/4951015
- *
- * @param str source string
- * @param regex the regex to apply to the string
- * @param asyncFn function to transform the string with, arguments should include match and any capturing groups
- * @returns {Promise<*>} result of the replace
- */
-async function replaceAsync(str, regex, asyncFn) {
-  const promises = [];
-  str.replace(regex, (match, ...args) => {
-    const promise = asyncFn(match, ...args);
-    promises.push(promise);
-  });
-  const data = await Promise.all(promises);
-  return str.replace(regex, () => data.shift());
-}
-
-/**
- * Users may have a display name set or may not.
- * Display name is normally better than real name, so we prefer that but fallback to real name.
- */
-function convertProfileToName(profile) {
-  let name = profile.display_name_normalized;
-  if (!name) {
-    name = profile.real_name_normalized;
-  }
-  return name;
-}
-
 // Processes whenever the bot receives a message
 app.event("message", async ({ event, context, client, say }) => {
-  try {
-    // Filters for direct(instant) messages
-    if (event.channel_type === "im" && event.subtype !== "message_changed") {
-      switch (event.text.toLowerCase()) {
-        case "help":
-          // Open the PlatOps help request form. Alternative to the shortcut above
-          await begin_help_request(context.userId, client);
-          return;
-        default:
-          //
-          await say(
-            "Sorry, I didn't catch that. Here's what I can help you with:\n`help` Open a Platform Help Request",
-          );
-          return;
-      }
-    }
-
-    // filter unwanted channels in case someone invites the bot to it
-    // and only look at threaded messages
-    if (event.channel != reportChannelId) return;
-    if (!event.thread_ts) return;
-
-    // The code below here monitors the thread of any help request and
-    // automatically mirrors the messages to the Jira ticket.
-
-    const slackLink = (
-      await client.chat.getPermalink({
-        channel: event.channel,
-        message_ts: event.thread_ts,
-      })
-    ).permalink;
-
-    const user = await client.users.profile.get({
-      user: event.user,
-    });
-
-    const name = convertProfileToName(user.profile);
-
-    // Should be able to get root message using timestamp
-    const helpRequestMessages = (
-      await client.conversations.replies({
-        channel: reportChannelId,
-        ts: event.thread_ts,
-        limit: 200, // after a thread is 200 long we'll break but good enough for now
-      })
-    ).messages;
-
-    if (
-      helpRequestMessages.length > 0 &&
-      (helpRequestMessages[0].text === "New platform help request raised" ||
-        helpRequestMessages[0].text === "Duplicate issue")
-    ) {
-      const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks);
-
-      const groupRegex = /<!subteam\^.+\|([^>.]+)>/g;
-      const usernameRegex = /<@([^>.]+)>/g;
-
-      let possibleNewTargetText = event.text.replace(
-        groupRegex,
-        (match, $1) => $1,
-      );
-
-      const newTargetText = await replaceAsync(
-        possibleNewTargetText,
-        usernameRegex,
-        async (match, $1) => {
-          const user = await client.users.profile.get({
-            user: $1,
-          });
-          return `@${convertProfileToName(user.profile)}`;
-        },
-      );
-
-      await addCommentToHelpRequest(jiraId, {
-        slackLink,
-        name,
-        message: newTargetText,
-      });
-    } else {
-      // either need to implement pagination or find a better way to get the first message in the thread
-      console.warn(
-        "Could not find jira ID, possibly thread is longer than 200 messages, TODO implement pagination",
-      );
-    }
-  } catch (error) {
-    console.error(error);
-  }
+  await appMessaged(event, context, client, say);
 });
 
 /////////////////////////////
 //// Setup App Homepage  ////
 /////////////////////////////
-async function appHomeUnassignedIssues(userId, client) {
-  const results = await searchForUnassignedOpenIssues();
-
-  const issues = results.issues.slice(0, 20);
-
-  const parsedPromises = issues.flatMap(async (result) => {
-    let reporterUser;
-    try {
-      reporterUser = await client.users.lookupByEmail({
-        email: result.fields.reporter.emailAddress,
-      });
-    } catch (error) {
-      console.log("Couldn't find user", result.fields.reporter.emailAddress);
-    }
-
-    return appHomeIssueBlocks({
-      summary: result.fields.summary,
-      slackLink: extractSlackLinkFromText(result.fields.description),
-      jiraId: result.key,
-      created: result.fields.created,
-      updated: result.fields.updated,
-      state: "Open :fire:",
-      assignee: null,
-      reporter: reporterUser?.user?.enterprise_user?.id,
-    });
-  });
-
-  const parsedResults = await Promise.all(parsedPromises);
-
-  await client.views.publish({
-    user_id: userId,
-    view: {
-      type: "home",
-      blocks: [
-        ...appHomeMainBlocks(),
-        ...appHomeHeaderBlocks(
-          "Open Unassigned Help Requests",
-          `Displaying ${issues.length} of ${results.issues.length} results.`,
-        ),
-        ...parsedResults.flat(),
-      ],
-    },
-  });
-}
 
 app.event("app_home_opened", async ({ event, client }) => {
   await appHomeUnassignedIssues(event.user, client);
@@ -924,307 +179,27 @@ app.event("app_home_opened", async ({ event, client }) => {
 app.action(
   "view_open_unassigned_requests",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-      await appHomeUnassignedIssues(body.user.id, client);
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await appHomeUnassignedIssues(body.user.id, client);
   },
 );
 
 app.action(
   "view_requests_assigned_to_me",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-
-      const user = body.user.id;
-      const userEmail = (
-        await client.users.profile.get({
-          user,
-        })
-      ).profile.email;
-
-      const results = await searchForIssuesAssignedTo(userEmail);
-
-      const issues = results.issues.slice(0, 20);
-
-      const parsedPromises = issues.flatMap(async (result) => {
-        let reporterUser;
-        try {
-          reporterUser = await client.users.lookupByEmail({
-            email: result.fields.reporter.emailAddress,
-          });
-        } catch (error) {
-          console.log(
-            "Couldn't find user",
-            result.fields.reporter.emailAddress,
-            error,
-          );
-        }
-
-        return appHomeIssueBlocks({
-          summary: result.fields.summary,
-          slackLink: extractSlackLinkFromText(result.fields.description),
-          jiraId: result.key,
-          created: result.fields.created,
-          updated: result.fields.updated,
-          state:
-            result.fields.status.name == "Open"
-              ? "Open :fire:"
-              : "In Progress :fire_extinguisher:",
-          assignee: body.user.id,
-          reporter: reporterUser.user.enterprise_user.id,
-        });
-      });
-
-      const parsedResults = await Promise.all(parsedPromises);
-
-      await client.views.publish({
-        user_id: user,
-        view: {
-          type: "home",
-          blocks: [
-            ...appHomeMainBlocks(),
-            ...appHomeHeaderBlocks(
-              "Help Requests Assigned to You",
-              `Displaying ${issues.length} of ${results.issues.length} results.`,
-            ),
-            ...parsedResults.flat(),
-          ],
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await viewRequestsAssignedToMe(body, client);
   },
 );
 
 app.action(
   "view_requests_raised_by_me",
   async ({ body, action, ack, client, context }) => {
-    try {
-      await ack();
-
-      const user = body.user.id;
-
-      let userEmail;
-      try {
-        userEmail = (
-          await client.users.profile.get({
-            user,
-          })
-        ).profile.email;
-      } catch (error) {
-        console.log("Couldn't find user", body.user.id, error);
-      }
-
-      const results = await searchForIssuesRaisedBy(userEmail);
-
-      const issues = results.issues.slice(0, 20);
-
-      const parsedPromises = issues.flatMap(async (result) => {
-        const assigneeUser =
-          result.fields.assignee === null
-            ? null
-            : (
-                await client.users.lookupByEmail({
-                  email: result.fields.assignee.emailAddress,
-                })
-              ).user.enterprise_user.id;
-
-        return appHomeIssueBlocks({
-          summary: result.fields.summary,
-          slackLink: extractSlackLinkFromText(result.fields.description),
-          jiraId: result.key,
-          created: result.fields.created,
-          updated: result.fields.updated,
-          state:
-            result.fields.status.name == "Open"
-              ? "Open :fire:"
-              : "In Progress :fire_extinguisher:",
-          assignee: assigneeUser,
-          reporter: body.user.id,
-        });
-      });
-
-      const parsedResults = await Promise.all(parsedPromises);
-
-      await client.views.publish({
-        user_id: user,
-        view: {
-          type: "home",
-          blocks: [
-            ...appHomeMainBlocks(),
-            ...appHomeHeaderBlocks(
-              "Help Requests Raised by You",
-              `Displaying ${issues.length} of ${results.issues.length} results.`,
-            ),
-            ...parsedResults.flat(),
-          ],
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    await ack();
+    await viewRequestsRaisedByMe(body, client);
   },
 );
 
-////////////////////////////////////
-/// Auto Withdraw Functionality ////
-////////////////////////////////////
-
-const getSlackUserInfo = async (userEmail) => {
-  try {
-    const response = await app.client.users.lookupByEmail({
-      email: userEmail,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response;
-  } catch (error) {
-    console.error(
-      `Error fetching user info for user ${userEmail} from Slack`,
-      error,
-    );
-  }
-};
-
-const sendSlackMessage = async (channel, jiraIssue, thread) => {
-  let message;
-  if (thread === undefined) {
-    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact PlatOps.`;
-  } else {
-    message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, you can do so from this thread - ${thread}.`;
-  }
-
-  try {
-    const response = await app.client.chat.postMessage({
-      channel: channel,
-      text: message,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error(`Error sending message to user ${channel}`, error);
-  }
-};
-
-const commentOnSlackThread = async (channel, timestamp) => {
-  try {
-    const response = await app.client.chat.postMessage({
-      channel: channel,
-      thread_ts: timestamp,
-      text: "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread.",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error(`Error replying to Slack thread ${channel}`, error);
-  }
-};
-
-const setRequestStatusSlack = async (channel, timestamp) => {
-  try {
-    const messages = (
-      await app.client.conversations.replies({
-        channel: channel,
-        ts: timestamp,
-        limit: 200,
-      })
-    ).messages;
-
-    const blocks = messages[0].blocks;
-
-    blocks[6].elements[2] = {
-      type: "button",
-      text: {
-        type: "plain_text",
-        text: ":snow_cloud: Re-open",
-        emoji: true,
-      },
-      style: "primary",
-      value: "start_help_request",
-      action_id: "start_help_request",
-    };
-
-    blocks[2].fields[0].text = "Status :snowflake:\n Done";
-
-    await app.client.chat.update({
-      channel: channel,
-      ts: timestamp,
-      text: "New platform help request raised",
-      blocks: blocks,
-    });
-  } catch (error) {
-    console.error(`Error setting status in Slack thread ${channel}`, error);
-  }
-};
-
-const withdrawInactiveIssues = async () => {
-  const results = await searchForInactiveIssues();
-
-  // Loop through inactive issues
-  if (results.issues.length > 0) {
-    for (const issue of results.issues) {
-      const issueId = issue["key"];
-
-      // Withdraw issue and add withdrawn label in Jira
-      console.log(`Withdrawing issue ${issueId}...`);
-      await addWithdrawnLabel(issueId);
-      await withdrawIssue(issueId);
-      console.log(`Issue ${issueId} withdrawn`);
-
-      const reporterKey = issue["fields"]["reporter"]["key"];
-      const reporter = await getUserByKey(reporterKey);
-      const reporterEmail = reporter["emailAddress"];
-
-      const slackUserInfo = await getSlackUserInfo(reporterEmail);
-      const slackUserId = slackUserInfo["user"]["id"];
-
-      const description = issue["fields"]["description"];
-      const urlMatch = description.match(
-        /https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+\/[\w.-]+\?[\w=&.-]+/,
-      );
-
-      // If the issue was created from Slack, send dm to reporter and comment on the thread
-      // Otherwise, just send dm to reporter
-      if (urlMatch) {
-        const urlString = urlMatch[0];
-        const url = new URL(urlString);
-        const thread_ts = url.searchParams.get("thread_ts");
-        const cid = url.searchParams.get("cid");
-
-        console.log(`Sending message to user ${slackUserId}...`);
-        await sendSlackMessage(slackUserId, issueId, urlString);
-        console.log(`Message sent to user ${slackUserId}`);
-
-        console.log(`Commenting on Slack thread ${cid}...`);
-        await commentOnSlackThread(cid, thread_ts);
-        console.log(`Commented on Slack thread ${cid}`);
-
-        console.log(`Setting status in Slack thread ${cid}...`);
-        await setRequestStatusSlack(cid, thread_ts);
-        console.log(`Status set in Slack thread ${cid}`);
-      } else {
-        console.log(`Sending message to user ${slackUserId}...`);
-        await sendSlackMessage(slackUserId, issueId);
-        console.log(`Message sent to user ${slackUserId}`);
-      }
-    }
-  } else {
-    console.log("No issues to withdraw");
-  }
-};
-
-cron.schedule("0 8 * * *", async () => {
-  await withdrawInactiveIssues();
+cron.schedule("0 8 * * 1-5", async () => {
+  await withdrawInactiveIssues(app);
 });

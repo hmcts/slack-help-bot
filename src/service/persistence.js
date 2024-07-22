@@ -14,6 +14,7 @@ const issueTypeName = config.get("jira.issue_type_name");
 const jiraProject = config.get("jira.project");
 
 const jiraStartTransitionId = config.get("jira.start_transition_id");
+const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
 const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`);
 
@@ -217,6 +218,21 @@ async function searchForIssuesRaisedBy(userEmail) {
   }
 }
 
+async function search(jqlQuery, startAt, fields) {
+  try {
+    return await jira.searchJira(jqlQuery, {
+      fields: fields,
+      maxResults: 750,
+      startAt,
+    });
+  } catch (err) {
+    console.log("Error searching for issues in jira", err);
+    return {
+      issues: [],
+    };
+  }
+}
+
 async function assignHelpRequest(issueId, email) {
   const user = await convertEmail(email);
 
@@ -387,15 +403,12 @@ async function removeWithdrawnLabel(issueId) {
 }
 
 async function withdrawIssue(issueId) {
-  try {
-    await jira.transitionIssue(issueId, {
-      transition: {
-        id: "101",
-      },
-    });
-  } catch (err) {
-    console.log(`Error withdrawing issue ${issueId} in jira`, err);
-  }
+  console.log(`Withdrawing issue ${issueId}...`, jiraWithdrawnTransitionId);
+  await jira.transitionIssue(issueId, {
+    transition: {
+      id: jiraWithdrawnTransitionId,
+    },
+  });
 }
 
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
@@ -414,11 +427,13 @@ async function getUserByKey(key) {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.error(
+        `Error fetching user with key ${key}, HTTP error! status: ${response.status}`,
+      );
+      return;
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
     console.error(`Error fetching user with key ${key}`, error);
   }
@@ -441,6 +456,7 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;

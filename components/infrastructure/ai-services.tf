@@ -10,10 +10,12 @@ resource "azapi_resource" "AIServices" {
 
   body = jsonencode({
     name = "platops-slack-help-bot-${var.short_environment}"
+
     properties = {
       apiProperties = {
         statisticsEnabled = false
       }
+      customSubDomainName = "platops-slack-help-bot-${var.short_environment}"
     }
     kind = "AIServices"
     sku = {
