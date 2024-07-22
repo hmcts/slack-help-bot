@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const { AzureOpenAI } = require("openai");
 const config = require("config");
 const {
@@ -16,6 +18,7 @@ const apiVersion = "2024-04-01-preview";
 const client = new AzureOpenAI({
   azureADTokenProvider,
   deployment,
+  endpoint: config.get("openai.endpoint"),
   apiVersion,
 });
 

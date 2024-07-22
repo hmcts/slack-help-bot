@@ -22,8 +22,9 @@ app_insights:
   role_name: platops-slack-help-bot
 
 openai:
-  deployment_name: "gpt-4-turbo-preview"
+  endpoint: "https://platops-slack-help-bot-ptl.openai.azure.com/"
+  deployment_name: "gpt-4"
 
 search:
-  endpoint: "https://ai-tim-slack-bot570094706456.search.windows.net"
-  index_name: "cosmosdb-index2"
+  endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
+  index_name: "help-requests"
