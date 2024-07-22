@@ -18,7 +18,7 @@ jira:
   #api_token: no default
 
 app_insights:
-  #instrumentation_key: no default
+  #connection_string: no default
   role_name: platops-slack-help-bot
 
 openai:

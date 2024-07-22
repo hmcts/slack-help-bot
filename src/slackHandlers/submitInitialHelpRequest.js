@@ -121,7 +121,7 @@ async function submitInitialHelpRequest(body, client) {
       let relatedIssues = [];
       let aiRecommendation = {};
       try {
-        const relatedIssuesPromise = await searchDocuments(
+        const relatedIssuesPromise = searchDocuments(
           `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
         );
 

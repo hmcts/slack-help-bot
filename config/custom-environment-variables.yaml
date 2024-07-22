@@ -15,7 +15,7 @@ jira:
   api_token: JIRA_API_TOKEN
 
 app_insights:
-  instrumentation_key: APP_INSIGHTS_INSTRUMENTATION_KEY
+  connection_string: APP_INSIGHTS_INSTRUMENTATION_KEY
 
 openai:
   deployment_name: AZURE_OPENAI_DEPLOYMENT_NAME

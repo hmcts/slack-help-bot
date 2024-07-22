@@ -54,7 +54,7 @@ async function submitHelpRequest(body, client) {
     //
     // The form can then be re-submitted by the user.
     // If the user did not change a field when re-submitting the form,
-    // slack will detect this and will not populate the 'values' object
+    // Slack will detect this and will not populate the 'values' object
     // with the value of that field. Instead, we have to read the data from
     // the 'blocks' object we submitted last time. Thankfully this is
     // provided to us.
@@ -65,16 +65,6 @@ async function submitHelpRequest(body, client) {
     // the block not being present at all. That simply means the user did
     // not update that field before submitting and the field may still
     // have a value in the initial_option block we set.
-
-    // environment: values.environment
-    //     ? values.environment.selected_option
-    //     : blocks[3].element.initial_option,
-    //     team: values.team
-    //     ? values.team.selected_option
-    //     : blocks[4].element.initial_option,
-    //     area: values.area
-    //     ? values.area.selected_option
-    //     : blocks[5].element.initial_option,
 
     const inputBlocks = blocks.filter((block) => block.type === "input");
 
