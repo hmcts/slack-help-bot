@@ -10,6 +10,9 @@ const environments = [
 ];
 
 function lookupEnvironment(value) {
+  if (!value) {
+    return undefined;
+  }
   return environments.find(
     (env) => env.text.text.toLowerCase() === value.toLowerCase(),
   );

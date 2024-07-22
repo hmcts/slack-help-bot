@@ -16,7 +16,7 @@ const setup = () => {
     setSecret("secrets.cftptl-intsvc.slack-app-token", "slack.app_token");
     setSecret(
       "secrets.cftptl-intsvc.app-insights-connection-string",
-      "app_insights.connection-string",
+      "app_insights.connection_string",
     );
   }
 };
