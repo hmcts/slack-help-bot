@@ -8,3 +8,9 @@ module "application_insights" {
 
   common_tags = local.common_tags
 }
+
+resource "azurerm_key_vault_secret" "app_insights_connection_string" {
+  name         = "app-insights-connection-string"
+  key_vault_id = data.azurerm_key_vault.mgmt_kv.id
+  value        = module.application_insights.connection_string
+}
