@@ -66,3 +66,25 @@ resource "azurerm_cosmosdb_sql_role_assignment" "platops_contributor" {
   principal_id       = data.azuread_group.platops.object_id
   scope              = azurerm_cosmosdb_account.cosmosdb.id
 }
+
+// work around: https://github.com/hashicorp/terraform-provider-azurerm/issues/21171#issuecomment-1491478301
+data "azurerm_search_service" "this" {
+  name                = azurerm_search_service.this.name
+  resource_group_name = azurerm_search_service.this.resource_group_name
+}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "search_service_reader" {
+  resource_group_name = azurerm_cosmosdb_account.cosmosdb.resource_group_name
+  account_name        = azurerm_cosmosdb_account.cosmosdb.name
+  # Cosmos DB Built-in Data Reader
+  role_definition_id = "${azurerm_cosmosdb_account.cosmosdb.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000001"
+  principal_id       = data.azurerm_search_service.this.identity[0].principal_id
+  scope              = azurerm_cosmosdb_account.cosmosdb.id
+}
+
+resource "azurerm_role_assignment" "search_search_reader" {
+  principal_id = data.azurerm_search_service.this.identity[0].principal_id
+  scope        = azurerm_cosmosdb_account.cosmosdb.id
+
+  role_definition_name = "Cosmos DB Account Reader Role"
+}

@@ -10,6 +10,10 @@ resource "azurerm_search_service" "this" {
   authentication_failure_mode  = "http403"
   semantic_search_sku          = "standard"
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   tags = local.common_tags
 }
 
