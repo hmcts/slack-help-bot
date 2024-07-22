@@ -2,9 +2,9 @@ const appInsights = require("applicationinsights");
 const config = require("config");
 
 const enableAppInsights = () => {
-  if (config.has("app_insights.instrumentation_key")) {
+  if (config.has("app_insights.app-insights-connection-string")) {
     appInsights
-      .setup(config.get("app_insights.instrumentation_key"))
+      .setup(config.get("app_insights.app-insights-connection-string"))
       .setAutoCollectConsole(true, true);
     appInsights.defaultClient.context.tags[
       appInsights.defaultClient.context.keys.cloudRole

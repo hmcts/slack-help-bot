@@ -175,6 +175,10 @@ function relatedIssueBlock(issue) {
 }
 
 function helpFormRelatedIssuesBlocks({ relatedIssues }) {
+  if (relatedIssues.length === 0) {
+    return [];
+  }
+
   const header = [
     {
       type: "divider",

@@ -12,6 +12,7 @@ async function lookupUser({ client, user }) {
         user,
       });
     },
+    user,
     {
       cachePolicy: "max-age",
       maxAge: 86400,
