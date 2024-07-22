@@ -11,7 +11,7 @@ const enableAppInsights = () => {
     ] = config.get("app_insights.role_name");
     appInsights.start();
   } else {
-    console.log("No application insights key defined, skipping");
+    console.log("No application insights connection string defined, skipping");
   }
 };
 
