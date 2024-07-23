@@ -56,14 +56,13 @@ async function convertEmail(email) {
 
   try {
     const res = await jira.searchUsers({
-        username: email,
-        maxResults: 1,
-      },
-    );
+      username: email,
+      maxResults: 1,
+    });
 
     if (!res || res.length === 0) {
       console.log("Failed to find user in Jira with email: " + email);
-      return undefined
+      return undefined;
     }
 
     return res[0].name;
