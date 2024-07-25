@@ -32,7 +32,7 @@ async function appMessaged(event, context, client, say) {
   try {
     // Filters for direct(instant) messages
     if (event.channel_type === "im" && event.subtype !== "message_changed") {
-      switch (event.text.toLowerCase()) {
+      switch (event.text?.toLowerCase()) {
         case "help":
           // Open the PlatOps help request form. Alternative to the shortcut above
           await beginHelpRequest(context.userId, client);
