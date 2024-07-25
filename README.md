@@ -1,6 +1,32 @@
 # Slack help bot
 
-Listens for new posts in a designated Slack channel and raises a coresponding request in Jira.
+A tool to make it easier for Platform users to get help.
+With a focus on sign-posting, tooling and documentation to allow users to help themselves without needing an engineers help.
+
+## Features
+
+- Users can request help from Platform Operations by:
+  - Using the `/PlatOps help` shortcut.
+  - Messaging the PlatOps help bot and saying `help`.
+- While requesting help the bot will:
+  - Provide initial guidance, linking to documentation, recent announcements and providing guidance on what should be raised here.
+  - Link to our QnA maker bot Plato which has pre-programmed answers to some common questions.
+  - Ask users to fill in some details about their request.
+  - Send the data to `Azure AI Search` which will return the top 3 most relevant results from previous requests.
+  - Send the data to `Azure AI Services` to determine which area, environment and team the request is likely about and will preselect these fields for the user.
+  - Create a ticket in Jira with the data provided.
+  - Post the request in the `#platops-help` channel.
+- Help request threads support these commands by messaging `@PlatOps help <command>`:
+  - `help` - list of all available commands
+  - `duplicate <jira ticket id>` - mark a request as a duplicate of another ticket
+  - `summarise` - an AI will summarise all replies in the Slack thread into one message
+- On close of a request the bot will ask for what type of help was required and what was done to resolve the issue.
+- `@PlatOps help` home page displays the following reports:
+  - Open unassigned help requests
+  - Assigned to me
+  - Raised by me
+- Auto close inactive issues
+  - A cron job built into the bot will close any issues that have been not been updated for 10 days
 
 ## Getting Started with the Bot
 
