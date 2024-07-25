@@ -1,6 +1,15 @@
-version: "3.8"
 services:
   slack-help-bot:
     build: .
+    depends_on:
+      - azure-cli-proxy
+    environment:
+      - "MSI_ENDPOINT=http://azure-cli-proxy:8080/token"
     env_file:
       - ./.env
+  # https://github.com/gsoft-inc/azure-cli-credentials-proxy
+  azure-cli-proxy:
+    image: workleap/azure-cli-credentials-proxy:1.1.0
+    volumes:
+      - "$HOME/.azure:/app/.azure/"
+      #- "\\\\wsl$\\<DISTRONAME>\\home\\<USERNAME>\\.azure\\:/app/.azure/" # Uncomment on Windows with WSL
