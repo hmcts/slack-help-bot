@@ -37,17 +37,18 @@ During help request workflow the application:
 1. Asks Azure AI services for recommendation for area, environment and team.
 2. Searches Azure AI search for similar requests.
 3. Creates the request in Slack and Jira.
-4. Stores the request in Cosmos DB (not implemented yet).
+4. Stores the request in Cosmos DB.
 5. Replies on the help request Slack thread are added to Jira.
    - Replies on Jira are not added to Slack.
 
 On close of the help request:
 
-1. Status and resolution comment added to cosmos DB (not implemented yet).
+1. Status, resolution type and resolution comment added to cosmos DB.
 
 Search index:
 
 1. Search service has an indexer configured to pull new data from Cosmos DB every 5 minutes.
+   - Only certain fields are configured, see the [indexer configuration](./components/infrastructure/ai-search-index.tf).
 
 AI summarising:
 

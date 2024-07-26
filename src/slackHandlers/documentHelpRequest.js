@@ -7,6 +7,7 @@ const {
 const { helpRequestDocumentationBlocks } = require("../messages");
 
 const config = require("config");
+const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
 
 const reportChannel = config.get("slack.report_channel");
 const reportChannelId = config.get("slack.report_channel_id");
@@ -63,6 +64,13 @@ async function documentHelpRequest(client, body) {
       thread_ts: body.view.private_metadata,
       text: "Platform help request documented",
       blocks: helpRequestDocumentationBlocks(documentation),
+    });
+
+    await updateCosmosWhenHelpRequestResolved({
+      key: jiraId,
+      status: "Done",
+      resolution: documentation.how,
+      resolution_type: documentation.category,
     });
   } catch (error) {
     console.error(error);

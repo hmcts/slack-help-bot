@@ -11,12 +11,13 @@ const systemUser = config.get("jira.username");
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
 
+/** @type {string} */
 const jiraProject = config.get("jira.project");
 
 const jiraStartTransitionId = config.get("jira.start_transition_id");
 const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
-const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`);
+const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
 const jira = new JiraApi({
   protocol: "https",
@@ -40,7 +41,7 @@ function extractJiraIdFromBlocks(blocks) {
     viewOnJiraText = blocks[4].elements[0].text;
   }
 
-  project = extractProjectRegex.exec(viewOnJiraText);
+  const project = extractProjectRegex.exec(viewOnJiraText);
 
   return project ? project[1] : "undefined";
 }
@@ -49,25 +50,29 @@ function extraJiraId(text) {
   return extractProjectRegex.exec(text)[1];
 }
 
+/**
+ * @param {string} email
+ */
 async function convertEmail(email) {
   if (!email) {
     return systemUser;
   }
 
   try {
+    // noinspection JSCheckFunctionSignatures - types are wrong, it may be deprecated, but I can't make the new param work
     const res = await jira.searchUsers({
       username: email,
       maxResults: 1,
     });
 
     if (!res || res.length === 0) {
-      console.log("Failed to find user in Jira with email: " + email);
+      console.log("Failed to find user in Jira with email", email);
       return undefined;
     }
 
     return res[0].name;
   } catch (ex) {
-    console.log("Querying username failed: " + ex);
+    console.log("Querying username failed", ex);
     return systemUser;
   }
 }
@@ -237,12 +242,13 @@ async function search(jqlQuery, startAt, fields) {
 }
 
 async function assignHelpRequest(issueId, email) {
+  /** @type {string} */
   const user = await convertEmail(email);
 
   try {
     await jira.updateAssignee(issueId, user);
   } catch (err) {
-    console.log("Error assigning help request in jira", err);
+    console.log("Error assigning help request in jira", issueId, err);
   }
 }
 
@@ -318,7 +324,7 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
   try {
     await jira.addComment(externalSystemId, createComment(fields));
   } catch (err) {
-    console.log("Error creating comment in jira", err);
+    console.log("Error creating comment in jira", externalSystemId, err);
   }
 }
 
@@ -332,7 +338,7 @@ async function addCommentToHelpRequestResolve(
       createResolveComment({ category, how }),
     );
   } catch (err) {
-    console.log("Error creating comment in jira", err);
+    console.log("Error creating comment in jira", externalSystemId, err);
   }
 }
 
@@ -348,7 +354,11 @@ async function addLabel(externalSystemId, { category }) {
       },
     });
   } catch (err) {
-    console.log("Error updating help request description in jira", err);
+    console.log(
+      "Error updating help request description in jira",
+      externalSystemId,
+      err,
+    );
   }
 }
 

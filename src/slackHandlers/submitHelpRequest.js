@@ -12,6 +12,8 @@ const {
 const { checkSlackResponseError } = require("./errorHandling");
 const { lookupUsersEmail } = require("./utils/lookupUser");
 const config = require("config");
+const { createHelpRequestInCosmos } = require("../service/cosmos");
+const { uuidv7 } = require("uuidv7");
 
 const reportChannel = config.get("slack.report_channel");
 
@@ -30,6 +32,10 @@ function validateFullRequest(helpRequest) {
     return "Please provide a description of your issue.";
   }
   return null;
+}
+
+function cleanLabel(label) {
+  return label.replace(" ", "-").toLowerCase();
 }
 
 async function submitHelpRequest(body, client) {
@@ -161,12 +167,9 @@ async function submitHelpRequest(body, client) {
     const jiraId = await createHelpRequest({
       summary: helpRequest.summary,
       userEmail,
-      // Jira labels go here, can't contain spaces btw
-      // TODO: Put this in a function?
-      // TODO: Add more labels?
       labels: [
-        `area-${helpRequest.area.value.toLowerCase().replace(" ", "-")}`,
-        `team-${helpRequest.team.value.toLowerCase().replace(" ", "-")}`,
+        cleanLabel(`area-${helpRequest.area.value}`),
+        cleanLabel(`team-${helpRequest.team.value}`),
       ],
     });
 
@@ -220,6 +223,17 @@ async function submitHelpRequest(body, client) {
       goodbyeRes,
       "An error occurred when posting a goodbye post to Slack",
     );
+
+    await createHelpRequestInCosmos({
+      id: uuidv7(),
+      created_at: new Date(),
+      key: jiraId,
+      status: "Open",
+      title: helpRequest.summary,
+      description: helpRequest.description,
+      analysis: helpRequest.analysis,
+      url: permaLink,
+    });
   } catch (error) {
     console.error("An error occurred when submitting a help form: ", error);
   }
