@@ -28,6 +28,35 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 - Auto close inactive issues
   - A cron job built into the bot will close any issues that have been not been updated for 10 days
 
+## Architecture
+
+![Architecture diagram](images/slack-help-bot.svg)
+
+During help request workflow the application:
+
+1. Asks Azure AI services for recommendation for area, environment and team.
+2. Searches Azure AI search for similar requests.
+3. Creates the request in Slack and Jira.
+4. Stores the request in Cosmos DB (not implemented yet).
+5. Replies on the help request Slack thread are added to Jira.
+   - Replies on Jira are not added to Slack.
+
+On close of the help request:
+
+1. Status and resolution comment added to cosmos DB (not implemented yet).
+
+Search index:
+
+1. Search service has an indexer configured to pull new data from Cosmos DB every 5 minutes.
+
+AI summarising:
+
+1. If a user requests a help request to be summarised, all comments are retrieved and sent to AI services for summarisation.
+
+Azure resources:
+
+- All azure resources are created in the [`components/infrastructure`](./components/infrastructure) folder.
+
 ## Getting Started with the Bot
 
 ### Prerequisites
