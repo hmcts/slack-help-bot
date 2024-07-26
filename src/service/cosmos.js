@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 const { DefaultAzureCredential } = require("@azure/identity");
+const config = require("config");
 
 const fsPromises = require("fs").promises;
 
 const { CosmosClient } = require("@azure/cosmos");
 
-const endpoint = process.env.COSMOS_DB_ENDPOINT;
+const endpoint = config.get("cosmos.endpoint");
 
 const credential = new DefaultAzureCredential();
 
@@ -83,15 +84,63 @@ async function run(documents) {
   });
 }
 
-load()
-  .then(() => console.log("Done"))
-  .catch((err) => {
-    console.error(
-      "Error",
-      err.message,
-      err.code,
-      err.statusCode,
-      err.diagnostics,
-      err.stack,
-    );
-  });
+function getContainer() {
+  const database = client.database("help-requests");
+  return database.container("help-requests");
+}
+
+async function createHelpRequestInCosmos(item) {
+  const container = getContainer();
+
+  await container.items.create(item);
+}
+
+async function updateCosmosWhenHelpRequestResolved(item) {
+  const container = getContainer();
+
+  const result = await container.items
+    .query({
+      query: "SELECT * FROM c WHERE c.key = @key",
+      parameters: [{ name: "@key", value: item.key }],
+    })
+    .fetchNext();
+
+  if (result.resources.length === 0) {
+    console.log("No help request found in Cosmos for key", item.key);
+    // could also create here
+    return;
+  }
+
+  const { id } = result.resources[0];
+
+  const updateObj = [];
+  if (item.status) {
+    updateObj.push({
+      op: "add",
+      path: "/status",
+      value: item.status,
+    });
+  }
+  if (item.resolution) {
+    updateObj.push({
+      op: "add",
+      path: "/resolution",
+      value: item.resolution,
+    });
+  }
+
+  if (item.resolution_type) {
+    updateObj.push({
+      op: "add",
+      path: "/resolution_type",
+      value: item.resolution_type,
+    });
+  }
+
+  await container.item(id, id).patch(updateObj);
+}
+
+module.exports.load = load;
+module.exports.updateCosmosWhenHelpRequestResolved =
+  updateCosmosWhenHelpRequestResolved;
+module.exports.createHelpRequestInCosmos = createHelpRequestInCosmos;

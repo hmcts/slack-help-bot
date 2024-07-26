@@ -21,6 +21,9 @@ app_insights:
   #connection_string: no default
   role_name: platops-slack-help-bot
 
+cosmos:
+  endpoint: "https://platops-slack-help-bot-ptl.documents.azure.com:443/"
+
 openai:
   endpoint: "https://platops-slack-help-bot-ptl.openai.azure.com/"
   deployment_name: "gpt-4"
