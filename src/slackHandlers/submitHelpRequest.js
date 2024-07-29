@@ -38,6 +38,19 @@ function cleanLabel(label) {
   return label.replace(" ", "-").toLowerCase();
 }
 
+/**
+ * Determines which if-any blocks should be reinserted in related issues section
+ */
+function getRelatedIssuesBlocks(body) {
+  const tempRelatedIssuesBlock = body.message.blocks
+    .filter(
+      (block) =>
+        block.type !== "input" && block.type !== "header" && !block?.accessory,
+    )
+    .slice(2);
+  return tempRelatedIssuesBlock.slice(0, tempRelatedIssuesBlock.length - 1);
+}
+
 async function submitHelpRequest(body, client) {
   try {
     const user = body.user.id;
@@ -100,6 +113,8 @@ async function submitHelpRequest(body, client) {
         : inputBlocks[6].element.initial_option,
     };
 
+    const relatedIssuesBlocks = getRelatedIssuesBlocks(body);
+
     const errorMessage = validateFullRequest(helpRequest);
     //Re-insert current values for text inputs and send the form back
     if (errorMessage !== null) {
@@ -115,7 +130,11 @@ async function submitHelpRequest(body, client) {
         helpRequest,
       });
 
-      const blocks = [...mainBlocks, ...analyticsBlocks];
+      const blocks = [
+        ...mainBlocks,
+        ...relatedIssuesBlocks,
+        ...analyticsBlocks,
+      ];
 
       const res = await client.chat.update({
         channel: body.channel.id,
@@ -145,7 +164,11 @@ async function submitHelpRequest(body, client) {
         helpRequest,
       });
 
-      const blocks = [...mainBlocks, ...analyticsBlocks];
+      const blocks = [
+        ...mainBlocks,
+        ...relatedIssuesBlocks,
+        ...analyticsBlocks,
+      ];
 
       const updateRes = await client.chat.update({
         channel: body.channel.id,
