@@ -33,4 +33,3 @@ module.exports.appHomeMainBlocks = appHomeMainBlocks;
 module.exports.appHomeIssueBlocks = appHomeIssueBlocks;
 
 module.exports.appHomeHeaderBlocks = appHomeHeaderBlocks;
-
