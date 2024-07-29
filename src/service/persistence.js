@@ -132,6 +132,8 @@ async function getIssueDescription(issueId) {
   } catch (err) {
     if (err.statusCode === 404) {
       return undefined;
+    } else if (err.message.includes("The issue no longer exists")) {
+      return undefined;
     } else {
       throw err;
     }

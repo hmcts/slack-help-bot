@@ -43,7 +43,13 @@ function extractSummaryFromBlocks(blocks) {
 }
 
 async function handleDuplicate({ event, client, helpRequestMessages, say }) {
-  const result = event.text.match(/.+duplicate ([A-Z]+-[0-9]+)/);
+  // handle pasted text that is a link in the format of <https://tools.hmcts.net/jira/browse/SBOX-494|SBOX-494>
+  // or <https://tools.hmcts.net/jira/browse/SBOX-494>
+  const cleanedText = event.text
+    .replace(/<https:.+\|/, "")
+    .replace(/>/g, "")
+    .replace("<https://tools.hmcts.net/jira/browse/", "");
+  const result = cleanedText.match(/.+duplicate ([A-Z]+-[0-9]+)/);
   if (result) {
     const blocks = helpRequestMessages[0].blocks;
     const summary = extractSummaryFromBlocks(blocks);
@@ -59,6 +65,14 @@ async function handleDuplicate({ event, client, helpRequestMessages, say }) {
     }
     const parentSlackUrl = extractSlackLinkFromText(issueDescription);
     const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
+
+    if (currentIssueJiraId === parentJiraId) {
+      await say({
+        text: `Hi <@${event.user}>, I can't mark an issue as a duplicate of itself.`,
+        thread_ts: event.thread_ts,
+      });
+      return;
+    }
 
     await markAsDuplicate(currentIssueJiraId, parentJiraId);
 
@@ -119,6 +133,7 @@ ${helpText}`;
             event,
             client,
             helpRequestMessages,
+            say,
           });
         } else if (
           event.text.includes("summarise") ||
