@@ -18,10 +18,6 @@ const { appHomeIssueBlocks } = require("./messages/appHomeIssue");
 
 const { appHomeHeaderBlocks } = require("./messages/appHomeHeader");
 
-const {
-  configureWorkflowStepBlocks,
-} = require("./messages/configureWorkflowStep");
-
 module.exports.helpFormGreetingBlocks = helpFormGreetingBlocks;
 module.exports.helpFormPlatoBlocks = helpFormPlatoBlocks;
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
@@ -37,5 +33,3 @@ module.exports.appHomeMainBlocks = appHomeMainBlocks;
 module.exports.appHomeIssueBlocks = appHomeIssueBlocks;
 
 module.exports.appHomeHeaderBlocks = appHomeHeaderBlocks;
-
-module.exports.configureWorkflowStepBlocks = configureWorkflowStepBlocks;
