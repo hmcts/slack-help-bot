@@ -17,9 +17,13 @@ jira:
 app_insights:
   connection_string: APP_INSIGHTS_INSTRUMENTATION_KEY
 
+cosmos:
+  endpoint: COSMOS_ENDPOINT
+
 openai:
+  endpoint: AZURE_OPENAI_ENDPOINT
   deployment_name: AZURE_OPENAI_DEPLOYMENT_NAME
 
 search:
   endpoint: AZURE_SEARCH_ENDPOINT
-  index_name: AZURE_SEARCH_INDEX_NAME
+  help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME

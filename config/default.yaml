@@ -30,4 +30,4 @@ openai:
 
 search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
-  index_name: "help-requests"
+  help_requests_index_name: "help-requests"

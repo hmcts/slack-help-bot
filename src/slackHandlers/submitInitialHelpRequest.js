@@ -5,7 +5,7 @@ const {
   helpFormRelatedIssuesBlocks,
 } = require("../messages/helpFormMain");
 const { checkSlackResponseError } = require("./errorHandling");
-const { searchDocuments } = require("../service/search");
+const { searchHelpRequests } = require("../service/searchHelpRequests");
 
 function validateInitialRequest(helpRequest) {
   let errorMessage = null;
@@ -121,7 +121,7 @@ async function submitInitialHelpRequest(body, client) {
       let relatedIssues = [];
       let aiRecommendation = {};
       try {
-        const relatedIssuesPromise = searchDocuments(
+        const relatedIssuesPromise = searchHelpRequests(
           `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
         );
 
