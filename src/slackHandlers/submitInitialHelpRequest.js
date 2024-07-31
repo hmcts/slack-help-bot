@@ -3,9 +3,11 @@ const { analyticsRecommendations } = require("../ai/ai");
 const {
   helpFormAnalyticsBlocks,
   helpFormRelatedIssuesBlocks,
+  helpFormKnowledgeStoreBlocks,
 } = require("../messages/helpFormMain");
 const { checkSlackResponseError } = require("./errorHandling");
 const { searchHelpRequests } = require("../service/searchHelpRequests");
+const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
 
 function validateInitialRequest(helpRequest) {
   let errorMessage = null;
@@ -119,11 +121,13 @@ async function submitInitialHelpRequest(body, client) {
       );
 
       let relatedIssues = [];
+      let knowledgeStoreResults = [];
       let aiRecommendation = {};
       try {
-        const relatedIssuesPromise = searchHelpRequests(
-          `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`,
-        );
+        const query = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`;
+        const relatedIssuesPromise = searchHelpRequests(query);
+
+        const knowledgeStorePromise = searchKnowledgeStore(query);
 
         const aiRecommendationPromise = analyticsRecommendations(
           `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis} ${helpRequest.prBuildUrl}`,
@@ -131,6 +135,7 @@ async function submitInitialHelpRequest(body, client) {
 
         relatedIssues = await relatedIssuesPromise;
         aiRecommendation = await aiRecommendationPromise;
+        knowledgeStoreResults = await knowledgeStorePromise;
 
         console.log(relatedIssues);
       } catch (error) {
@@ -149,12 +154,17 @@ async function submitInitialHelpRequest(body, client) {
         },
       });
 
+      const knowledgeStoreBlocks = helpFormKnowledgeStoreBlocks({
+        knowledgeStoreResults,
+      });
+
       const relatedIssuesBlocks = helpFormRelatedIssuesBlocks({
         relatedIssues,
       });
 
       const blocks = [
         ...mainBlocks,
+        ...knowledgeStoreBlocks,
         ...relatedIssuesBlocks,
         ...analyticsBlocks,
       ];

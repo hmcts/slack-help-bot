@@ -27,3 +27,4 @@ openai:
 search:
   endpoint: AZURE_SEARCH_ENDPOINT
   help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME
+  knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME

@@ -31,3 +31,4 @@ openai:
 search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
   help_requests_index_name: "help-requests"
+  knowledge_store_index_name: "the-hmcts-way"
