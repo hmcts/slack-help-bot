@@ -18,7 +18,7 @@ locals {
 }
 
 # https://learn.microsoft.com/en-us/rest/api/searchservice/create-data-source
-resource "restapi_object" "search_datasource" {
+resource "restapi_object" "cosmos_datasource" {
   path         = "/datasources"
   query_string = "api-version=2023-10-01-Preview"
   data         = jsonencode(local.datasource_json)

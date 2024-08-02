@@ -1,17 +1,6 @@
-provider "restapi" {
-  uri                  = "https://${azurerm_search_service.this.name}.search.windows.net"
-  write_returns_object = true
-  debug                = true
-
-  headers = {
-    "api-key"      = azurerm_search_service.this.primary_key,
-    "Content-Type" = "application/json"
-  }
-}
-
 locals {
-  index_json = {
-    name = "help-requests"
+  hmcts_way_index_json = {
+    name = "the-hmcts-way"
     fields = [
       {
         name       = "id"
@@ -21,26 +10,10 @@ locals {
         sortable   = false
       },
       {
-        name        = "created_at"
-        type        = "Edm.DateTimeOffset"
-        searchable  = false
-        filterable  = true
-        sortable    = true
-        retrievable = true
-      },
-      {
-        name       = "key"
-        type       = "Edm.String"
-        key        = true
+        name       = "metadata_storage_last_modified"
+        type       = "Edm.DateTimeOffset"
         searchable = false
-        filterable = false
-        sortable   = false
-      },
-      {
-        name       = "status"
-        type       = "Edm.String"
-        searchable = false
-        filterable = false
+        filterable = true
         sortable   = false
       },
       {
@@ -51,48 +24,45 @@ locals {
         sortable   = true
       },
       {
-        name       = "description"
+        name       = "metadata_storage_name"
         type       = "Edm.String"
         searchable = true
         filterable = true
         sortable   = true
       },
       {
-        name       = "analysis"
+        name       = "metadata_storage_path"
         type       = "Edm.String"
         searchable = true
         filterable = true
         sortable   = true
+        key        = true
       },
       {
-        name       = "rid"
+        name       = "metadata_storage_content_md5"
         type       = "Edm.String"
-        searchable = false
-        filterable = false
-        sortable   = false
+        filterable = true
+        sortable   = true
       },
       {
-        name       = "url"
+        name       = "content"
         type       = "Edm.String"
-        searchable = false
+        searchable = true
         filterable = false
-        sortable   = false
+        sortable   = true
       },
     ],
     semantic = {
       configurations = [
         {
-          name : "help-requests",
+          name : "the-hmcts-way",
           prioritizedFields = {
             titleField = {
               fieldName = "title"
             },
             prioritizedContentFields = [
               {
-                fieldName = "description"
-              },
-              {
-                fieldName = "analysis"
+                fieldName = "content"
               }
             ],
             prioritizedKeywordsFields = []
@@ -106,9 +76,9 @@ locals {
 
 
 # To do this: https://learn.microsoft.com/en-us/rest/api/searchservice/preview-api/create-or-update-index
-resource "restapi_object" "help_request_index" {
+resource "restapi_object" "hmcts_way_index" {
   path         = "/indexes"
   query_string = "api-version=2023-10-01-Preview"
-  data         = jsonencode(local.index_json)
+  data         = jsonencode(local.hmcts_way_index_json)
   id_attribute = "name" # The ID field on the response
 }
