@@ -6,13 +6,40 @@ function convertIso8601ToEpochSeconds(isoTime) {
   return Date.parse(isoTime) / 1000;
 }
 
+function convertStoragePathToHmctsWayUrl(storagePath) {
+  const url = new URL(storagePath);
+  return url.pathname.replace("/the-hmcts-way", "https://hmcts.github.io");
+}
+
+function convertHighlightToSlackMarkup(highlight) {
+  // Azure AI search likes to put its <em> tags quite randomly in places which don't work for Slack markup
+  // So we process and clean it up to make it work
+  return (
+    highlight
+      // ensure there is a space before the <em> tag
+      .replace(/(\w)(<em>)/g, "$1 <em>")
+      // ensure there is no space after the <em> tag
+      .replace(/<em> /g, "<em>")
+      // ensure there is no space before the </em> tag
+      .replace(/ <\/em>/g, "</em>")
+      // convert <em> to slack code block
+      .replace(/<em>/g, "`")
+      // convert </em> to slack code block
+      .replace(/<\/em>/g, "`")
+  );
+}
+
+function extractKnowledgeStoreHighlight(item) {
+  if (item.captions && item.captions.length > 0) {
+    return convertHighlightToSlackMarkup(item.captions[0].highlights);
+  }
+  return item.document.content.slice(0, 100);
+}
+
 function convertJiraKeyToUrl(jiraId) {
   return `https://tools.hmcts.net/jira/browse/${jiraId}`;
 }
 
-const config = require("config");
-
-const slackChannelId = config.get("slack.report_channel_id");
 const slackMessageIdRegex = /.*slack\.com\/archives\/[a-zA-Z0-9]{11}\/(.*)\|/;
 const slackLinkRegex = /view in Slack\|(https:\/\/.+slack\.com.+)]/;
 
@@ -68,3 +95,6 @@ module.exports.extractSlackMessageIdFromText = extractSlackMessageIdFromText;
 module.exports.extractSlackLinkFromText = extractSlackLinkFromText;
 module.exports.stringTrim = stringTrim;
 module.exports.optionBlock = optionBlock;
+module.exports.convertStoragePathToHmctsWayUrl =
+  convertStoragePathToHmctsWayUrl;
+module.exports.extractKnowledgeStoreHighlight = extractKnowledgeStoreHighlight;

@@ -12,7 +12,8 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
   - Provide initial guidance, linking to documentation, recent announcements and providing guidance on what should be raised here.
   - Link to our QnA maker bot Plato which has pre-programmed answers to some common questions.
   - Ask users to fill in some details about their request.
-  - Send the data to `Azure AI Search` which will return the top 3 most relevant results from previous requests.
+  - Search the `help-requests` index in `Azure AI Search` which will return the top 3 most relevant results from previous requests.
+  - Search the `the-hmcts-way` index in `Azure AI Search` which will return the top 3 most relevant results from the HMCTS Way.
   - Send the data to `Azure AI Services` to determine which area, environment and team the request is likely about and will preselect these fields for the user.
   - Create a ticket in Jira with the data provided.
   - Post the request in the `#platops-help` channel.
@@ -36,9 +37,10 @@ During help request workflow the application:
 
 1. Asks Azure AI services for recommendation for area, environment and team.
 2. Searches Azure AI search for similar requests.
-3. Creates the request in Slack and Jira.
-4. Stores the request in Cosmos DB.
-5. Replies on the help request Slack thread are added to Jira.
+3. Searches Azure AI search for anything on the hmcts way that might be relevant.
+4. Creates the request in Slack and Jira.
+5. Stores the request in Cosmos DB.
+6. Replies on the help request Slack thread are added to Jira.
    - Replies on Jira are not added to Slack.
 
 On close of the help request:
@@ -49,6 +51,8 @@ Search index:
 
 1. Search service has an indexer configured to pull new data from Cosmos DB every 5 minutes.
    - Only certain fields are configured, see the [indexer configuration](./components/infrastructure/ai-search-index.tf).
+2. Knowledge store data is stored in Azure Blob Storage, which is uploaded to by a GitHub action in [hmcts/hmcts.github.io](https://github.com/hmcts/hmcts.github.io).
+   - The GitHub action then triggers the indexer to update the knowledge store index.
 
 AI summarising:
 

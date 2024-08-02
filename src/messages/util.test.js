@@ -2,6 +2,8 @@ const {
   convertIso8601ToEpochSeconds,
   extractSlackLinkFromText,
   extractSlackMessageIdFromText,
+  convertStoragePathToHmctsWayUrl,
+  extractKnowledgeStoreHighlight,
 } = require("./util");
 
 describe("convertIso8601ToEpochSeconds", () => {
@@ -11,6 +13,42 @@ describe("convertIso8601ToEpochSeconds", () => {
   it("converts iso time to epoch second", () => {
     expect(convertIso8601ToEpochSeconds("2021-01-26T12:00:20.000+0000")).toBe(
       1611662420,
+    );
+  });
+});
+
+describe("convertStoragePathToHmctsWayUrl", () => {
+  it("converts path to expected format", () => {
+    const storagePath =
+      "https://sttimslackbo570094706456.blob.core.windows.net/the-hmcts-way/cloud-native-platform/new-component/github-repo.html";
+    expect(convertStoragePathToHmctsWayUrl(storagePath)).toBe(
+      "https://hmcts.github.io/cloud-native-platform/new-component/github-repo.html",
+    );
+  });
+});
+
+describe("extractKnowledgeStoreHighlight", () => {
+  it("highlights simple markup", () => {
+    const item = {
+      captions: [
+        {
+          highlights: "<em>hello world</em>",
+        },
+      ],
+    };
+    expect(extractKnowledgeStoreHighlight(item)).toBe("`hello world`");
+  });
+
+  it("handles spaces before and after", () => {
+    const item = {
+      captions: [
+        {
+          highlights: "john<em> hello world</em> boy <em> world</em>",
+        },
+      ],
+    };
+    expect(extractKnowledgeStoreHighlight(item)).toBe(
+      "john `hello world` boy `world`",
     );
   });
 });

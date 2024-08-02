@@ -7,6 +7,10 @@ const {
   lookupArea,
 } = require("./helpFormData");
 const { DateTime } = require("luxon");
+const {
+  convertStoragePathToHmctsWayUrl,
+  extractKnowledgeStoreHighlight,
+} = require("./util");
 
 function helpFormAnalyticsBlocks({
   user,
@@ -174,15 +178,72 @@ function relatedIssueBlock(issue) {
   ];
 }
 
-function helpFormRelatedIssuesBlocks({ relatedIssues }) {
-  if (relatedIssues.length === 0) {
-    return [];
+function knowledgeStoreItemBlock(item) {
+  return [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*<${convertStoragePathToHmctsWayUrl(item.document.metadata_storage_path)}|${item.document.title}>*`,
+      },
+    },
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: extractKnowledgeStoreHighlight(item),
+        },
+      ],
+    },
+    { type: "divider" },
+  ];
+}
+
+function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults }) {
+  if (knowledgeStoreResults.length === 0) {
+    return [
+      {
+        type: "divider",
+      },
+    ];
   }
 
   const header = [
     {
       type: "divider",
     },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "*Suggestions from documentation*",
+      },
+    },
+    {
+      type: "context",
+      elements: [
+        {
+          type: "plain_text",
+          text: "I've found these potentially related items in our documentation:",
+          emoji: true,
+        },
+      ],
+    },
+  ];
+  const knowledgeStoreBlocks = knowledgeStoreResults
+    .map((item) => knowledgeStoreItemBlock(item))
+    .flatMap((block) => block);
+
+  return [...header, ...knowledgeStoreBlocks];
+}
+
+function helpFormRelatedIssuesBlocks({ relatedIssues }) {
+  if (relatedIssues.length === 0) {
+    return [];
+  }
+
+  const header = [
     {
       type: "section",
       text: {
@@ -324,3 +385,4 @@ function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
 module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
 module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;
+module.exports.helpFormKnowledgeStoreBlocks = helpFormKnowledgeStoreBlocks;
