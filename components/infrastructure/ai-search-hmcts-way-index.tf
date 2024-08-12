@@ -9,6 +9,7 @@ locals {
         filterable = false
         sortable   = false
         key        = true
+        facetable  = false
       },
       {
         name       = "metadata_storage_last_modified"
@@ -16,6 +17,7 @@ locals {
         searchable = false
         filterable = true
         sortable   = false
+        facetable  = false
       },
       {
         name       = "title"
@@ -23,6 +25,7 @@ locals {
         searchable = true
         filterable = true
         sortable   = true
+        facetable  = false
       },
       {
         name       = "metadata_storage_name"
@@ -30,6 +33,7 @@ locals {
         searchable = true
         filterable = true
         sortable   = true
+        facetable  = false
       },
       {
         name       = "metadata_storage_path"
@@ -37,19 +41,22 @@ locals {
         searchable = true
         filterable = true
         sortable   = true
+        facetable  = false
       },
       {
         name       = "metadata_storage_content_md5"
         type       = "Edm.String"
         filterable = true
         sortable   = true
+        facetable  = false
       },
       {
         name       = "content"
         type       = "Edm.String"
         searchable = true
         filterable = false
-        sortable   = true
+        sortable   = false
+        facetable  = false
       },
     ],
     semantic = {
