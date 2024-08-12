@@ -8,6 +8,7 @@ locals {
         searchable = false
         filterable = false
         sortable   = false
+        key        = true
       },
       {
         name       = "metadata_storage_last_modified"
@@ -36,7 +37,6 @@ locals {
         searchable = true
         filterable = true
         sortable   = true
-        key        = true
       },
       {
         name       = "metadata_storage_content_md5"

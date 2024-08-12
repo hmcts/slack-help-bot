@@ -3,6 +3,12 @@ locals {
     name : "the-hmcts-way",
     dataSourceName : "the-hmcts-way",
     targetIndexName : "the-hmcts-way",
+    parameters : {
+      configuration : {
+        indexedFileNameExtensions : ".html",
+        imageAction : "none"
+      }
+    }
   }
 }
 
