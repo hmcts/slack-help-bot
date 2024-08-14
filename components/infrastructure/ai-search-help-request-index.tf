@@ -44,6 +44,13 @@ locals {
         sortable   = false
       },
       {
+        name       = "area"
+        type       = "Edm.String"
+        searchable = false
+        filterable = true
+        sortable   = false
+      },
+      {
         name       = "title"
         type       = "Edm.String"
         searchable = true
@@ -61,7 +68,7 @@ locals {
         name       = "analysis"
         type       = "Edm.String"
         searchable = true
-        filterable = true
+        filterable = false
         sortable   = true
       },
       {
