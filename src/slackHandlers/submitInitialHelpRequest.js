@@ -21,7 +21,7 @@ function validateInitialRequest(helpRequest) {
   return errorMessage;
 }
 
-async function submitInitialHelpRequest(body, client, source) {
+async function submitInitialHelpRequest(body, client, source, area) {
   try {
     const user = body.user.id;
 
@@ -85,6 +85,7 @@ async function submitInitialHelpRequest(body, client, source) {
           isAdvanced: false,
           errorMessage: errorMessage,
           helpRequest: helpRequest,
+          area,
         }),
       });
 
@@ -98,6 +99,7 @@ async function submitInitialHelpRequest(body, client, source) {
         errorMessage: errorMessage,
         isAdvanced: true,
         helpRequest: helpRequest,
+        area,
       });
 
       const notifyProcessingRequest = await client.chat.update({
@@ -124,7 +126,7 @@ async function submitInitialHelpRequest(body, client, source) {
       let knowledgeStoreResults = [];
       let aiRecommendation = {};
       try {
-        const result = await queryAi(helpRequest);
+        const result = await queryAi(helpRequest, area);
         relatedIssues = result.relatedIssues;
         knowledgeStoreResults = result.knowledgeStoreResults;
         aiRecommendation = result.aiRecommendation;
@@ -140,6 +142,7 @@ async function submitInitialHelpRequest(body, client, source) {
       const knowledgeStoreBlocks = helpFormKnowledgeStoreBlocks({
         knowledgeStoreResults,
         isAdvanced: knowledgeStoreAdvanced,
+        area,
       });
 
       // always record the event, even if it won't be shown so that we can track drop-off accurately
@@ -166,6 +169,7 @@ async function submitInitialHelpRequest(body, client, source) {
         // skip related issues if knowledge store results are present and next hasn't been clicked
         relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
         isAdvanced: relatedIssuesAdvanced,
+        area,
       });
 
       const showAnalytics = knowledgeStoreAdvanced && relatedIssuesAdvanced;
@@ -180,6 +184,7 @@ async function submitInitialHelpRequest(body, client, source) {
         ? helpFormAnalyticsBlocks({
             user: body.user.id,
             errorMessage: errorMessage,
+            area,
             helpRequest: {
               ...helpRequest,
               ...aiRecommendation,

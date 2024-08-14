@@ -25,6 +25,8 @@ async function showPlatoDialogue(client, body) {
       text: "Hello!",
       blocks: helpFormGreetingBlocks({
         user: body.user.id,
+        // plato only for non crime for now
+        area: "other",
         isAdvanced: true,
       }),
     });

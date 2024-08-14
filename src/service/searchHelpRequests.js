@@ -29,7 +29,15 @@ function optimiseResults(resultsWithHighScore) {
     .slice(0, 3);
 }
 
-async function searchHelpRequests(query) {
+function areaQuery(area) {
+  if (area === "crime") {
+    return "area eq 'crime'";
+  }
+  // handle null areas by doing not equal rather than equal
+  return "area ne 'crime'";
+}
+
+async function searchHelpRequests(query, area) {
   // don't look at ancient results, this should be tuned keeping in mind the stability of the platform and when major changes happen
   const somewhatRecentResultsOnly = DateTime.now()
     .minus({ months: 18 })
@@ -37,7 +45,7 @@ async function searchHelpRequests(query) {
 
   const searchResults = await searchClient.search(query, {
     queryType: "semantic",
-    filter: `created_at ge ${somewhatRecentResultsOnly}`,
+    filter: `created_at ge ${somewhatRecentResultsOnly} and ${areaQuery(area)}`,
     semanticSearchOptions: {
       configurationName: "help-requests",
     },

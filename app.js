@@ -86,7 +86,33 @@ app.shortcut(
   "begin_help_request_sc",
   async ({ body, context, client, ack }) => {
     await ack();
-    await beginHelpRequest(context.userId, client);
+    await beginHelpRequest({ userId: context.userId, client });
+  },
+);
+
+app.action(
+  "begin_help_request_non_crime",
+  async ({ body, context, client, ack }) => {
+    await ack();
+    await beginHelpRequest({
+      userId: context.userId,
+      client,
+      area: "other",
+      ts: body.message.ts,
+    });
+  },
+);
+
+app.action(
+  "begin_help_request_crime",
+  async ({ body, context, client, ack }) => {
+    await ack();
+    await beginHelpRequest({
+      userId: context.userId,
+      client,
+      area: "crime",
+      ts: body.message.ts,
+    });
   },
 );
 
@@ -99,10 +125,18 @@ app.action(
 );
 
 app.action(
+  "start_help_form_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await startHelpForm(client, body, "crime");
+  },
+);
+
+app.action(
   "start_help_form",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await startHelpForm(client, body);
+    await startHelpForm(client, body, "other");
   },
 );
 
@@ -110,7 +144,15 @@ app.action(
   "submit_initial_help_request",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitInitialHelpRequest(body, client, "initial");
+    await submitInitialHelpRequest(body, client, "initial", "area");
+  },
+);
+
+app.action(
+  "submit_initial_help_request_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "initial", "crime");
   },
 );
 
@@ -118,7 +160,7 @@ app.action(
   "advance_from_knowledge_store",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitInitialHelpRequest(body, client, "knowledge_store");
+    await submitInitialHelpRequest(body, client, "knowledge_store", "other");
   },
 );
 
@@ -126,7 +168,15 @@ app.action(
   "advance_from_related_issues",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitInitialHelpRequest(body, client, "related_issues");
+    await submitInitialHelpRequest(body, client, "related_issues", "other");
+  },
+);
+
+app.action(
+  "advance_from_related_issues_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "related_issues", "crime");
   },
 );
 
@@ -134,7 +184,15 @@ app.action(
   "submit_help_request",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitHelpRequest(body, client);
+    await submitHelpRequest(body, client, "other");
+  },
+);
+
+app.action(
+  "submit_help_request_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitHelpRequest(body, client, "crime");
   },
 );
 

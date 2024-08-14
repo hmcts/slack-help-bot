@@ -35,7 +35,7 @@ async function appMessaged(event, context, client, say) {
       switch (event.text?.toLowerCase()) {
         case "help":
           // Open the PlatOps help request form. Alternative to the shortcut above
-          await beginHelpRequest(context.userId, client);
+          await beginHelpRequest({ userId: context.userId, client });
           return;
         default:
           //

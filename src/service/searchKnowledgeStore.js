@@ -13,7 +13,11 @@ const searchClient = new SearchClient(
   credential,
 );
 
-async function searchKnowledgeStore(query) {
+async function searchKnowledgeStore(query, area) {
+  if (area === "crime") {
+    // no known knowledge store for crime at this time so just skip it for now
+    return [];
+  }
   const searchResults = await searchClient.search(query, {
     queryType: "semantic",
     semanticSearchOptions: {

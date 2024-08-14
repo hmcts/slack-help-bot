@@ -8,12 +8,15 @@ function createQuery(helpRequest) {
   return `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""}`;
 }
 
-async function handler(query, analyticsQuery) {
-  const relatedIssuesPromise = searchHelpRequests(query);
+async function handler(query, analyticsQuery, area) {
+  const relatedIssuesPromise = searchHelpRequests(query, area);
 
-  const knowledgeStorePromise = searchKnowledgeStore(query);
+  const knowledgeStorePromise = searchKnowledgeStore(query, area);
 
-  const aiRecommendationPromise = analyticsRecommendations(analyticsQuery);
+  const aiRecommendationPromise = analyticsRecommendations(
+    analyticsQuery,
+    area,
+  );
 
   const relatedIssues = await relatedIssuesPromise;
   const aiRecommendation = await aiRecommendationPromise;
@@ -28,12 +31,12 @@ async function handler(query, analyticsQuery) {
   };
 }
 
-async function queryAi(helpRequest) {
+async function queryAi(helpRequest, area) {
   const query = createQuery(helpRequest);
   const analyticsQuery = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""} ${helpRequest.prBuildUrl || ""}`;
   const cacheKey = hashString(query);
 
-  return cajache.use(cacheKey, () => handler(query, analyticsQuery), {
+  return cajache.use(cacheKey, () => handler(query, analyticsQuery, area), {
     ttl: 7200, // 2 hours
   });
 }

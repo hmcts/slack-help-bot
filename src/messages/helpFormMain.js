@@ -17,6 +17,7 @@ function helpFormAnalyticsBlocks({
   helpRequest,
   isAdvanced,
   errorMessage,
+  area,
 }) {
   return [
     {
@@ -38,14 +39,16 @@ function helpFormAnalyticsBlocks({
           text: "Select an item",
           emoji: true,
         },
-        options: environments,
+        options: environments(area),
         action_id: "environment",
         // Arcane javascript alchemy to only provide initial_option if we have a value for it
         ...(helpRequest?.environment && helpRequest.environment.text
           ? {
               initial_option: helpRequest.environment,
             }
-          : { initial_option: lookupEnvironment(helpRequest.environment) }),
+          : {
+              initial_option: lookupEnvironment(helpRequest.environment, area),
+            }),
       },
       label: {
         type: "plain_text",
@@ -62,13 +65,13 @@ function helpFormAnalyticsBlocks({
           text: "Select an item",
           emoji: true,
         },
-        options: teams,
+        options: teams(area),
         action_id: "team",
         ...(helpRequest?.team && helpRequest.team.text
           ? {
               initial_option: helpRequest.team,
             }
-          : { initial_option: lookupTeam(helpRequest.team) }),
+          : { initial_option: lookupTeam(helpRequest.team, area) }),
       },
       label: {
         type: "plain_text",
@@ -120,8 +123,7 @@ function helpFormAnalyticsBlocks({
               text: "Create",
               emoji: true,
             },
-            value: "submit_help_request",
-            action_id: "submit_help_request",
+            action_id: `submit_help_request${area === "crime" ? "_crime" : ""}`,
           },
         },
   ];
@@ -200,7 +202,11 @@ function knowledgeStoreItemBlock(item) {
   ];
 }
 
-function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults, isAdvanced }) {
+function helpFormKnowledgeStoreBlocks({
+  knowledgeStoreResults,
+  isAdvanced,
+  area,
+}) {
   if (knowledgeStoreResults.length === 0) {
     return [
       {
@@ -251,7 +257,7 @@ function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults, isAdvanced }) {
           text: "Next",
           emoji: true,
         },
-        action_id: "advance_from_knowledge_store",
+        action_id: `advance_from_knowledge_store${area === "crime" ? "_crime" : ""}`,
       },
     });
   }
@@ -259,7 +265,7 @@ function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults, isAdvanced }) {
   return blocks;
 }
 
-function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced }) {
+function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced, area }) {
   if (relatedIssues.length === 0) {
     return [];
   }
@@ -306,7 +312,7 @@ function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced }) {
           text: "Next",
           emoji: true,
         },
-        action_id: "advance_from_related_issues",
+        action_id: `advance_from_related_issues${area === "crime" ? "_crime" : ""}`,
       },
     });
   }
@@ -314,7 +320,7 @@ function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced }) {
   return blocks;
 }
 
-function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
+function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced, area }) {
   return [
     {
       type: "header",
@@ -417,7 +423,10 @@ function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {
                 emoji: true,
               },
               value: "submit_initial_help_request",
-              action_id: "submit_initial_help_request",
+              action_id:
+                area === "crime"
+                  ? "submit_initial_help_request_crime"
+                  : "submit_initial_help_request",
             },
           },
         ]),
