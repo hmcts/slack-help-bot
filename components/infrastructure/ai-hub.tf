@@ -1,7 +1,7 @@
 // Azure AI Hub
 resource "azapi_resource" "hub" {
   type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
-  name      = "platops-slack-help-bot-hub-${var.short_environment}"
+  name      = "platops-slack-help-bot-hub-${var.env}"
   location  = azurerm_resource_group.this.location
   parent_id = azurerm_resource_group.this.id
 
@@ -21,8 +21,10 @@ resource "azapi_resource" "hub" {
     kind = "Hub"
   })
 
-  tags = merge(local.common_tags, {
-    "__SYSTEM__AIServices_platops-slack-help-bot-ptl"       = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.this.name}/providers/Microsoft.CognitiveServices/accounts/platops-slack-help-bot-ptl",
-    "__SYSTEM__AzureOpenAI_platops-slack-help-bot-ptl_aoai" = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.this.name}/providers/Microsoft.CognitiveServices/accounts/platops-slack-help-bot-ptl"
-  })
+  tags = module.tags.common_tags
+
+  lifecycle {
+    // AI Studio adds system tags automatically that will case unwanted diffs
+    ignore_changes = [tags]
+  }
 }

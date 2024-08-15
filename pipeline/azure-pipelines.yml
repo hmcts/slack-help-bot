@@ -21,31 +21,29 @@ pool:
   vmImage: "ubuntu-latest"
 
 variables:
-  terraformVersion: 1.9.2
-  timeoutInMinutes: 60
-  agentPool: "ubuntu-latest"
-  build: $(Build.BuildNumber)
-  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
-  project: application
+  - name: timeoutInMinutes
+    value: "60"
+  - name: product
+    value: slack-help-bot
+  - template: vars/input-variables.yaml@cnp-azuredevops-libraries
 
 parameters:
+  - name: action
+    displayName: Action
+    type: string
+    default: plan
+    values:
+      - plan
+      - apply
+
   - name: environments
     displayName: Environment to run
     type: object
     default:
-      - deployment: "slack-help-bot"
-        environment: "cftptl"
+      - environment: "cftptl"
         storageAccountName: "cftptlintsvc"
         storageAccountRg: "core-infra-intsvc-rg"
         dependsOn: "Precheck"
-
-  - name: location
-    displayName: Location
-    type: string
-    default: "UK South"
-    values:
-      - "UK South"
-      - "UK West"
 
 stages:
   - stage: Precheck
@@ -55,6 +53,7 @@ stages:
         steps:
           - template: steps/terraform-precheck.yaml@cnp-azuredevops-libraries
             parameters:
+              overrideAction: ${{ parameters.action }}
               keyvaultName: "infra-vault-nonprod"
               keyvaultSecret: "azure-devops-sp-token"
               serviceConnection: "DCD-CFT-Sandbox"
@@ -65,17 +64,13 @@ stages:
         dependsOn: ${{ parameter.dependsOn }}
         jobs:
           - job:
-            pool:
-              vmImage: ${{ variables.agentPool }}
             steps:
-              - template: templates/terraform/terraform.yaml
+              - template: steps/terraform.yaml@cnp-azuredevops-libraries
                 parameters:
-                  environment: "${{ parameter.environment }}-intsvc"
-                  component: "infrastructure"
-                  location: ${{ parameters.location }}
-                  stack: ${{ parameter.deployment }}
-                  project: ${{ variables.project }}
-                  storageAccountName: ${{ parameter.storageAccountName }}
-                  storageAccountRg: ${{ parameter.storageAccountRg }}
-                  tfversion: ${{ variables.terraformVersion}}
+                  overrideAction: ${{ parameters.action }}
+                  environment: "ptl"
+                  component: infrastructure
                   serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
+                  terraformInitSubscription: 04d27a32-7a07-48b3-95b8-3c8691e1a263
+                  tfVarsFile: NULL
+                  product: ${{ variables.product }}

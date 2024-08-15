@@ -1,10 +1,10 @@
 resource "azurerm_cosmosdb_account" "cosmosdb" {
-  name                = "platops-slack-help-bot-${var.short_environment}"
+  name                = "platops-slack-help-bot-${var.env}"
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
-  tags                = local.common_tags
+  tags                = module.tags.common_tags
 
   free_tier_enabled = true
   consistency_policy {

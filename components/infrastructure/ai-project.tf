@@ -1,6 +1,6 @@
 resource "azapi_resource" "project" {
   type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
-  name      = "platops-slack-help-bot-${var.short_environment}"
+  name      = "platops-slack-help-bot-${var.env}"
   location  = azurerm_resource_group.this.location
   parent_id = azurerm_resource_group.this.id
 

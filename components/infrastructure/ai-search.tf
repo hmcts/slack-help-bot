@@ -1,5 +1,5 @@
 resource "azurerm_search_service" "this" {
-  name                = "platops-slack-help-bot-${var.short_environment}"
+  name                = "platops-slack-help-bot-${var.env}"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
   sku                 = "basic"
@@ -14,7 +14,7 @@ resource "azurerm_search_service" "this" {
     type = "SystemAssigned"
   }
 
-  tags = local.common_tags
+  tags = module.tags.common_tags
 }
 
 resource "azurerm_role_assignment" "identity_access_to_search" {

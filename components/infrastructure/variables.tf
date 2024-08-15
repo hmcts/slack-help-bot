@@ -1,6 +1,8 @@
-variable "environment" {}
+variable "long_environment" {
+  default = "cftptl-intsvc"
+}
 
-variable "short_environment" {
+variable "env" {
   default = "ptl"
 }
 
@@ -10,4 +12,8 @@ variable "product" {
 
 variable "location" {
   default = "uksouth"
+}
+
+variable "builtFrom" {
+  default = "hmcts/slack-help-bot"
 }

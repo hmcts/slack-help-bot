@@ -1,6 +1,6 @@
 resource "azapi_resource" "AIServices" {
   type      = "Microsoft.CognitiveServices/accounts@2023-10-01-preview"
-  name      = "platops-slack-help-bot-${var.short_environment}"
+  name      = "platops-slack-help-bot-${var.env}"
   location  = azurerm_resource_group.this.location
   parent_id = azurerm_resource_group.this.id
 
@@ -9,13 +9,13 @@ resource "azapi_resource" "AIServices" {
   }
 
   body = jsonencode({
-    name = "platops-slack-help-bot-${var.short_environment}"
+    name = "platops-slack-help-bot-${var.env}"
 
     properties = {
       apiProperties = {
         statisticsEnabled = false
       }
-      customSubDomainName = "platops-slack-help-bot-${var.short_environment}"
+      customSubDomainName = "platops-slack-help-bot-${var.env}"
     }
     kind = "AIServices"
     sku = {
@@ -26,12 +26,12 @@ resource "azapi_resource" "AIServices" {
 
   response_export_values = ["*"]
 
-  tags = local.common_tags
+  tags = module.tags.common_tags
 }
 
 resource "azapi_resource" "AIServicesConnection" {
   type      = "Microsoft.MachineLearningServices/workspaces/connections@2024-04-01-preview"
-  name      = "platops-slack-help-bot-${var.short_environment}"
+  name      = "platops-slack-help-bot-${var.env}"
   parent_id = azapi_resource.hub.id
 
   body = jsonencode({
