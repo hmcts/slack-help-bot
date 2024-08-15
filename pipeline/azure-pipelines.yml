@@ -22,7 +22,7 @@ pool:
 
 variables:
   - name: timeoutInMinutes
-    value: '60'
+    value: "60"
   - name: product
     value: slack-help-bot
   - template: vars/input-variables.yaml@cnp-azuredevops-libraries
