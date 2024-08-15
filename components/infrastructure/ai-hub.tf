@@ -21,8 +21,10 @@ resource "azapi_resource" "hub" {
     kind = "Hub"
   })
 
-  tags = merge(module.tags.common_tags, {
-    "__SYSTEM__AIServices_platops-slack-help-bot-ptl"       = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.this.name}/providers/Microsoft.CognitiveServices/accounts/platops-slack-help-bot-ptl",
-    "__SYSTEM__AzureOpenAI_platops-slack-help-bot-ptl_aoai" = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.this.name}/providers/Microsoft.CognitiveServices/accounts/platops-slack-help-bot-ptl"
-  })
+  tags = module.tags.common_tags
+
+  lifecycle {
+    // AI Studio adds system tags automatically that will case unwanted diffs
+    ignore_changes = [tags]
+  }
 }
