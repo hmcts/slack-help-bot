@@ -1,13 +1,11 @@
 const { helpFormMainBlocks } = require("../messages");
-const { analyticsRecommendations } = require("../ai/ai");
 const {
   helpFormAnalyticsBlocks,
   helpFormRelatedIssuesBlocks,
   helpFormKnowledgeStoreBlocks,
 } = require("../messages/helpFormMain");
 const { checkSlackResponseError } = require("./errorHandling");
-const { searchHelpRequests } = require("../service/searchHelpRequests");
-const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
+const { queryAi } = require("./utils/aiCache");
 
 function validateInitialRequest(helpRequest) {
   let errorMessage = null;
@@ -21,7 +19,7 @@ function validateInitialRequest(helpRequest) {
   return errorMessage;
 }
 
-async function submitInitialHelpRequest(body, client) {
+async function submitInitialHelpRequest(body, client, source) {
   try {
     const user = body.user.id;
 
@@ -124,20 +122,10 @@ async function submitInitialHelpRequest(body, client) {
       let knowledgeStoreResults = [];
       let aiRecommendation = {};
       try {
-        const query = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis}`;
-        const relatedIssuesPromise = searchHelpRequests(query);
-
-        const knowledgeStorePromise = searchKnowledgeStore(query);
-
-        const aiRecommendationPromise = analyticsRecommendations(
-          `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis} ${helpRequest.prBuildUrl}`,
-        );
-
-        relatedIssues = await relatedIssuesPromise;
-        aiRecommendation = await aiRecommendationPromise;
-        knowledgeStoreResults = await knowledgeStorePromise;
-
-        console.log(relatedIssues);
+        const result = await queryAi(helpRequest);
+        relatedIssues = result.relatedIssues;
+        knowledgeStoreResults = result.knowledgeStoreResults;
+        aiRecommendation = result.aiRecommendation;
       } catch (error) {
         console.log(
           "An error occurred when fetching AI recommendations",
@@ -145,22 +133,32 @@ async function submitInitialHelpRequest(body, client) {
         );
       }
 
-      const analyticsBlocks = helpFormAnalyticsBlocks({
-        user: body.user.id,
-        errorMessage: errorMessage,
-        helpRequest: {
-          ...helpRequest,
-          ...aiRecommendation,
-        },
-      });
-
+      const knowledgeStoreAdvanced =
+        source !== "initial" ? true : knowledgeStoreResults.length <= 0;
       const knowledgeStoreBlocks = helpFormKnowledgeStoreBlocks({
         knowledgeStoreResults,
+        isAdvanced: knowledgeStoreAdvanced,
       });
 
+      const relatedIssuesAdvanced =
+        source === "related_issues" ? true : relatedIssues.length <= 0;
       const relatedIssuesBlocks = helpFormRelatedIssuesBlocks({
-        relatedIssues,
+        // skip related issues if knowledge store results are present and next hasn't been clicked
+        relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
+        isAdvanced: relatedIssuesAdvanced,
       });
+
+      const showAnalytics = knowledgeStoreAdvanced && relatedIssuesAdvanced;
+      const analyticsBlocks = showAnalytics
+        ? helpFormAnalyticsBlocks({
+            user: body.user.id,
+            errorMessage: errorMessage,
+            helpRequest: {
+              ...helpRequest,
+              ...aiRecommendation,
+            },
+          })
+        : [];
 
       const blocks = [
         ...mainBlocks,

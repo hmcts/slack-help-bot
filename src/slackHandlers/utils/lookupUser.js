@@ -1,21 +1,16 @@
-const { Cacheables } = require("cacheables");
-
-const cache = new Cacheables({
-  logTiming: false,
-  log: false,
-});
+const cajache = require("cajache");
 
 async function lookupUser({ client, user }) {
-  return cache.cacheable(
+  console.log(`lookupUser: ${user}`);
+  return cajache.use(
+    user,
     () => {
       return client.users.profile.get({
         user,
       });
     },
-    user,
     {
-      cachePolicy: "max-age",
-      maxAge: 86400,
+      ttl: 86400,
     },
   );
 }
