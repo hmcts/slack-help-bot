@@ -1,8 +1,8 @@
 resource "azurerm_user_assigned_identity" "managed_identity" {
-  resource_group_name = "managed-identities-${var.environment}-rg"
+  resource_group_name = "managed-identities-${var.long_environment}-rg"
   location            = var.location
 
-  name = "${var.product}-${var.environment}-mi"
+  name = "${var.product}-${var.long_environment}-mi"
 
   tags = local.common_tags
 }

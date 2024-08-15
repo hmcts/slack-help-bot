@@ -1,5 +1,5 @@
 resource "azurerm_cosmosdb_account" "cosmosdb" {
-  name                = "platops-slack-help-bot-${var.short_environment}"
+  name                = "platops-slack-help-bot-${var.env}"
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   offer_type          = "Standard"

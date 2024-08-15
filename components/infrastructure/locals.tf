@@ -11,6 +11,6 @@ locals {
     application  = "core"
     builtFrom    = "hmcts/slack-help-bot"
     businessArea = "CFT"
-    environment  = local.env_display_names[var.environment]
+    environment  = local.env_display_names[var.long_environment]
   }
 }

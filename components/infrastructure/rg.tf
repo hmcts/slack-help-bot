@@ -1,6 +1,6 @@
 resource "azurerm_resource_group" "this" {
   location = var.location
-  name     = "slack-help-bot-${var.environment}-rg"
+  name     = "slack-help-bot-${var.long_environment}-rg"
 
   tags = local.common_tags
 }

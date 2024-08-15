@@ -1,6 +1,8 @@
-variable "environment" {}
+variable "long_environment" {
+  default = "cftptl-intsvc"
+}
 
-variable "short_environment" {
+variable "env" {
   default = "ptl"
 }
 

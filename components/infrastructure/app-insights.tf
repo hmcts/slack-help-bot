@@ -2,7 +2,7 @@ module "application_insights" {
   source = "git::https://github.com/hmcts/terraform-module-application-insights.git?ref=main"
 
   product = var.product
-  env     = var.short_environment
+  env     = var.env
 
   resource_group_name = azurerm_resource_group.this.name
 

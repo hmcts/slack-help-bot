@@ -1,7 +1,7 @@
 // Azure AI Hub
 resource "azapi_resource" "hub" {
   type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
-  name      = "platops-slack-help-bot-hub-${var.short_environment}"
+  name      = "platops-slack-help-bot-hub-${var.env}"
   location  = azurerm_resource_group.this.location
   parent_id = azurerm_resource_group.this.id
 
