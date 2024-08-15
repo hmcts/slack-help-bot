@@ -15,7 +15,7 @@ resource "azurerm_storage_account" "default" {
     }
   }
 
-  tags = local.common_tags
+  tags = module.tags.common_tags
 }
 
 resource "azurerm_storage_container" "hmcts_way" {

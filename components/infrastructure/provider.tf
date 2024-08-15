@@ -22,5 +22,5 @@ provider "azurerm" {
 }
 
 provider "azapi" {
-  default_tags = local.common_tags
+  default_tags = module.tags.common_tags
 }

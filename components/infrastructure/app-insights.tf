@@ -6,7 +6,7 @@ module "application_insights" {
 
   resource_group_name = azurerm_resource_group.this.name
 
-  common_tags = local.common_tags
+  common_tags = module.tags.common_tags
 }
 
 resource "azurerm_key_vault_secret" "app_insights_connection_string" {

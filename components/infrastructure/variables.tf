@@ -13,3 +13,7 @@ variable "product" {
 variable "location" {
   default = "uksouth"
 }
+
+variable "builtFrom" {
+  default = "hmcts/slack-help-bot"
+}

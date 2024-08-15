@@ -26,7 +26,7 @@ resource "azapi_resource" "AIServices" {
 
   response_export_values = ["*"]
 
-  tags = local.common_tags
+  tags = module.tags.common_tags
 }
 
 resource "azapi_resource" "AIServicesConnection" {

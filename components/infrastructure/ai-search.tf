@@ -14,7 +14,7 @@ resource "azurerm_search_service" "this" {
     type = "SystemAssigned"
   }
 
-  tags = local.common_tags
+  tags = module.tags.common_tags
 }
 
 resource "azurerm_role_assignment" "identity_access_to_search" {
