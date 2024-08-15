@@ -72,4 +72,5 @@ stages:
                   component: infrastructure
                   serviceConnection: "DTS-${{ upper(parameter.environment) }}-INTSVC"
                   terraformInitSubscription: 04d27a32-7a07-48b3-95b8-3c8691e1a263
+                  tfVarsFile: NULL
                   product: ${{ variables.product }}
