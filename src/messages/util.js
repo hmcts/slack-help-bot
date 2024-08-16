@@ -8,7 +8,10 @@ function convertIso8601ToEpochSeconds(isoTime) {
 
 function convertStoragePathToHmctsWayUrl(storagePath) {
   const url = new URL(storagePath);
-  return url.pathname.replace("/the-hmcts-way", "https://hmcts.github.io");
+
+  return url.pathname
+    .replace("/the-hmcts-way/build", "https://hmcts.github.io")
+    .replace("/the-hmcts-way", "https://hmcts.github.io");
 }
 
 function convertHighlightToSlackMarkup(highlight) {

@@ -200,7 +200,7 @@ function knowledgeStoreItemBlock(item) {
   ];
 }
 
-function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults }) {
+function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults, isAdvanced }) {
   if (knowledgeStoreResults.length === 0) {
     return [
       {
@@ -235,10 +235,31 @@ function helpFormKnowledgeStoreBlocks({ knowledgeStoreResults }) {
     .map((item) => knowledgeStoreItemBlock(item))
     .flatMap((block) => block);
 
-  return [...header, ...knowledgeStoreBlocks];
+  const blocks = [...header, ...knowledgeStoreBlocks];
+
+  if (!isAdvanced) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: " ",
+      },
+      accessory: {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Next",
+          emoji: true,
+        },
+        action_id: "advance_from_knowledge_store",
+      },
+    });
+  }
+
+  return blocks;
 }
 
-function helpFormRelatedIssuesBlocks({ relatedIssues }) {
+function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced }) {
   if (relatedIssues.length === 0) {
     return [];
   }
@@ -269,7 +290,28 @@ function helpFormRelatedIssuesBlocks({ relatedIssues }) {
     .map((issue) => relatedIssueBlock(issue))
     .flatMap((block) => block);
 
-  return [...header, ...relatedIssueBlocks];
+  const blocks = [...header, ...relatedIssueBlocks];
+
+  if (!isAdvanced) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: " ",
+      },
+      accessory: {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Next",
+          emoji: true,
+        },
+        action_id: "advance_from_related_issues",
+      },
+    });
+  }
+
+  return blocks;
 }
 
 function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced }) {

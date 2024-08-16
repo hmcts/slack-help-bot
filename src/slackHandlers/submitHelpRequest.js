@@ -14,6 +14,7 @@ const { lookupUsersEmail } = require("./utils/lookupUser");
 const config = require("config");
 const { createHelpRequestInCosmos } = require("../service/cosmos");
 const { uuidv7 } = require("uuidv7");
+const { deleteCacheEntry } = require("./utils/aiCache");
 
 const reportChannel = config.get("slack.report_channel");
 
@@ -257,6 +258,8 @@ async function submitHelpRequest(body, client) {
       analysis: helpRequest.analysis,
       url: permaLink,
     });
+
+    deleteCacheEntry(helpRequest);
   } catch (error) {
     console.error("An error occurred when submitting a help form: ", error);
   }

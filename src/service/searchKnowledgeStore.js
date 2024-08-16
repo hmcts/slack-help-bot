@@ -3,6 +3,7 @@
 const { SearchClient } = require("@azure/search-documents");
 const { DefaultAzureCredential } = require("@azure/identity");
 const config = require("config");
+const { extractKnowledgeStoreHighlight } = require("../messages/util");
 
 const credential = new DefaultAzureCredential();
 
@@ -27,10 +28,18 @@ async function searchKnowledgeStore(query) {
   });
 
   const filteredResults = [];
+  const highlights = new Set();
   for await (const result of searchResults.results) {
     // https://learn.microsoft.com/en-us/azure/search/search-pagination-page-layout#order-by-the-semantic-reranker
     // drop anything below 2 as they generally aren't that relevant
     if (result.rerankerScore && result.rerankerScore > 2) {
+      // duplicate results can happen in the search results, so we need to filter them out
+      const highlight = extractKnowledgeStoreHighlight(result);
+      if (highlights.has(highlight)) {
+        continue;
+      }
+      highlights.add(highlight);
+
       filteredResults.push(result);
     }
   }

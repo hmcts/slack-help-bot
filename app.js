@@ -110,7 +110,23 @@ app.action(
   "submit_initial_help_request",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitInitialHelpRequest(body, client);
+    await submitInitialHelpRequest(body, client, "initial");
+  },
+);
+
+app.action(
+  "advance_from_knowledge_store",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "knowledge_store");
+  },
+);
+
+app.action(
+  "advance_from_related_issues",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "related_issues");
   },
 );
 
