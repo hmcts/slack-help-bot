@@ -1,5 +1,6 @@
 const { helpFormPlatoBlocks, helpFormGreetingBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
+const appInsights = require("../modules/appInsights");
 
 async function showPlatoDialogue(client, body) {
   try {
@@ -33,6 +34,8 @@ async function showPlatoDialogue(client, body) {
       updateRes,
       "An error occurred when updating a greeting message",
     );
+
+    appInsights.trackEvent("Begin Help Request");
   } catch (error) {
     console.error(error);
   }

@@ -7,6 +7,8 @@ const {
 const { checkSlackResponseError } = require("./errorHandling");
 const { queryAi } = require("./utils/aiCache");
 
+const appInsights = require("../modules/appInsights");
+
 function validateInitialRequest(helpRequest) {
   let errorMessage = null;
 
@@ -41,7 +43,7 @@ async function submitInitialHelpRequest(body, client, source) {
     //
     // The form can then be re-submitted by the user.
     // If the user did not change a field when re-submitting the form,
-    // slack will detect this and will not populate the 'values' object
+    // Slack will detect this and will not populate the 'values' object
     // with the value of that field. Instead, we have to read the data from
     // the 'blocks' object we submitted last time. Thankfully this is
     // provided to us.
@@ -134,14 +136,32 @@ async function submitInitialHelpRequest(body, client, source) {
       }
 
       const knowledgeStoreAdvanced =
-        source !== "initial" ? true : knowledgeStoreResults.length <= 0;
+        source !== "initial" ? true : knowledgeStoreResults.length === 0;
       const knowledgeStoreBlocks = helpFormKnowledgeStoreBlocks({
         knowledgeStoreResults,
         isAdvanced: knowledgeStoreAdvanced,
       });
 
+      // always record the event, even if it won't be shown so that we can track drop-off accurately
+      if (source === "initial") {
+        appInsights.trackEvent("Knowledge store", {
+          resultCount: knowledgeStoreResults.length,
+        });
+      }
+
       const relatedIssuesAdvanced =
-        source === "related_issues" ? true : relatedIssues.length <= 0;
+        source === "related_issues" ? true : relatedIssues.length === 0;
+
+      if (
+        // if no results then record anyway
+        (knowledgeStoreAdvanced && relatedIssues.length === 0) ||
+        // otherwise record when we aren't advanced but knowledge store is
+        (knowledgeStoreAdvanced && !relatedIssuesAdvanced)
+      ) {
+        appInsights.trackEvent("Related issues", {
+          resultCount: relatedIssues.length,
+        });
+      }
       const relatedIssuesBlocks = helpFormRelatedIssuesBlocks({
         // skip related issues if knowledge store results are present and next hasn't been clicked
         relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
@@ -149,6 +169,13 @@ async function submitInitialHelpRequest(body, client, source) {
       });
 
       const showAnalytics = knowledgeStoreAdvanced && relatedIssuesAdvanced;
+
+      if (showAnalytics) {
+        appInsights.trackEvent("Analytics fields", {
+          relatedIssuesCount: relatedIssues.length,
+          knowledgeStoreCount: knowledgeStoreResults.length,
+        });
+      }
       const analyticsBlocks = showAnalytics
         ? helpFormAnalyticsBlocks({
             user: body.user.id,
