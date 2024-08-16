@@ -1,5 +1,6 @@
 const { helpFormMainBlocks, helpFormPlatoBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
+const appInsights = require("../modules/appInsights");
 
 async function startHelpForm(client, body) {
   try {
@@ -33,6 +34,8 @@ async function startHelpForm(client, body) {
       updateRes,
       "An error occurred when updating a 'Chat to Plato' message",
     );
+
+    appInsights.trackEvent("Plato couldn't help");
   } catch (error) {
     console.error(error);
   }

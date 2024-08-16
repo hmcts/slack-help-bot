@@ -1,6 +1,8 @@
 const { helpFormGreetingBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
 
+const appInsights = require("../modules/appInsights");
+
 async function beginHelpRequest(userId, client) {
   try {
     const openDmResponse = await client.conversations.open({
@@ -23,6 +25,8 @@ async function beginHelpRequest(userId, client) {
       postMessageResponse,
       "An error occurred when posting a direct message",
     );
+
+    appInsights.trackEvent("Begin Help Request");
   } catch (error) {
     console.error(error);
   }

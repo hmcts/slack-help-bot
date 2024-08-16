@@ -1,8 +1,12 @@
 const appInsights = require("applicationinsights");
 const config = require("config");
 
+function isEnabled() {
+  return config.has("app_insights.connection_string");
+}
+
 const enableAppInsights = () => {
-  if (config.has("app_insights.connection_string")) {
+  if (isEnabled()) {
     appInsights
       .setup(config.get("app_insights.connection_string"))
       .setAutoCollectConsole(true, true);
@@ -19,4 +23,14 @@ const client = () => {
   return appInsights.defaultClient;
 };
 
-module.exports = { enableAppInsights, client };
+const trackEvent = (eventName, properties) => {
+  if (isEnabled()) {
+    console.log("Tracking event", eventName);
+    appInsights.defaultClient.trackEvent({
+      name: eventName,
+      properties: properties,
+    });
+  }
+};
+
+module.exports = { enableAppInsights, client, trackEvent };

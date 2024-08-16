@@ -16,7 +16,6 @@ const { App } = require("@slack/bolt");
 let appInsights;
 if (!fastStartup) {
   appInsights = require("./src/modules/appInsights");
-
   appInsights.enableAppInsights();
 }
 
