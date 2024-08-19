@@ -84,23 +84,36 @@ function lookupTeam(value, area) {
   return teams(area).find((env) => env.text.text === value);
 }
 
-const areas = [
-  optionBlock("AKS"),
-  optionBlock("Azure"),
-  optionBlock("Azure DevOps", "azure-devops"),
-  optionBlock("Database read", "DBQuery"),
-  optionBlock("Database update", "DBUpdate"),
-  optionBlock("Elasticsearch"),
-  optionBlock("GitHub"),
-  optionBlock("Jenkins"),
-  optionBlock("Question"),
-  optionBlock("SSL"),
-  optionBlock("VPN"),
-  optionBlock("Other"),
-];
+const areas = (area) => {
+  const nonCrimeAreas = [
+    optionBlock("AKS"),
+    optionBlock("Azure"),
+    optionBlock("Azure DevOps", "azure-devops"),
+    optionBlock("Database read", "DBQuery"),
+    optionBlock("Database update", "DBUpdate"),
+    optionBlock("Elasticsearch"),
+    optionBlock("GitHub"),
+    optionBlock("Jenkins"),
+    optionBlock("Question"),
+    optionBlock("SSL"),
+    optionBlock("VPN"),
+    optionBlock("Other"),
+  ];
 
-function lookupArea(value) {
-  return areas.find((env) => env.text.text === value);
+  const crimeAreas = [
+    optionBlock("AKS"),
+    optionBlock("Azure DevOps", "azure-devops"),
+    optionBlock("GitHub"),
+    optionBlock("SSL"),
+    optionBlock("VPN"),
+    optionBlock("Other"),
+  ];
+
+  return area === "crime" ? crimeAreas : nonCrimeAreas;
+};
+
+function lookupArea(value, area) {
+  return areas(area).find((env) => env.text.text === value);
 }
 
 module.exports.areas = areas;

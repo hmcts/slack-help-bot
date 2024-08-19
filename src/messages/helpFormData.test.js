@@ -50,7 +50,7 @@ describe("lookupTeam", () => {
 
 describe("lookupArea", () => {
   it("finds area by display name", () => {
-    expect(lookupArea("AKS")).toStrictEqual({
+    expect(lookupArea("AKS", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "AKS",
@@ -61,7 +61,7 @@ describe("lookupArea", () => {
   });
 
   it("finds environment where environment has a different value to display name", () => {
-    expect(lookupArea("Azure DevOps")).toStrictEqual({
+    expect(lookupArea("Azure DevOps", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "Azure DevOps",

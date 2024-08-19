@@ -88,13 +88,13 @@ function helpFormAnalyticsBlocks({
           text: "Select an item",
           emoji: true,
         },
-        options: areas,
+        options: areas(area),
         action_id: "area",
         ...(helpRequest?.area && helpRequest.area.text
           ? {
               initial_option: helpRequest.area,
             }
-          : { initial_option: lookupArea(helpRequest.area) }),
+          : { initial_option: lookupArea(helpRequest.area, area) }),
       },
       label: {
         type: "plain_text",
