@@ -69,6 +69,7 @@ const {
 const {
   withdrawInactiveIssues,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
+const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -177,6 +178,10 @@ app.action(
     await startHelpRequestHandler(body, client);
   },
 );
+
+app.event("reaction_added", async ({ event, client }) => {
+  await reactionAdded(event, client);
+});
 
 // Processes whenever the bot receives a message
 app.event("message", async ({ event, context, client, say }) => {
