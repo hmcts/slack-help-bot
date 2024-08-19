@@ -25,7 +25,6 @@ const client = () => {
 
 const trackEvent = (eventName, properties) => {
   if (isEnabled()) {
-    console.log("Tracking event", eventName);
     appInsights.defaultClient.trackEvent({
       name: eventName,
       properties: properties,

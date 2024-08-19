@@ -113,18 +113,19 @@ oauth_config:
       - channels:read
       - chat:write
       - chat:write.customize
+      - commands
       - groups:history
       - groups:read
       - groups:write
+      - im:history
       - im:read
       - im:write
+      - reactions:read
       - reactions:write
       - users.profile:read
       - users:read
       - users:read.email
       - workflow.steps:execute
-      - im:history
-      - commands
 settings:
   event_subscriptions:
     user_events:
@@ -134,6 +135,7 @@ settings:
       - app_mention
       - message.channels
       - message.im
+      - reaction_added
       - workflow_step_execute
   interactivity:
     is_enabled: true

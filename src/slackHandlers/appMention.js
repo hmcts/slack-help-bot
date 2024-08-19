@@ -17,6 +17,9 @@ const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
 const reportChannelId = config.get("slack.report_channel_id");
 
+const feedback =
+  "If this was useful, give me a :thumbsup: or if it wasn't then a :thumbsdown:";
+
 async function extractReplies({ client, messages }) {
   return Promise.all(
     messages
@@ -154,7 +157,7 @@ ${helpText}`;
           const summary = await summariseThread(messages);
 
           await say({
-            text: `Hi <@${event.user}>, here is an AI Generated summary of the issue:\n\n${summary}\n\n_If this was useful, give me a :thumbsup: or if it wasn't then a :thumbsdown:_`,
+            text: `Hi <@${event.user}>, here is an AI Generated summary of the issue:\n\n${summary}\n\n_${feedback}_`,
             thread_ts: event.thread_ts,
           });
 
@@ -186,3 +189,4 @@ ${helpText}`,
 }
 
 module.exports.appMention = appMention;
+module.exports.feedback = feedback;
