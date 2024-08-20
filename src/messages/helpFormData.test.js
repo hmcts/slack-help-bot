@@ -2,7 +2,7 @@ const { lookupEnvironment, lookupTeam, lookupArea } = require("./helpFormData");
 
 describe("lookupEnvironment", () => {
   it("finds environment by display name", () => {
-    expect(lookupEnvironment("Production")).toStrictEqual({
+    expect(lookupEnvironment("Production", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "Production",
@@ -13,7 +13,7 @@ describe("lookupEnvironment", () => {
   });
 
   it("finds environment where environment has a different value to display name", () => {
-    expect(lookupEnvironment("AAT / Staging")).toStrictEqual({
+    expect(lookupEnvironment("AAT / Staging", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "AAT / Staging",
@@ -26,7 +26,7 @@ describe("lookupEnvironment", () => {
 
 describe("lookupTeam", () => {
   it("finds team by display name", () => {
-    expect(lookupTeam("Adoption")).toStrictEqual({
+    expect(lookupTeam("Adoption", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "Adoption",
@@ -37,7 +37,7 @@ describe("lookupTeam", () => {
   });
 
   it("finds environment where environment has a different value to display name", () => {
-    expect(lookupTeam("Access Management")).toStrictEqual({
+    expect(lookupTeam("Access Management", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "Access Management",
@@ -50,7 +50,7 @@ describe("lookupTeam", () => {
 
 describe("lookupArea", () => {
   it("finds area by display name", () => {
-    expect(lookupArea("AKS")).toStrictEqual({
+    expect(lookupArea("AKS", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "AKS",
@@ -61,7 +61,7 @@ describe("lookupArea", () => {
   });
 
   it("finds environment where environment has a different value to display name", () => {
-    expect(lookupArea("Azure DevOps")).toStrictEqual({
+    expect(lookupArea("Azure DevOps", "other")).toStrictEqual({
       text: {
         type: "plain_text",
         text: "Azure DevOps",

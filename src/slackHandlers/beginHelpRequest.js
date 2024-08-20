@@ -1,9 +1,35 @@
-const { helpFormGreetingBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
+const { helpFormGreetingBlocks } = require("../messages/helpFormGreeting");
 
 const appInsights = require("../modules/appInsights");
 
-async function beginHelpRequest(userId, client) {
+async function sendMessage(client, channelId, ts, userId, area) {
+  if (ts) {
+    return await client.chat.update({
+      channel: channelId,
+      ts: ts,
+      text: "Hello!",
+      blocks: helpFormGreetingBlocks({
+        user: userId,
+        isAdvanced: false,
+        area,
+      }),
+    });
+  } else {
+    return await client.chat.postMessage({
+      channel: channelId,
+      ts: ts,
+      text: "Hello!",
+      blocks: helpFormGreetingBlocks({
+        user: userId,
+        isAdvanced: false,
+        area,
+      }),
+    });
+  }
+}
+
+async function beginHelpRequest({ userId, client, area, ts }) {
   try {
     const openDmResponse = await client.conversations.open({
       users: userId,
@@ -12,14 +38,13 @@ async function beginHelpRequest(userId, client) {
 
     const channelId = openDmResponse.channel.id;
 
-    const postMessageResponse = await client.chat.postMessage({
-      channel: channelId,
-      text: "Hello!",
-      blocks: helpFormGreetingBlocks({
-        user: userId,
-        isAdvanced: false,
-      }),
-    });
+    const postMessageResponse = await sendMessage(
+      client,
+      channelId,
+      ts,
+      userId,
+      area,
+    );
 
     checkSlackResponseError(
       postMessageResponse,

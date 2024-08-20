@@ -1,8 +1,37 @@
-const { helpFormMainBlocks, helpFormPlatoBlocks } = require("../messages");
+const {
+  helpFormMainBlocks,
+  helpFormPlatoBlocks,
+  helpFormGreetingBlocks,
+} = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
 const appInsights = require("../modules/appInsights");
 
-async function startHelpForm(client, body) {
+async function updateLastMessage(client, body, area) {
+  if (area === "other") {
+    return await client.chat.update({
+      channel: body.channel.id,
+      ts: body.message.ts,
+      text: "Chat to Plato",
+      blocks: helpFormPlatoBlocks({
+        user: body.user.id,
+        isAdvanced: true,
+      }),
+    });
+  } else {
+    return await client.chat.update({
+      channel: body.channel.id,
+      ts: body.message.ts,
+      text: "Hello!",
+      blocks: helpFormGreetingBlocks({
+        user: body.user.id,
+        area,
+        isAdvanced: true,
+      }),
+    });
+  }
+}
+
+async function startHelpForm(client, body, area) {
   try {
     // Post Ticket raising form
     const postRes = await client.chat.postMessage({
@@ -11,6 +40,7 @@ async function startHelpForm(client, body) {
       blocks: helpFormMainBlocks({
         user: body.user.id,
         isAdvanced: false,
+        area,
       }),
     });
 
@@ -20,15 +50,7 @@ async function startHelpForm(client, body) {
     );
 
     // Edit button from last message
-    const updateRes = await client.chat.update({
-      channel: body.channel.id,
-      ts: body.message.ts,
-      text: "Chat to Plato",
-      blocks: helpFormPlatoBlocks({
-        user: body.user.id,
-        isAdvanced: true,
-      }),
-    });
+    const updateRes = await updateLastMessage(client, body, area);
 
     checkSlackResponseError(
       updateRes,

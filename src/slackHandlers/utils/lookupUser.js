@@ -1,7 +1,6 @@
 const cajache = require("cajache");
 
 async function lookupUser({ client, user }) {
-  console.log(`lookupUser: ${user}`);
   return cajache.use(
     user,
     () => {

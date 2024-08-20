@@ -6,7 +6,32 @@ function helpRequestMainBlocks({
   environment,
   prBuildUrl,
   jiraId,
+  area,
 }) {
+  const mainFields = [
+    {
+      type: "mrkdwn",
+      text: "*Status* :fire:  \n Open",
+    },
+    {
+      type: "mrkdwn",
+      text: `*Reporter* :man-surfing: \n <@${user}>`,
+    },
+    {
+      type: "mrkdwn",
+      text: `*Environment* :house_with_garden: \n ${environment.text.text}`,
+    },
+  ];
+
+  // only adding for Crime as naming is hard and I don't have a nice label for all except crime
+  // and I don't think its really needed but let's try and see what feedback we get
+  if (area === "crime") {
+    mainFields.push({
+      type: "mrkdwn",
+      text: `*Area* :helicopter: \n Crime`,
+    });
+  }
+
   return [
     {
       type: "section",
@@ -20,20 +45,7 @@ function helpRequestMainBlocks({
     },
     {
       type: "section",
-      fields: [
-        {
-          type: "mrkdwn",
-          text: "*Status* :fire:  \n Open",
-        },
-        {
-          type: "mrkdwn",
-          text: `*Reporter* :man-surfing: \n <@${user}>`,
-        },
-        {
-          type: "mrkdwn",
-          text: `*Environment* :house_with_garden: \n ${environment.text.text}`,
-        },
-      ],
+      fields: mainFields,
     },
     {
       type: "section",

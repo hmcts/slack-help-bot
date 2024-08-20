@@ -53,7 +53,7 @@ function getRelatedIssuesBlocks(body) {
   return tempRelatedIssuesBlock.slice(0, tempRelatedIssuesBlock.length - 1);
 }
 
-async function submitHelpRequest(body, client) {
+async function submitHelpRequest(body, client, area) {
   try {
     const user = body.user.id;
 
@@ -122,6 +122,7 @@ async function submitHelpRequest(body, client) {
     if (errorMessage !== null) {
       let mainBlocks = helpFormMainBlocks({
         user: body.user.id,
+        area,
         isAdvanced: true,
         helpRequest: helpRequest,
       });
@@ -130,6 +131,7 @@ async function submitHelpRequest(body, client) {
         user: body.user.id,
         errorMessage: errorMessage,
         helpRequest,
+        area,
       });
 
       const blocks = [
@@ -154,6 +156,7 @@ async function submitHelpRequest(body, client) {
     } else {
       const mainBlocks = helpFormMainBlocks({
         user: body.user.id,
+        area,
         errorMessage: errorMessage,
         isAdvanced: true,
         helpRequest: helpRequest,
@@ -163,6 +166,7 @@ async function submitHelpRequest(body, client) {
         user: body.user.id,
         errorMessage: errorMessage,
         isAdvanced: true,
+        area,
         helpRequest,
       });
 
@@ -187,14 +191,13 @@ async function submitHelpRequest(body, client) {
 
     const userEmail = await lookupUsersEmail({ user, client });
 
-    // using JIRA version v8.15.0#815001-sha1:9cd993c:node1,
-    // check if API is up-to-date
     const jiraId = await createHelpRequest({
       summary: helpRequest.summary,
       userEmail,
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
+        area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
     });
 
@@ -204,6 +207,7 @@ async function submitHelpRequest(body, client) {
       blocks: helpRequestMainBlocks({
         ...helpRequest,
         jiraId,
+        area,
       }),
     });
 
@@ -254,6 +258,7 @@ async function submitHelpRequest(body, client) {
       created_at: new Date(),
       key: jiraId,
       status: "Open",
+      area,
       title: helpRequest.summary,
       description: helpRequest.description,
       analysis: helpRequest.analysis,
