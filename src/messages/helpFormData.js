@@ -10,7 +10,18 @@ const environments = (area) => {
     optionBlock("Sandbox", "sbox"),
   ];
 
-  const crimeEnvs = [optionBlock("Live"), optionBlock("Non live", "non-live")];
+  const crimeEnvs = [
+    optionBlock("STE"),
+    optionBlock("DEV"),
+    optionBlock("SIT"),
+    optionBlock("NFT"),
+    optionBlock("Pre-Production"),
+    optionBlock("Production"),
+    optionBlock("PRX"),
+    optionBlock("Non-live Management"),
+    optionBlock("Live Management"),
+    optionBlock("Other"),
+  ];
 
   return area === "crime" ? crimeEnvs : nonCrimeEnvs;
 };
@@ -71,9 +82,10 @@ const teams = (area) => {
   ];
 
   const crimeTeams = [
-    optionBlock("Common Platform", "common-platform"),
+    optionBlock("Application: Common Platform", "application-common-platform"),
+    optionBlock("Atlassian"),
     optionBlock("IDAM", "crime-idam"),
-    optionBlock("Rota", "rota"),
+    optionBlock("Rota"),
     optionBlock("Other"),
   ];
 
@@ -101,6 +113,7 @@ const areas = (area) => {
   ];
 
   const crimeAreas = [
+    optionBlock("Access"),
     optionBlock("AKS"),
     optionBlock("Azure DevOps", "azure-devops"),
     optionBlock("GitHub"),
