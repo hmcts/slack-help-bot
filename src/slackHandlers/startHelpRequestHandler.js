@@ -4,7 +4,7 @@ const {
   removeWithdrawnLabel,
 } = require("../service/persistence");
 
-async function startHelpRequestHandler(body, client) {
+async function startHelpRequestHandler(body, client, area) {
   try {
     const jiraId = extractJiraIdFromBlocks(body.message.blocks);
 
@@ -22,8 +22,7 @@ async function startHelpRequestHandler(body, client) {
         emoji: true,
       },
       style: "primary",
-      value: "resolve_help_request",
-      action_id: "resolve_help_request",
+      action_id: `resolve_help_request${area === "crime" ? "_crime" : ""}`,
     };
 
     blocks[2].fields[0].text = "Status :fire_extinguisher:\n In progress";

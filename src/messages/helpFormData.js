@@ -115,8 +115,12 @@ const areas = (area) => {
   const crimeAreas = [
     optionBlock("Access"),
     optionBlock("AKS"),
-    optionBlock("Azure DevOps", "azure-devops"),
+    optionBlock("Azure"),
+    optionBlock("Database"),
+    optionBlock("Environment"),
     optionBlock("GitHub"),
+    optionBlock("Joiner / Mover / Leaver (JML)", "jml"),
+    optionBlock("Pipeline"),
     optionBlock("SSL"),
     optionBlock("VPN"),
     optionBlock("Other"),
