@@ -28,6 +28,9 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
   - Raised by me
 - Auto close inactive issues
   - A cron job built into the bot will close any issues that have been not been updated for 10 days
+- Analytics on usage of the bot
+  - Events are recorded in Application Insights when user actions are taken, for more details see [analytics](#analytics).
+  - Labels are added to Jira tickets that can be reported on in Jira to see what team / area / environment is requesting the most help
 
 ## Architecture
 
@@ -239,3 +242,54 @@ This will start the frontend container exposing the application's port
 
 In order to test if the application is up, you can visit https://localhost:3000/health in your browser.
 You should get a very basic health page.
+
+## Analytics
+
+The bot uses Application Insights to record events when users interact with the bot.
+The resource is called `slack-help-bot-ptl`.
+
+Here are a couple of useful queries:
+
+```kql
+customEvents
+| summarize event_count = count() by name
+| render piechart
+```
+
+```kql
+customEvents
+| summarize event_count = count() by bin(timestamp, 1d), name
+| render columnchart
+```
+
+## Deploying
+
+This application is deployed with continuous delivery, every merge to the main branch will be automatically deployed.
+The [GitHub action](./.github/workflows/main.yml) will build the docker image and push it to the Azure Container Registry.
+
+The deployment configuration can be found in the [hmcts/cnp-flux-config repository](https://github.com/hmcts/cnp-flux-config/blob/master/apps/slack-help-bot/slack-help-bot/slack-help-bot.yaml).
+
+The infrastructure from the [architecture diagram](#architecture) is created using Terraform in the [components/infrastructure](./components/infrastructure) folder.
+The [terraform pipeline](pipeline/azure-pipelines.yml) is run from Azure DevOps, a plan is run on a pull request and it will automatically apply on merge to main.
+
+## Adding new fields to dropdowns
+
+If you want to add new fields to dropdowns like the area or resolution type the easiest way is to search for the text of another option in the codebase and then add your new option there.
+They are normally sorted in alphabetical order although environments are generally in increasing order of importance and Other is normally last.
+
+For most dropdowns you will also need to update the [LLM prompt](./src/ai/prompts.js) to allow it to suggest the new option, resolution type doesn't need to be added there.
+
+Dropdowns use the `optionBlock` function, it can take either one or two arguments, the first argument is the display name and the second is the label that will be used in Jira.
+Certain characters can't be used in Jira labels so if you have a complex display name then supply a simpler label or if a team is commonly known by a short name it is common to use the short name in the label as well.
+
+e.g.
+
+```javascript
+optionBlock("GitHub");
+```
+
+or
+
+```javascript
+optionBlock("Security Operations / Secure Design", "security");
+```
