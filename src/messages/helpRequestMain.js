@@ -101,7 +101,7 @@ function helpRequestMainBlocks({
           },
           style: "primary",
           value: "start_help_request",
-          action_id: "start_help_request",
+          action_id: `start_help_request${area === "crime" ? "_crime" : ""}`,
         },
       ],
     },

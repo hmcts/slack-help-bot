@@ -1,6 +1,38 @@
 const { optionBlock } = require("./util");
 
-function helpRequestResolveBlocks({ thread_ts }) {
+function helpRequestResolveBlocks({ thread_ts, area }) {
+  function getResolutionCategories() {
+    if (area === "other") {
+      return [
+        optionBlock("Application code/config issue"),
+        optionBlock("External (GitHub/Azure/SonarCloud) issue"),
+        optionBlock("Lack of access"),
+        optionBlock("Lack of documentation"),
+        optionBlock("Platform issue"),
+        optionBlock("User did not do enough troubleshooting"),
+        optionBlock("User error"),
+        optionBlock("Working as per design"),
+        optionBlock("Other"),
+      ];
+    } else if (area === "crime") {
+      return [
+        optionBlock("Application code/config issue"),
+        optionBlock("External (GitHub/Azure/SonarCloud) issue"),
+        optionBlock("Joiner / Mover / Leaver (JML)", "jml"),
+        optionBlock("Lack of access"),
+        optionBlock("Lack of documentation"),
+        optionBlock("Platform issue"),
+        optionBlock("Release support"),
+        optionBlock("User did not do enough troubleshooting"),
+        optionBlock("User error"),
+        optionBlock("Working as per design"),
+        optionBlock("Other"),
+      ];
+    }
+  }
+
+  const resolutionCategories = getResolutionCategories();
+
   return {
     title: {
       type: "plain_text",
@@ -38,17 +70,7 @@ function helpRequestResolveBlocks({ thread_ts }) {
             text: "Select an item",
             emoji: true,
           },
-          options: [
-            optionBlock("Application code/config issue"),
-            optionBlock("External (GitHub/Azure/SonarCloud) issue"),
-            optionBlock("Lack of access"),
-            optionBlock("Lack of documentation"),
-            optionBlock("Platform issue"),
-            optionBlock("User did not do enough troubleshooting"),
-            optionBlock("User error"),
-            optionBlock("Working as per design"),
-            optionBlock("Other"),
-          ],
+          options: resolutionCategories,
           action_id: "category",
         },
         label: {
@@ -77,7 +99,7 @@ function helpRequestResolveBlocks({ thread_ts }) {
       },
     ],
     type: "modal",
-    callback_id: "document_help_request",
+    callback_id: `document_help_request${area === "crime" ? "_crime" : ""}`,
     // We use the private_metadata field to smuggle the ts of the thread
     // into the form so the bot knows where to reply when the form is submitted
     private_metadata: `${thread_ts}`,

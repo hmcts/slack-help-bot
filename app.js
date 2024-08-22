@@ -220,20 +220,41 @@ app.action(
   "resolve_help_request",
   async ({ body, action, ack, client, context, payload }) => {
     await ack();
-    await resolveHelpRequestHandler(client, body);
+    await resolveHelpRequestHandler(client, body, "other");
+  },
+);
+
+app.action(
+  "resolve_help_request_crime",
+  async ({ body, action, ack, client, context, payload }) => {
+    await ack();
+    await resolveHelpRequestHandler(client, body, "crime");
   },
 );
 
 app.view("document_help_request", async ({ ack, body, view, client }) => {
   await ack();
-  await documentHelpRequest(client, body);
+  await documentHelpRequest(client, body, "other");
+});
+
+app.view("document_help_request_crime", async ({ ack, body, view, client }) => {
+  await ack();
+  await documentHelpRequest(client, body, "crime");
 });
 
 app.action(
   "start_help_request",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await startHelpRequestHandler(body, client);
+    await startHelpRequestHandler(body, client, "other");
+  },
+);
+
+app.action(
+  "start_help_request_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await startHelpRequestHandler(body, client, "crime");
   },
 );
 

@@ -12,7 +12,7 @@ const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
 const reportChannel = config.get("slack.report_channel");
 const reportChannelId = config.get("slack.report_channel_id");
 
-async function documentHelpRequest(client, body) {
+async function documentHelpRequest(client, body, area) {
   try {
     const helpRequestMessages = (
       await client.conversations.replies({
@@ -37,7 +37,7 @@ async function documentHelpRequest(client, body) {
       },
       style: "primary",
       value: "start_help_request",
-      action_id: "start_help_request",
+      action_id: `start_help_request${area === "crime" ? "_crime" : ""}`,
     };
 
     blocks[2].fields[0].text = "Status :snowflake:\n Done";
