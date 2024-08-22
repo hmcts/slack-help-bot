@@ -250,11 +250,15 @@ The resource is called `slack-help-bot-ptl`.
 
 Here are a couple of useful queries:
 
+[Pie chart query in Log Analytics](https://portal.azure.com#@531ff96d-0ae9-462a-8d2d-bec7c0b42082/blade/Microsoft_OperationsManagementSuite_Workspace/Logs.ReactView/resourceId/%2Fsubscriptions%2F1baf5470-1c3e-40d3-a6f7-74bfbce4b348%2FresourceGroups%2Fslack-help-bot-cftptl-intsvc-rg%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2Fslack-help-bot-ptl/source/LogsBlade.AnalyticsShareLinkToQuery/q/H4sIAAAAAAAAA0suLS7Jz3UtS80rKeaqUSguzc1NLMqsSlVIBQnFJ%252BeX5pUo2CqAaQ1NhaRKhbzE3FSgyqLUvJTUIoWCzNTkjMSiEgA13VyNSAAAAA%253D%253D/timespan/P7D/limit/1000)
+
 ```kql
 customEvents
 | summarize event_count = count() by name
 | render piechart
 ```
+
+[Column chart query in Log Analytics](https://portal.azure.com#@531ff96d-0ae9-462a-8d2d-bec7c0b42082/blade/Microsoft_OperationsManagementSuite_Workspace/Logs.ReactView/resourceId/%2Fsubscriptions%2F1baf5470-1c3e-40d3-a6f7-74bfbce4b348%2FresourceGroups%2Fslack-help-bot-cftptl-intsvc-rg%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2Fslack-help-bot-ptl/source/LogsBlade.AnalyticsShareLinkToQuery/q/H4sIAAAAAAAAAx2LSQqAMAwA774ixxZ68QEefYekbcCCSSVNBcXHu5wGhpnUm1WeDxJrww2tM6OWi4A%252BtaTaxWCCn85DPCEWcVaYmiHvAcbsAwgyvbeSZNI33jpLWlHtAQAQGCVfAAAA/timespan/P7D/limit/1000)
 
 ```kql
 customEvents
