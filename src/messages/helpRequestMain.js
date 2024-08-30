@@ -23,15 +23,6 @@ function helpRequestMainBlocks({
     },
   ];
 
-  // only adding for Crime as naming is hard and I don't have a nice label for all except crime
-  // and I don't think its really needed but let's try and see what feedback we get
-  if (area === "crime") {
-    mainFields.push({
-      type: "mrkdwn",
-      text: `*Area* :helicopter: \n Crime`,
-    });
-  }
-
   return [
     {
       type: "section",

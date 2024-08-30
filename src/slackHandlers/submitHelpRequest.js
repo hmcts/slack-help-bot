@@ -17,7 +17,10 @@ const { uuidv7 } = require("uuidv7");
 const { deleteCacheEntry } = require("./utils/aiCache");
 const appInsights = require("../modules/appInsights");
 
-const reportChannel = config.get("slack.report_channel");
+/** @type {string} */
+const reportChannelId = config.get("slack.report_channel_id");
+/** @type {string} */
+const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
 
 function validateFullRequest(helpRequest) {
   // prBuildUrl and analysis are optional, so don't mandate they be populated
@@ -202,7 +205,7 @@ async function submitHelpRequest(body, client, area) {
     });
 
     const mainRes = await client.chat.postMessage({
-      channel: reportChannel,
+      channel: area === "crime" ? reportChannelCrimeId : reportChannelId,
       text: "New platform help request raised",
       blocks: helpRequestMainBlocks({
         ...helpRequest,
@@ -217,7 +220,7 @@ async function submitHelpRequest(body, client, area) {
     );
 
     const detailsRes = await client.chat.postMessage({
-      channel: reportChannel,
+      channel: area === "crime" ? reportChannelCrimeId : reportChannelId,
       thread_ts: mainRes.message.ts,
       text: "New platform help request raised",
       blocks: helpRequestDetailBlocks(helpRequest),

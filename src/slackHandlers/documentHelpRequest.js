@@ -9,14 +9,16 @@ const { helpRequestDocumentationBlocks } = require("../messages");
 const config = require("config");
 const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
 
-const reportChannel = config.get("slack.report_channel");
+/** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
+/** @type {string} */
+const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
 
 async function documentHelpRequest(client, body, area) {
   try {
     const helpRequestMessages = (
       await client.conversations.replies({
-        channel: reportChannelId,
+        channel: area === "crime" ? reportChannelCrimeId : reportChannelId,
         ts: body.view.private_metadata,
         limit: 200, // after a thread is 200 long we'll break but good enough for now
       })
@@ -43,7 +45,7 @@ async function documentHelpRequest(client, body, area) {
     blocks[2].fields[0].text = "Status :snowflake:\n Done";
 
     await client.chat.update({
-      channel: reportChannelId,
+      channel: area === "crime" ? reportChannelCrimeId : reportChannelId,
       ts: body.view.private_metadata,
       text: "New platform help request raised",
       blocks: blocks,
@@ -60,7 +62,7 @@ async function documentHelpRequest(client, body, area) {
     await addLabel(jiraId, documentation);
 
     await client.chat.postMessage({
-      channel: reportChannel,
+      channel: area === "crime" ? reportChannelCrimeId : reportChannelId,
       thread_ts: body.view.private_metadata,
       text: "Platform help request documented",
       blocks: helpRequestDocumentationBlocks(documentation),
