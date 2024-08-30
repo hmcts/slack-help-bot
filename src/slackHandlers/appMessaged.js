@@ -6,7 +6,10 @@ const {
 const { lookupUsersName, convertProfileToName } = require("./utils/lookupUser");
 const config = require("config");
 
+/** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
+/** @type {string} */
+const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
 
 /**
  * The built-in string replace function can't return a promise
@@ -48,8 +51,14 @@ async function appMessaged(event, context, client, say) {
 
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
-    if (event.channel !== reportChannelId) return;
-    if (!event.thread_ts) return;
+    if (
+      event.channel !== reportChannelId &&
+      event.channel !== reportChannelCrimeId
+    )
+      return;
+    if (!event.thread_ts) {
+      return;
+    }
 
     // The code below here monitors the thread of any help request and
     // automatically mirrors the messages to the Jira ticket.
@@ -66,7 +75,7 @@ async function appMessaged(event, context, client, say) {
     // Should be able to get root message using timestamp
     const helpRequestMessages = (
       await client.conversations.replies({
-        channel: reportChannelId,
+        channel: event.channel,
         ts: event.thread_ts,
         limit: 200, // after a thread is 200 long we'll break but good enough for now
       })

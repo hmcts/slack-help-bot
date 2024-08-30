@@ -15,7 +15,11 @@ const {
 const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
+
+/** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
+/** @type {string} */
+const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
 
 const feedback =
   "If this was useful, give me a :thumbsup: or if it wasn't then a :thumbsdown:";
@@ -103,9 +107,13 @@ async function appMention(event, client, say) {
   try {
     // filter unwanted channels in case someone invites the bot to it
     // and only look at threaded messages
-    if (event.channel === reportChannelId && event.thread_ts) {
+    if (
+      (event.channel === reportChannelId ||
+        event.channel === reportChannelCrimeId) &&
+      event.thread_ts
+    ) {
       const helpRequestResult = await client.conversations.replies({
-        channel: reportChannelId,
+        channel: event.channel,
         ts: event.thread_ts,
         limit: 200, // after a thread is 200 long we'll break but good enough for now
       });
