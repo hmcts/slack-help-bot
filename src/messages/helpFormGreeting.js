@@ -4,7 +4,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `Hello <@${user}> :wave:\nAre you looking for some dedicated help from Platform Operation? ${area === "other" ? "As the team is busy working to improve the platform, please be aware that it is all self-service" : ""}`,
+        text: `Hello <@${user}> :wave:\nAre you looking for some dedicated help from Platform Operations? ${area === "other" ? "As the team is busy working to improve the platform, please be aware that it is all self-service" : ""}`,
       },
     },
     {
