@@ -15,7 +15,7 @@
     "@azure/search-documents": "^12.0.0",
     "@hmcts/properties-volume": "^1.0.0",
     "@slack/bolt": "^3.6.0",
-    "@types/config": "3.3.4",
+    "@types/config": "3.3.5",
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
     "cajache": "^2.0.2",
