@@ -11,7 +11,7 @@ if (fastStartup) {
   setupSecrets.setup();
 }
 
-const { App } = require("@slack/bolt");
+const { App, LogLevel } = require("@slack/bolt");
 
 let appInsights;
 if (!fastStartup) {
