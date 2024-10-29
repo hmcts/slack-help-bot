@@ -42,7 +42,7 @@ data "azuread_service_principal" "hmcts_way_repo" {
 }
 
 resource "azurerm_role_assignment" "storage_blob_data_contributor_hmcts_way" {
-  principal_id = data.azuread_service_principal.hmcts_way_repo.id
+  principal_id = data.azuread_service_principal.hmcts_way_repo.object_id
   scope        = azurerm_storage_account.default.id
 
   role_definition_name = "Storage Blob Data Contributor"

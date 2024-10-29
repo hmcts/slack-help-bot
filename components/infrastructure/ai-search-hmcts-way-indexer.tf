@@ -22,7 +22,7 @@ resource "restapi_object" "hmcts_way_indexer" {
 }
 
 resource "azurerm_role_assignment" "search_contributor_hmcts_way" {
-  principal_id = data.azuread_service_principal.hmcts_way_repo.id
+  principal_id = data.azuread_service_principal.hmcts_way_repo.object_id
   scope        = azurerm_search_service.this.id
 
   role_definition_name = "Search Service Contributor"
