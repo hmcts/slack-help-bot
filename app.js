@@ -11,7 +11,7 @@ if (fastStartup) {
   setupSecrets.setup();
 }
 
-const { App } = require("@slack/bolt");
+const { App, LogLevel } = require("@slack/bolt");
 
 let appInsights;
 if (!fastStartup) {
@@ -21,7 +21,7 @@ if (!fastStartup) {
 
 const app = new App({
   token: config.get("slack.bot_token"), //disable this if enabling OAuth in socketModeReceiver
-  // logLevel: LogLevel.DEBUG,
+  logLevel: LogLevel.DEBUG,
   appToken: config.get("slack.app_token"),
   socketMode: true,
 });
