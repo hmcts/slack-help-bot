@@ -36,7 +36,7 @@ function extractKnowledgeStoreHighlight(item) {
   if (item.captions && item.captions.length > 0) {
     return (
       convertHighlightToSlackMarkup(item.captions[0].highlights) ||
-      "Generated highlight not available at this time"
+      " "
     );
   }
   return item.document.content.slice(0, 100);
