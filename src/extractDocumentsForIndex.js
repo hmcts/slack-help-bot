@@ -4,7 +4,7 @@ const { search } = require("./service/persistence");
 const fs = require("fs");
 const { uuidv7 } = require("uuidv7");
 
-const searchQuery = `project = DTSPO AND type = "BAU Task" AND labels IN ("created-from-slack") ORDER BY created ASC `;
+const searchQuery = `project = DTSPO AND type = "Support" AND labels IN ("created-from-slack") ORDER BY created ASC `;
 
 async function findIssues(results, startAt) {
   const result = await search(searchQuery, startAt, [
