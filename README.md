@@ -147,19 +147,11 @@ settings:
   token_rotation_enabled: false
 ```
 
-The manifest may not work anymore because it's using legacy the `workflow_steps` as seen in the image below:
-
-<img alt="Image showing the legacy work flow steps" src="images/legacy-workflow-steps.png" width=50% height=50% />
-
-For creating the `workflow_steps` you will need to create it within the the **Workflow Steps** feature within the Slack API:
-
-<img alt="Image showing the new Workflow Steps feature" src="images/workflow-steps-feature.png" width=50% height=50% />
-
 2. Head to **OAuth & Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration.
 
 <img alt="Image showing install to workspace button on OAuth & Permissions page" src="images/install-app.png" width=30% height=30% />
 
-3. Invite the app in the channel where you would like it to be used in Slack. This can be done by choosing the channel where you want the bot to be active then in the message input box of the selected channel, type the following command: `/invite @<your app's bot name>`. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
+3. Invite the app in the channel where you would like it to be used in Slack. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
 
 ## Running the application
 
