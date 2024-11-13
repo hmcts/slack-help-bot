@@ -54,6 +54,8 @@ function extraJiraId(text) {
  * @param {string} email
  */
 async function convertEmail(email) {
+  console.log("Email being searched:",  email);
+
   if (!email) {
     return systemUser;
   }
@@ -185,7 +187,7 @@ async function searchForOpenIssues() {
 }
 
 async function searchForIssuesAssignedTo(userEmail) {
-  const user = await convertEmail(userEmail);
+  const user = await convertEmail(await userEmail);
   const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND assignee = "${user}" AND status IN ("Open", "In Progress") AND labels NOT IN ("Heritage") ORDER BY created ASC`;
   try {
     return await jira.searchJira(jqlQuery, {
@@ -207,7 +209,7 @@ async function searchForIssuesAssignedTo(userEmail) {
 }
 
 async function searchForIssuesRaisedBy(userEmail) {
-  const user = await convertEmail(userEmail);
+  const user = await convertEmail(await userEmail);
   const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND reporter = "${user}" AND status IN ("Open", "In Progress") AND labels NOT IN ("Heritage") ORDER BY created ASC`;
   try {
     return await jira.searchJira(jqlQuery, {
