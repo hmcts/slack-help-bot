@@ -54,7 +54,6 @@ function extraJiraId(text) {
  * @param {string} email
  */
 async function convertEmail(email) {
-
   if (!email) {
     return systemUser;
   }
