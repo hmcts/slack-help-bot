@@ -147,8 +147,13 @@ settings:
   token_rotation_enabled: false
 ```
 
-The manifest may not work anymore because it's using legacy `workflow_steps`.
-For creating the `workflow_steps` you will need to create it within the the **Workflow Steps** feature within the Slack API.
+The manifest may not work anymore because it's using legacy the `workflow_steps` as seen in the image below:
+
+<img alt="Image showing the legacy work flow steps" src="images/legacy-workflow-steps.png" width=50% height=50% />
+
+For creating the `workflow_steps` you will need to create it within the the **Workflow Steps** feature within the Slack API:
+
+<img alt="Image showing the new Workflow Steps feature" src="images/workflow-steps-feature.png" width=50% height=50% />
 
 2. Head to **OAuth & Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration.
 
