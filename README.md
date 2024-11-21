@@ -167,11 +167,11 @@ Navigate to **Org Level Apps** in the left nav and click **Opt-In**, then confir
 
 Navigate to **Workflow Steps** in the left nav and click **Add Step**. This is where we'll configure our step's inputs, outputs, name, and description.
 
-<img alt="Image showing how add a workflow step" src="images/adding-workflow-step.png" width=30% height=30% />
+<img alt="Image showing how to add a workflow step" src="images/adding-workflow-steps.png" width=30% height=30% />
 
 For illustration purposes, we're going to write a custom step called Begin Help Request. When the step is invoked, a message will be sent to the provided manager with an option to request some dedicated help from Platform Operations Help Bot.
 
-<img alt="Image showing how to create a custom step" src="images/write-custom-steps.png" width=30% height=30% />
+<img alt="Image showing how to create a custom step" src="images/write-custom-step.png" width=30% height=30% />
 
 Once you have saved your changes click on the **Workflow Steps** in the left nav will show you that one workflow step has been added! This reflects the function defined in our manifest; functions are workflow steps. Below is an example of what it would look like:
 
