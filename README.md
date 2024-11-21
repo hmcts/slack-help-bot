@@ -85,7 +85,11 @@ You'll be able to install and test changes to your app there without waiting for
 
 1. Create a new app in your workspace. Follow the Slack documentation for [creating an app from a manifest](https://api.slack.com/reference/manifests).
 
-Manifest, make sure you update the name:
+Open a browser and navigate to [api.slack.com/apps](https://api.slack.com/apps). This is where we will create a new app with our previously copied manifest details. Click the **Create New App** button, then select **From an app manifest** when prompted to choose how you'd like to configure your app's settings.
+
+<img alt="Image showing how to create app" src="images/create-app.png" width=30% height=30% />
+
+Next, select a workspace where you have permissions to install apps `hmcts-platops-sandbox`, then confirm **Next**. Select the **YAML** tab and clear the existing contents. Paste the Manifest content below, make sure you update the name:
 
 ```yaml
 display_information:
@@ -95,7 +99,7 @@ display_information:
 features:
   app_home:
     home_tab_enabled: true
-    messages_tab_enabled: false
+    messages_tab_enabled: true
     messages_tab_read_only_enabled: false
   bot_user:
     display_name: PlatOps help
@@ -105,9 +109,6 @@ features:
       type: global
       callback_id: begin_help_request_sc
       description: Request help from Platform Operations
-  workflow_steps:
-    - name: Begin Help Request
-      callback_id: begin_help_request
 oauth_config:
   scopes:
     bot:
@@ -116,19 +117,17 @@ oauth_config:
       - channels:read
       - chat:write
       - chat:write.customize
-      - commands
       - groups:history
       - groups:read
       - groups:write
-      - im:history
       - im:read
       - im:write
-      - reactions:read
       - reactions:write
       - users.profile:read
       - users:read
       - users:read.email
-      - workflow.steps:execute
+      - im:history
+      - commands
 settings:
   event_subscriptions:
     user_events:
@@ -138,20 +137,80 @@ settings:
       - app_mention
       - message.channels
       - message.im
-      - reaction_added
-      - workflow_step_execute
+      - function_executed
   interactivity:
     is_enabled: true
-  org_deploy_enabled: false
+  org_deploy_enabled: true
   socket_mode_enabled: true
   token_rotation_enabled: false
+  hermes_app_type: remote
+  function_runtime: remote
+functions:
+  begin_help_request:
+    title: Begin Help Request
+    description: ""
+    input_parameters: {}
+    output_parameters: {}
 ```
 
-2. Head to **OAuth & Permissions** and install the app to your workspace. Allow the app the default permissions. Copy the generated **Bot User OAuth Access Token** as this will be required for the slack-help-bot configuration.
+2. Add a custom workflow
 
-<img alt="Image showing install to workspace button on OAuth & Permissions page" src="images/install-app.png" width=30% height=30% />
+**Steps from Apps** for legacy workflows is now [deprecated](https://api.slack.com/changelog/2023-08-workflow-steps-from-apps-step-back).
 
-3. Invite the app in the channel where you would like it to be used in Slack. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
+Instead of using the now deprecated **Step from App**, it is recommended that you re-implement your step as a [custom function](https://api.slack.com/automation/functions/custom). Here is some more slack documentation that covers [Create a custom step for Workflow Builder](https://api.slack.com/tutorials/tracks/bolt-custom-function-existing).
+
+Below takes you through the basics of how to implement a custom function:
+
+Navigate to **Org Level Apps** in the left nav and click **Opt-In**, then confirm **Yes**, Opt-In.
+
+<img alt="Image showing how to opt in" src="images/opt-in.png" width=30% height=30% />
+
+Navigate to **Workflow Steps** in the left nav and click **Add Step**. This is where we'll configure our step's inputs, outputs, name, and description.
+
+<img alt="Image showing how add a workflow step" src="images/adding-workflow-step.png" width=30% height=30% />
+
+For illustration purposes, we're going to write a custom step called Begin Help Request. When the step is invoked, a message will be sent to the provided manager with an option to request some dedicated help from Platform Operations Help Bot.
+
+<img alt="Image showing how to create a custom step" src="images/write-custom-step.png" width=30% height=30% />
+
+Once you have saved your changes click on the **Workflow Steps** in the left nav will show you that one workflow step has been added! This reflects the function defined in our manifest; functions are workflow steps. Below is an example of what it would look like:
+
+<img alt="Image showing what an added workflow step looks like" src="images/workflow-steps-example.png" width=30% height=30% />
+
+3. Collect Tokens
+
+In order to connect our app here with the logic of our sample code set up locally, we need to gather two tokens, a bot token and an app token.
+
+**Bot tokens** are associated with bot users, and are only granted once in a workspace where someone installs the app.
+
+**App-level** tokens represent your app across organizations, including installations and are commonly used for creating websocket connections to your app.
+
+To generate an app token, navigate to **Basic Information** and scroll down to **App-Level Token**.
+
+<img alt="Image showing how to generate app level token" src="images/generate-app-level-token.png" width=30% height=30% />
+
+Click **Generate Token and Scopes**, then **Add Scope** and choose `connections:write`. Choose a name for your token and click **Generate**. Copy that value, save it somewhere accessible, and click **Done** to close out of the modal.
+
+<img alt="Image showing how to view your app level token" src="images/view-app-level-token.png" width=30% height=30% />
+
+Next up is the bot token. We can only get this token by installing the app into the workspace.
+
+4. Installing App
+
+Navigate to **Install App** and click the button to install, choosing **Allow** at the next screen.
+
+<img alt="Image showing how to install app to slack workspace" src="images/install-app-to-slack.png" width=30% height=30% />
+
+You will then have a bot token. Again, copy that value and save it somewhere accessible.
+
+<img alt="Image showing how to access the bot token" src="images/bot-token.png" width=30% height=30% />
+
+5. Invite the app in the channel where you would like it to be used in Slack.
+   • Navigate to the channel where you want the app to be active.
+   • Type /invite @YourAppName in the message box and hit enter.
+   • Replace @YourAppName with the actual name of your Slack app.
+
+6. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
 
 ## Running the application
 
