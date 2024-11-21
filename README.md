@@ -171,7 +171,7 @@ Navigate to **Workflow Steps** in the left nav and click **Add Step**. This is w
 
 For illustration purposes, we're going to write a custom step called Begin Help Request. When the step is invoked, a message will be sent to the provided manager with an option to request some dedicated help from Platform Operations Help Bot.
 
-<img alt="Image showing how to create a custom step" src="images/write-custom-step.png" width=30% height=30% />
+<img alt="Image showing how to create a custom step" src="images/write-custom-steps.png" width=30% height=30% />
 
 Once you have saved your changes click on the **Workflow Steps** in the left nav will show you that one workflow step has been added! This reflects the function defined in our manifest; functions are workflow steps. Below is an example of what it would look like:
 
@@ -205,10 +205,7 @@ You will then have a bot token. Again, copy that value and save it somewhere acc
 
 <img alt="Image showing how to access the bot token" src="images/bot-token.png" width=30% height=30% />
 
-5. Invite the app in the channel where you would like it to be used in Slack.
-   • Navigate to the channel where you want the app to be active.
-   • Type /invite @YourAppName in the message box and hit enter.
-   • Replace @YourAppName with the actual name of your Slack app.
+5. Invite the app in the channel where you would like it to be used in Slack. Navigate to the channel where you want the app to be active. Type /invite @YourAppName in the message box and hit enter. Replace @YourAppName with the actual name of your Slack app.
 
 6. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
 
