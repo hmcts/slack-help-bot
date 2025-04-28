@@ -328,6 +328,7 @@ app.shortcut('launch_msg_shortcut', async ({ shortcut, body, ack, context, clien
 app.shortcut('launch_shortcut', async ({ shortcut, body, ack, context, client }) => {
     try {
         // Acknowledge shortcut request
+        console.log('launch_shortcut action initiated: ' + JSON.stringify(body));
         await ack();
 
         // Un-comment if you want the JSON for block-kit builder (https://app.slack.com/block-kit-builder/T1L0WSW9F)
@@ -354,6 +355,7 @@ app.view('create_help_request', async ({ ack, body, view, client }) => {
     ////           we can keep it around just in case :)    ////
     ////////////////////////////////////////////////////////////
 
+    console.log('create_help_request action initiated: ' + JSON.stringify(body));
     // Acknowledge the view_submission event
     await ack();
 
@@ -611,6 +613,7 @@ app.action('start_help_request', async ({
     body, action, ack, client, context
 }) => {
     try {
+        console.log('start_help_request action initiated: ' + JSON.stringify(body));
         await ack();
         const jiraId = extractJiraIdFromBlocks(body.message.blocks)
 
