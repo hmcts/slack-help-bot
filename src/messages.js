@@ -549,7 +549,7 @@ function openHelpRequestBlocks() {
             
         ],
         "type": "modal",
-        callback_id: 'create_help_request'
+        "callback_id": 'create_help_request'
     }
 
 }
