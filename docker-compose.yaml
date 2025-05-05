@@ -9,7 +9,7 @@ services:
       - ./.env
   # https://github.com/gsoft-inc/azure-cli-credentials-proxy
   azure-cli-proxy:
-    image: workleap/azure-cli-credentials-proxy:1.2.3
+    image: workleap/azure-cli-credentials-proxy:1.2.4
     volumes:
       - "$HOME/.azure:/app/.azure/"
       #- "\\\\wsl$\\<DISTRONAME>\\home\\<USERNAME>\\.azure\\:/app/.azure/" # Uncomment on Windows with WSL
