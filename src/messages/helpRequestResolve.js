@@ -13,7 +13,7 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
         optionBlock("Policy / Process Ambiguity"),
         optionBlock("Incident / One-Off Platform Failure"),
         optionBlock("External Failure (GitHub / Azure / Sonarcloud etc)"),
-        optionBlock("Triage Error / Wrong queue"),
+        optionBlock("Triage Error / Wrong Queue"),
         optionBlock("Network Failure"),
       ];
     } else if (area === "crime") {
@@ -27,7 +27,7 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
         optionBlock("Policy / Process Ambiguity"),
         optionBlock("Incident / One-Off Platform Failure"),
         optionBlock("External Failure (GitHub / Azure / Sonarcloud etc)"),
-        optionBlock("Triage Error / Wrong queue"),
+        optionBlock("Triage Error / Wrong Queue"),
         optionBlock("Network Failure"),
         optionBlock("Joiner / Mover / Leaver (JML)", "jml"),
         optionBlock("Release Support"),
@@ -63,6 +63,24 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
           text: "Write some documentation to help out next time!\nKeep answers brief, but make them informative.",
           emoji: true,
         },
+      },
+      {
+        type: "section",
+        block_id: "subtitle_block",
+        text: {
+          type: "plain_text",
+          text: "Please reference ops-runbook for explanation details on the resolution categories:",
+          emoji: true,
+        },
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "<https://hmcts.github.io/ops-runbooks/BAU/platops-help-request.html#resolve-a-platops-bau-ticket>"
+          }
+        ]
       },
       {
         type: "input",
