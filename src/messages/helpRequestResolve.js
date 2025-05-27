@@ -74,13 +74,13 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
         },
       },
       {
-        "type": "context",
-        "elements": [
+        type: "context",
+        elements: [
           {
-            "type": "mrkdwn",
-            "text": "<https://hmcts.github.io/ops-runbooks/BAU/platops-help-request.html#resolve-a-platops-bau-ticket>"
-          }
-        ]
+            type: "mrkdwn",
+            text: "<https://hmcts.github.io/ops-runbooks/BAU/platops-help-request.html#resolve-a-platops-bau-ticket>",
+          },
+        ],
       },
       {
         type: "input",
