@@ -12,9 +12,6 @@ resource "azapi_resource" "AIServices" {
     name = "platops-slack-help-bot-${var.env}"
 
     properties = {
-      apiProperties = {
-        statisticsEnabled = false
-      }
       customSubDomainName = "platops-slack-help-bot-${var.env}"
     }
     kind = "AIServices"
