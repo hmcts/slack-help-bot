@@ -37,7 +37,7 @@ resource "azapi_resource" "AIServicesConnection" {
       target        = jsondecode(azapi_resource.AIServices.output).properties.endpoint,
       authType      = "AAD",
       isSharedToAll = true,
-      publicNetworkAcces = Enabled,
+      publicNetworkAccess = Enabled,
       metadata = {
         ApiType    = "Azure",
         ResourceId = azapi_resource.AIServices.id
