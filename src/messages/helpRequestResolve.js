@@ -4,29 +4,33 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
   function getResolutionCategories() {
     if (area === "other") {
       return [
-        optionBlock("Application code/config issue"),
-        optionBlock("External (GitHub/Azure/SonarCloud) issue"),
-        optionBlock("Lack of access"),
-        optionBlock("Lack of documentation"),
-        optionBlock("Platform issue"),
-        optionBlock("User did not do enough troubleshooting"),
-        optionBlock("User error"),
-        optionBlock("Working as per design"),
-        optionBlock("Other"),
+        optionBlock("Missing / Inadequate Docs"),
+        optionBlock("Self-Service Gap"),
+        optionBlock("Tooling / Automation Deficiency"),
+        optionBlock("Platform Feature Missing / Misaligned"),
+        optionBlock("Poor Signposting / Discoverability"),
+        optionBlock("User Education / Misuse"),
+        optionBlock("Policy / Process Ambiguity"),
+        optionBlock("Incident / One-Off Platform Failure"),
+        optionBlock("External Failure (GitHub / Azure / Sonarcloud etc)"),
+        optionBlock("Triage Error / Wrong Queue"),
+        optionBlock("Network Failure"),
       ];
     } else if (area === "crime") {
       return [
-        optionBlock("Application code/config issue"),
-        optionBlock("External (GitHub/Azure/SonarCloud) issue"),
+        optionBlock("Missing / Inadequate Docs"),
+        optionBlock("Self-Service Gap"),
+        optionBlock("Tooling / Automation Deficiency"),
+        optionBlock("Platform Feature Missing / Misaligned"),
+        optionBlock("Poor Signposting / Discoverability"),
+        optionBlock("User Education / Misuse"),
+        optionBlock("Policy / Process Ambiguity"),
+        optionBlock("Incident / One-Off Platform Failure"),
+        optionBlock("External Failure (GitHub / Azure / Sonarcloud etc)"),
+        optionBlock("Triage Error / Wrong Queue"),
+        optionBlock("Network Failure"),
         optionBlock("Joiner / Mover / Leaver (JML)", "jml"),
-        optionBlock("Lack of access"),
-        optionBlock("Lack of documentation"),
-        optionBlock("Platform issue"),
-        optionBlock("Release support"),
-        optionBlock("User did not do enough troubleshooting"),
-        optionBlock("User error"),
-        optionBlock("Working as per design"),
-        optionBlock("Other"),
+        optionBlock("Release Support"),
       ];
     }
   }
