@@ -65,6 +65,24 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
         },
       },
       {
+        type: "section",
+        block_id: "subtitle_block",
+        text: {
+          type: "plain_text",
+          text: "Please reference ops-runbook for explanation details on the resolution categories:",
+          emoji: true,
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "<https://hmcts.github.io/ops-runbooks/BAU/platops-help-request.html#resolve-a-platops-bau-ticket>",
+          },
+        ],
+      },
+      {
         type: "input",
         block_id: "category_block",
         element: {
