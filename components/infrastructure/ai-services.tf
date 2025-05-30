@@ -12,7 +12,8 @@ resource "azapi_resource" "AIServices" {
     name = "platops-slack-help-bot-${var.env}"
 
     properties = {
-      customSubDomainName = "platops-slack-help-bot-${var.env}"
+      customSubDomainName = "platops-slack-help-bot-${var.env}",
+      publicNetworkAccess = "Enabled",
     }
     kind = "AIServices"
     sku = {
@@ -37,7 +38,6 @@ resource "azapi_resource" "AIServicesConnection" {
       target              = jsondecode(azapi_resource.AIServices.output).properties.endpoint,
       authType            = "AAD",
       isSharedToAll       = true,
-      publicNetworkAccess = "Enabled",
       metadata = {
         ApiType    = "Azure",
         ResourceId = azapi_resource.AIServices.id
