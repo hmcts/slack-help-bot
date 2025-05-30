@@ -66,7 +66,7 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
       },
       {
         type: "section",
-        block_id: "subtitle_block",
+        block_id: "doc_block",
         text: {
           type: "plain_text",
           text: "Please reference ops-runbook for explanation details on the resolution categories:",
