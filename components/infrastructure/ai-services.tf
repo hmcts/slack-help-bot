@@ -1,28 +1,16 @@
-resource "azapi_resource" "AIServices" {
-  type      = "Microsoft.CognitiveServices/accounts@2023-10-01-preview"
-  name      = "platops-slack-help-bot-${var.env}"
-  location  = azurerm_resource_group.this.location
-  parent_id = azurerm_resource_group.this.id
+resource "azurerm_ai_services" "AIServices" {
+  name                = "platops-slack-help-bot-${var.env}"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
 
   identity {
     type = "SystemAssigned"
   }
 
-  body = jsonencode({
-    name = "platops-slack-help-bot-${var.env}"
+  custom_subdomain_name = "platops-slack-help-bot-${var.env}"
+  public_network_access = "Enabled"
 
-    properties = {
-      customSubDomainName = "platops-slack-help-bot-${var.env}",
-      publicNetworkAccess = "Enabled"
-    }
-    kind = "AIServices"
-    sku = {
-      // https://learn.microsoft.com/en-us/azure/analysis-services/analysis-services-overview#europe
-      name = "S0"
-    }
-  })
-
-  response_export_values = ["*"]
+  sku_name = "S0"
 
   tags = module.tags.common_tags
 }
@@ -30,19 +18,31 @@ resource "azapi_resource" "AIServices" {
 resource "azapi_resource" "AIServicesConnection" {
   type      = "Microsoft.MachineLearningServices/workspaces/connections@2024-04-01-preview"
   name      = "platops-slack-help-bot-${var.env}"
-  parent_id = azapi_resource.hub.id
+  parent_id = azurerm_machine_learning_workspace.hub.id
 
   body = jsonencode({
     properties = {
       category      = "AIServices",
-      target        = jsondecode(azapi_resource.AIServices.output).properties.endpoint,
+      target        = azurerm_ai_services.AIServices.endpoint,
       authType      = "AAD",
       isSharedToAll = true,
       metadata = {
         ApiType    = "Azure",
-        ResourceId = azapi_resource.AIServices.id
+        ResourceId = azurerm_ai_services.AIServices.id
       }
     }
   })
   response_export_values = ["*"]
+}
+
+removed {
+  from = azapi_resource.AIServices
+  lifecycle {
+    destroy = false
+  }
+}
+
+import {
+  to = azurerm_ai_services.AIServices
+  id = "/subscriptions/1baf5470-1c3e-40d3-a6f7-74bfbce4b348/resourceGroups/slack-help-bot-cftptl-intsvc-rg/providers/Microsoft.CognitiveServices/accounts/platops-slack-help-bot-ptl"
 }
