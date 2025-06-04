@@ -20,7 +20,7 @@ resource "azapi_resource" "AIServicesConnection" {
   name      = "platops-slack-help-bot-${var.env}"
   parent_id = azurerm_machine_learning_workspace.hub.id
 
-  body = jsonencode({
+  body = {
     properties = {
       category      = "AIServices",
       target        = azurerm_ai_services.AIServices.endpoint,
@@ -31,7 +31,7 @@ resource "azapi_resource" "AIServicesConnection" {
         ResourceId = azurerm_ai_services.AIServices.id
       }
     }
-  })
+  }
   response_export_values = ["*"]
 }
 
