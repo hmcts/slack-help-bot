@@ -1,15 +1,14 @@
 resource "azurerm_ai_foundry_project" "project" {
   name                = "platops-slack-help-bot-${var.env}"
   location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
 
   identity {
     type = "SystemAssigned"
   }
 
-  description     = "AI for helping customers faster"
-  friendly_name   = "Slack help bot - Platform Operations"
-  hub_resource_id = azurerm_machine_learning_workspace.hub.id
+  description        = "AI for helping customers faster"
+  friendly_name      = "Slack help bot - Platform Operations"
+  ai_services_hub_id = azurerm_machine_learning_workspace.hub.id
 }
 
 removed {
