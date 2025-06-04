@@ -7,8 +7,8 @@ resource "azurerm_ai_foundry_project" "project" {
     type = "SystemAssigned"
   }
 
-  description   = "AI for helping customers faster"
-  friendly_name = "Slack help bot - Platform Operations"
+  description     = "AI for helping customers faster"
+  friendly_name   = "Slack help bot - Platform Operations"
   hub_resource_id = azurerm_machine_learning_workspace.hub.id
 }
 
