@@ -1,6 +1,6 @@
 resource "azurerm_ai_foundry_project" "project" {
-  name                = "platops-slack-help-bot-${var.env}"
-  location            = azurerm_resource_group.this.location
+  name     = "platops-slack-help-bot-${var.env}"
+  location = azurerm_resource_group.this.location
 
   identity {
     type = "SystemAssigned"
