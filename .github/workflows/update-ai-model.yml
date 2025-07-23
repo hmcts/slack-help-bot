@@ -1,0 +1,43 @@
+# .github/workflows/update-ai-model.yml
+name: Auto Update AI Model
+
+on:
+  schedule:
+    - cron: '0 2 */14 * *' # every 2 weeks at 2am UTC
+  workflow_dispatch:
+
+jobs:
+  update-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run update script
+        run: python scripts/update_ai_model_tf.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b auto/update-ai-model || git checkout auto/update-ai-model
+          git add components/infrastructure/ai-model.tf
+          git commit -m "Auto: Update AI model and version to avoid retirement" || echo "No changes to commit"
+          git push origin auto/update-ai-model || echo "No changes to push"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: auto/update-ai-model
+          title: "Auto: Update AI model and version"
+          body: |
+            This PR was automatically generated to update the AI model and version in ai-model.tf to avoid retirement.
+            See https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/model-retirements#current-models for details.
