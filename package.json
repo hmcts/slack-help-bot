@@ -30,7 +30,7 @@
     "uuidv7": "^1.0.1"
   },
   "devDependencies": {
-    "jest": "30.0.4",
+    "jest": "30.0.5",
     "jest-extended": "6.0.0"
   },
   "jest": {
