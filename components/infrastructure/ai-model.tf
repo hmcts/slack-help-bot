@@ -4,8 +4,8 @@ resource "azurerm_cognitive_deployment" "model" {
   // region availability https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-4-and-gpt-4-turbo-model-availability
   model {
     format  = "OpenAI"
-    name    = "gpt-4o"
-    version = "2024-11-20"
+    name    = "gpt-4.1"
+    version = "2025-04-14"
   }
 
   sku {
