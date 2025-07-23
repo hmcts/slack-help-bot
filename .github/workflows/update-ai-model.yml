@@ -3,7 +3,7 @@ name: Auto Update AI Model
 
 on:
   schedule:
-    - cron: '0 2 */14 * *' # every 2 weeks at 2am UTC
+    - cron: "0 2 */14 * *" # every 2 weeks at 2am UTC
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install dependencies
         run: pip install requests beautifulsoup4
