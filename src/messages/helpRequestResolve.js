@@ -78,7 +78,7 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
         elements: [
           {
             type: "mrkdwn",
-            text: "<https://hmcts.github.io/ops-runbooks/BAU/platops-help-request.html#resolve-a-platops-bau-ticket>",
+            text: "<https://hmcts.github.io/ops-runbooks/BAU-Live-Services/platops-help-request.html#resolve-a-platops-bau-ticket>",
           },
         ],
       },
