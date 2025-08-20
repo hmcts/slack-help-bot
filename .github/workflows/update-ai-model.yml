@@ -34,7 +34,7 @@ jobs:
           git push origin auto/update-ai-model || echo "No changes to push"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           branch: auto/update-ai-model
           title: "Auto: Update AI model and version"
