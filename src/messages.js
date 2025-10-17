@@ -492,6 +492,7 @@ function openHelpRequestBlocks() {
                         option('SSCS'),
                         option('PayBubble'),
                         option('PET'),
+                        option('PCS'),
                         option('Work Allocation', 'workallocation'),
                     ],
                     "action_id": "team"
