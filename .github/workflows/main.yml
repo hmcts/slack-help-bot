@@ -11,7 +11,11 @@ name: Publish
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+    env:
+      AZURE_CONTAINER_REGISTRY_URL: hmctspublic.azurecr.io
+      NEW_AZURE_CONTAINER_REGISTRY_URL: hmctsprod.azurecr.io
     steps:
       - uses: actions/checkout@v5
 
@@ -21,11 +25,19 @@ jobs:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org/ # Needed for auth
           cache: "npm"
+
       - name: npm install
         run: npm install
 
       - name: Prettier Checks
         run: npx prettier -c .
+
+      - name: 'Az CLI login'
+        uses: azure/login@v2
+        with:
+          client-id: c6a3a50b-762f-4b4f-b7ec-f1d84be20cef # DTS Platform Operations GitHub Actions ACR Publisher 1
+          tenant-id: 531ff96d-0ae9-462a-8d2d-bec7c0b42082 # HMCTS.NET
+          allow-no-subscriptions: true
 
       - name: "Get Short Sha Hash"
         id: get-short-sha
@@ -41,17 +53,36 @@ jobs:
           TIMESTAMP=$(git log -1 --format='%cI' | sed -e's/[-T:]//g' -e's/+.*$//g')
           echo "::set-output name=timestamp::$TIMESTAMP"
 
-      - name: "Build and push image"
+      # HMCTS prod
+      - name: 'ACR Login - hmctsprod'
+        run: |
+          az acr login --name hmctsprod
+
+      # HMCTSPROD ACR
+      - name: 'Build and push PR image - hmctsprod'
+        if: startsWith(github.ref, 'refs/pull')
+        run: |
+          docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+          docker push ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+
+      - name: 'Build and push prod image - hmctsprod'
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker push ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+
+      # HMCTS Public - To be deprecated once HMCTSPROD migration is complete
+      - name: "Build and push image - hmctspublic"
         uses: azure/docker-login@v2
         with:
-          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          login-server: ${{ env.AZURE_CONTAINER_REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
         if: startsWith(github.ref, 'refs/pull')
       - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
         if: github.ref == 'refs/heads/main'
