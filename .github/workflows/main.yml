@@ -32,7 +32,7 @@ jobs:
       - name: Prettier Checks
         run: npx prettier -c .
 
-      - name: 'Az CLI login'
+      - name: "Az CLI login"
         uses: azure/login@v2
         with:
           client-id: c6a3a50b-762f-4b4f-b7ec-f1d84be20cef # DTS Platform Operations GitHub Actions ACR Publisher 1
@@ -56,17 +56,17 @@ jobs:
       ###################################################
       # HMCTSPROD ACR
       ###################################################
-      - name: 'ACR Login - hmctsprod'
+      - name: "ACR Login - hmctsprod"
         run: |
           az acr login --name hmctsprod
 
-      - name: 'Build and Push PR image - hmctsprod'
+      - name: "Build and Push PR image - hmctsprod"
         if: startsWith(github.ref, 'refs/pull')
         run: |
           docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
           docker push ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
 
-      - name: 'Build and push prod image - hmctsprod'
+      - name: "Build and push prod image - hmctsprod"
         if: github.ref == 'refs/heads/main'
         run: |
           docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
@@ -82,13 +82,13 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: 'Build and Push PR image - hmctspublic'
+      - name: "Build and Push PR image - hmctspublic"
         if: startsWith(github.ref, 'refs/pull')
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
 
-      - name: 'Build and push prod image - hmctspublic'
+      - name: "Build and push prod image - hmctspublic"
         if: github.ref == 'refs/heads/main'
         run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
