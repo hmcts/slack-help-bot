@@ -53,13 +53,14 @@ jobs:
           TIMESTAMP=$(git log -1 --format='%cI' | sed -e's/[-T:]//g' -e's/+.*$//g')
           echo "::set-output name=timestamp::$TIMESTAMP"
 
-      # HMCTS prod
+      ###################################################
+      # HMCTSPROD ACR
+      ###################################################
       - name: 'ACR Login - hmctsprod'
         run: |
           az acr login --name hmctsprod
 
-      # HMCTSPROD ACR
-      - name: 'Build and push PR image - hmctsprod'
+      - name: 'Build and Push PR image - hmctsprod'
         if: startsWith(github.ref, 'refs/pull')
         run: |
           docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
@@ -71,18 +72,24 @@ jobs:
           docker build . -t ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
           docker push ${{env.NEW_AZURE_CONTAINER_REGISTRY_URL}}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
 
-      # HMCTS Public - To be deprecated once HMCTSPROD migration is complete
-      - name: "Build and push image - hmctspublic"
+      ###################################################
+      # HMCTSPUBLIC ACR - Push
+      ###################################################
+      - name: "ACR Login - hmctspublic"
         uses: azure/docker-login@v2
         with:
           login-server: ${{ env.AZURE_CONTAINER_REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
-      - run: |
+
+      - name: 'Build and Push PR image - hmctspublic'
+        if: startsWith(github.ref, 'refs/pull')
+        run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
-        if: startsWith(github.ref, 'refs/pull')
-      - run: |
+
+      - name: 'Build and push prod image - hmctspublic'
+        if: github.ref == 'refs/heads/main'
+        run: |
           docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/rpe/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
-        if: github.ref == 'refs/heads/main'
