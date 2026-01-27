@@ -143,7 +143,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "Platform Operations has recently expanded to include Crime and CPP, in order to give you the best guidance I need to know what area you need help in:",
+          text: "Platform Operations has recently expanded to include Crime and CPP, in order to give you the best guidance I need to know what area you need help in (Please select which Platform / area you require assistance in:",
         },
       },
       {
@@ -153,7 +153,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
             type: "button",
             text: {
               type: "plain_text",
-              text: "Crime / CPP",
+              text: "Crime / Common Platform - CPP ",
               emoji: true,
             },
             action_id: "begin_help_request_crime",
@@ -162,7 +162,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
             type: "button",
             text: {
               type: "plain_text",
-              text: "All other requests",
+              text: "Cloud Native Platform (CFT, SDS) - Heritage & All Other Requests",
               emoji: true,
             },
             action_id: "begin_help_request_non_crime",
