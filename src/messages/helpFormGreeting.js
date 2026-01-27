@@ -162,7 +162,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
             type: "button",
             text: {
               type: "plain_text",
-              text: "Cloud Native / All Other",
+              text: "Cloud Native / Other",
               emoji: true,
             },
             action_id: "begin_help_request_non_crime",
