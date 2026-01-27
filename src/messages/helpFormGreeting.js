@@ -143,7 +143,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "Platform Operations has recently expanded to include Crime and CPP, in order to give you the best guidance I need to know what area you need help in (Please select which Platform / area you require assistance in:",
+          text: "Platform Operations has recently expanded to include Crime and CPP, in order to give you the best guidance I need to know what area you need help in (Please select which Platform / area you require assistance in:)",
         },
       },
       {
