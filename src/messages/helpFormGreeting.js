@@ -143,7 +143,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "*In order to give you the best guidance, I need to know what area you need help in.\n\nPlease select which Platform / area you require assistance in:\n\n• *Crime / CPP* - Crime / Common Platform - CPP\n• *Cloud Native / All Other* - Cloud Native Platform (CFT, SDS) - Heritage & All Other Requests",
+          text: "*In order to give you the best guidance, I need to know what area you need help in.\n\nPlease select which Platform / area you require assistance in:\n\n• *Crime / CPP* - Crime / Common Platform - CPP\n• *Cloud Native / Other* - Cloud Native Platform (CFT, SDS) - Heritage & All Other Requests",
         },
       },
       {
