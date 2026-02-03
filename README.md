@@ -83,131 +83,103 @@ You need to create a Slack App as detailed in the steps below.
 For members of Platform Operations we have a test workspace that you can use `hmcts-platops-sandbox`, ask in #platform-operations for an invitation.
 You'll be able to install and test changes to your app there without waiting for someone to approve the change.
 
-1. Create a new app in your workspace. Follow the Slack documentation for [creating an app from a manifest](https://api.slack.com/reference/manifests).
+1. Create a new app from a manifest
 
-Open a browser and navigate to [api.slack.com/apps](https://api.slack.com/apps). This is where we will create a new app with our previously copied manifest details. Click the **Create New App** button, then select **From an app manifest** when prompted to choose how you'd like to configure your app's settings.
+- Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From an app manifest**.
+- Pick your workspace (e.g. `hmcts-platops-sandbox`) and continue.
+- Select the **JSON** tab, paste the manifest below, and update `display_information.name` so it’s unique.
 
-<img alt="Image showing how to create app" src="images/create-app.png" width=30% height=30% />
-
-Next, select a workspace where you have permissions to install apps `hmcts-platops-sandbox`, then confirm **Next**. Select the **YAML** tab and clear the existing contents. Paste the Manifest content below, make sure you update the name:
-
-```yaml
-display_information:
-  name: <your name> PlatOps help
-  description: Help requests for Platform Operations
-  background_color: "#262626"
-features:
-  app_home:
-    home_tab_enabled: true
-    messages_tab_enabled: true
-    messages_tab_read_only_enabled: false
-  bot_user:
-    display_name: PlatOps help
-    always_online: true
-  shortcuts:
-    - name: PlatOps Help Request
-      type: global
-      callback_id: begin_help_request_sc
-      description: Request help from Platform Operations
-oauth_config:
-  scopes:
-    bot:
-      - app_mentions:read
-      - channels:history
-      - channels:read
-      - chat:write
-      - chat:write.customize
-      - groups:history
-      - groups:read
-      - groups:write
-      - im:read
-      - im:write
-      - reactions:write
-      - users.profile:read
-      - users:read
-      - users:read.email
-      - im:history
-      - commands
-settings:
-  event_subscriptions:
-    user_events:
-      - app_home_opened
-    bot_events:
-      - app_home_opened
-      - app_mention
-      - message.channels
-      - message.im
-      - function_executed
-  interactivity:
-    is_enabled: true
-  org_deploy_enabled: true
-  socket_mode_enabled: true
-  token_rotation_enabled: false
-  hermes_app_type: remote
-  function_runtime: remote
-functions:
-  begin_help_request:
-    title: Begin Help Request
-    description: ""
-    input_parameters: {}
-    output_parameters: {}
+```json
+{
+  "display_information": {
+    "name": "<your name> PlatOps help",
+    "description": "Help requests for Platform Operations",
+    "background_color": "#262626"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": { "display_name": "PlatOps help", "always_online": true },
+    "shortcuts": [
+      {
+        "name": "PlatOps Help Request",
+        "type": "global",
+        "callback_id": "begin_help_request_sc",
+        "description": "Request help from Platform Operations"
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "groups:history",
+        "groups:read",
+        "groups:write",
+        "im:read",
+        "im:write",
+        "reactions:write",
+        "users.profile:read",
+        "users:read",
+        "users:read.email",
+        "im:history",
+        "commands"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "user_events": ["app_home_opened"],
+      "bot_events": [
+        "app_home_opened",
+        "app_mention",
+        "message.channels",
+        "message.im",
+        "function_executed"
+      ]
+    },
+    "interactivity": { "is_enabled": true },
+    "org_deploy_enabled": true,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false,
+    "hermes_app_type": "remote",
+    "function_runtime": "remote"
+  },
+  "functions": {
+    "begin_help_request": {
+      "title": "Begin Help Request",
+      "description": "",
+      "input_parameters": {},
+      "output_parameters": {}
+    }
+  }
+}
 ```
 
-2. Add a custom workflow
+2. (Optional) Use this app in Workflow Builder
 
-**Steps from Apps** for legacy workflows is now [deprecated](https://api.slack.com/changelog/2023-08-workflow-steps-from-apps-step-back).
+Slack’s legacy “Steps from Apps” are deprecated; this bot uses a Slack **custom function** instead.
+If you want to add “Begin Help Request” as a Workflow Builder step, follow Slack’s guide on [custom functions](https://api.slack.com/automation/functions/custom) and ensure the `Begin Help Request` function shows up under your app’s workflow steps.
 
-Instead of using the now deprecated **Step from App**, it is recommended that you re-implement your step as a [custom function](https://api.slack.com/automation/functions/custom). Here is some more slack documentation that covers [Create a custom step for Workflow Builder](https://api.slack.com/tutorials/tracks/bolt-custom-function-existing).
+3. Collect tokens
 
-Below takes you through the basics of how to implement a custom function:
+- Create an **App-level token** with scope `connections:write` (needed for Socket Mode).
+- Install the app into the workspace to get the **Bot User OAuth Token**.
 
-Navigate to **Org Level Apps** in the left nav and click **Opt-In**, then confirm **Yes**, Opt-In.
+4. Invite the bot to the target channel
 
-<img alt="Image showing how to opt in" src="images/opt-in.png" width=30% height=30% />
+In Slack, run `/invite @YourAppName` in the channel you want the bot to use.
 
-Navigate to **Workflow Steps** in the left nav and click **Add Step**. This is where we'll configure our step's inputs, outputs, name, and description.
+5. Record the channel ID
 
-<img alt="Image showing how to add a workflow step" src="images/adding-workflow-steps.png" width=30% height=30% />
-
-For illustration purposes, we're going to write a custom step called Begin Help Request. When the step is invoked, a message will be sent to the provided manager with an option to request some dedicated help from Platform Operations Help Bot.
-
-<img alt="Image showing how to create a custom step" src="images/write-custom-step.png" width=30% height=30% />
-
-Once you have saved your changes click on the **Workflow Steps** in the left nav will show you that one workflow step has been added! This reflects the function defined in our manifest; functions are workflow steps. Below is an example of what it would look like:
-
-<img alt="Image showing what an added workflow step looks like" src="images/workflow-steps-example.png" width=30% height=30% />
-
-3. Collect Tokens
-
-In order to connect our app here with the logic of our sample code set up locally, we need to gather two tokens, a bot token and an app token.
-
-**Bot tokens** are associated with bot users, and are only granted once in a workspace where someone installs the app.
-
-**App-level** tokens represent your app across organizations, including installations and are commonly used for creating websocket connections to your app.
-
-To generate an app token, navigate to **Basic Information** and scroll down to **App-Level Token**.
-
-<img alt="Image showing how to generate app level token" src="images/generate-app-level-token.png" width=30% height=30% />
-
-Click **Generate Token and Scopes**, then **Add Scope** and choose `connections:write`. Choose a name for your token and click **Generate**. Copy that value, save it somewhere accessible, and click **Done** to close out of the modal.
-
-<img alt="Image showing how to view your app level token" src="images/view-app-level-token.png" width=30% height=30% />
-
-Next up is the bot token. We can only get this token by installing the app into the workspace.
-
-4. Installing App
-
-Navigate to **Install App** and click the button to install, choosing **Allow** at the next screen.
-
-<img alt="Image showing how to install app to slack workspace" src="images/install-app-to-slack.png" width=30% height=30% />
-
-You will then have a bot token. Again, copy that value and save it somewhere accessible.
-
-<img alt="Image showing how to access the bot token" src="images/bot-token.png" width=30% height=30% />
-
-5. Invite the app in the channel where you would like it to be used in Slack. Navigate to the channel where you want the app to be active. Type /invite @YourAppName in the message box and hit enter. Replace @YourAppName with the actual name of your Slack app.
-
-6. Make a note of the **channel ID** as this will later be required in the slack-help-bot configuration. You can get the channel ID by right-clicking, 'copy link', and then it will be the bit after archives in the url, e.g. `C01APTJAM7D`.
+You’ll need the channel ID in configuration later. You can get it by “Copy link” on the channel and taking the bit after `/archives/` (e.g. `C01APTJAM7D`).
 
 ## Running the application
 
@@ -223,81 +195,65 @@ The configuration for the deployed instance can be found in [hmcts/cnp-flux-conf
 
 ### Running locally
 
-All configuration requirements listed above can be found in the "env.template.txt" file.
+All configuration requirements listed above can be found in the `env.template.txt` file.
 
-### Initial setup
+### Azure connection (for AI features)
 
-Rename "env.template.txt" to ".env" which is gitignored and safe for secrets.
-
-Source into your shell with:
-
-```bash
-$ set -o allexport; source .env; set +o allexport
-```
-
-Install dependencies by executing the following command:
-
-```bash
-$ npm install
-```
-
-### Azure connection
-
-The AI features of the bot are powered by a number of Azure services. To connect to these services you will need to authenticate with Azure.
-If you are in the `DTS Platform Operations` Security Group you will have the permissions needed to use the services.
-
-To authenticate with Azure, run the following command:
+You only need this if you want to use the bot’s AI features locally (Azure AI Search / AI Services / Cosmos DB).
 
 ```bash
 az login
 ```
 
-[See more information on authenticating with Azure in a local development environment](https://learn.microsoft.com/en-us/javascript/api/overview/azure/identity-readme?view=azure-node-latest#authenticate-the-client-in-development-environment).
+If you aren't in the `DTS Platform Operations group` you will need, at minimum:
 
-If you aren't in the `DTS Platform Operations group` you will need at least the following permissions on their respective resources:
-
-- Cosmos DB Built-in Data Contributor - This is a cosmos specific permission and can't be assigned using the Azure Portal
+- Cosmos DB Built-in Data Contributor (Cosmos-specific; can't be assigned in the Azure Portal)
 - Cognitive Services OpenAI User
 - Search Index Data Reader
 
-### Starting
-
-Run:
+### Local quickstart (npm)
 
 ```bash
+# 1) Create your local env file
+cp env.template.txt .env
+
+# 2) Load it into your shell (optional, but convenient)
+set -o allexport; source .env; set +o allexport
+
+# 3) Use the repo’s Node version
+nvm install
+nvm use
+
+# 4) (Optional) Login to Azure for AI features
+# See: Azure connection (for AI features)
+az login
+
+# 5) Install deps & start
+npm install
 npm start
 ```
 
-#### Running locally with Docker
+### Running locally with Docker
 
-There is no need to source your configuration. The ".env" file will be loaded automatically.
-
-Create docker image:
+The `.env` file will be loaded automatically (no need to `source` it).
 
 ```bash
+# Build the image
 docker compose build
-```
 
-##### Login to Azure
+# (Optional) Login to Azure for AI features
+# We use azure-cli-credentials-proxy to re-use your local access token
+# See: Azure connection (for AI features)
+az login
 
-We are using the [azure-cli-credentials-proxy](https://github.com/gsoft-inc/azure-cli-credentials-proxy) to re-use
-your local access token without having to pass credentials to the container.
-
-Follow the same instructions as in [Azure connection](#azure-connection) to authenticate with Azure.
-
-##### Start the application
-
-Run the application by executing the following command:
-
-```bash
+# Start the app
 docker compose up
+
+# Health check
+curl -k https://localhost:3000/health
 ```
 
-This will start the frontend container exposing the application's port
-(set to `3000` in this template app).
-
-In order to test if the application is up, you can visit https://localhost:3000/health in your browser.
-You should get a very basic health page.
+If `az login` is required, see [Azure connection (for AI features)](#azure-connection-for-ai-features).
 
 ## Analytics
 
