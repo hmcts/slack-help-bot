@@ -26,10 +26,7 @@ async function resolveHelpRequestHandler(client, body, area) {
 
       if (threadText.length > 0) {
         const classification = await classifyResolution(threadText);
-        if (
-          classification.category &&
-          classification.category !== "Unknown"
-        ) {
+        if (classification.category && classification.category !== "Unknown") {
           suggestedCategory = {
             category: classification.category,
             confidence: classification.confidence || "unknown",

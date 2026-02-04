@@ -7,11 +7,11 @@ This project is a Node.js Slack bot designed to help Platform users self-serve a
 ## Tech Stack
 
 - **Language:** JavaScript (Node.js)
-- **Main Frameworks/Libraries:**  
-  - [@slack/bolt](https://slack.dev/bolt-js/) for Slack integration  
-  - Azure SDKs for Cosmos DB, Identity, and Search  
-  - Jira Client for ticketing  
-  - Application Insights for telemetry  
+- **Main Frameworks/Libraries:**
+  - [@slack/bolt](https://slack.dev/bolt-js/) for Slack integration
+  - Azure SDKs for Cosmos DB, Identity, and Search
+  - Jira Client for ticketing
+  - Application Insights for telemetry
   - Prettier for formatting, Jest for testing
 - **Containerization:** Docker, with Azure Container Registry for deployment
 
@@ -40,7 +40,7 @@ This project is a Node.js Slack bot designed to help Platform users self-serve a
   `npx prettier -c .`
 - **Test:**  
   `npm test` (Jest; currently placeholder, add tests in `src/**/*.test.js`)
-- **CI/CD:**  
+- **CI/CD:**
   - GitHub Actions: `.github/workflows/main.yml` (build, lint, deploy)
   - Azure Pipelines: `pipeline/azure-pipelines.yml`
 
