@@ -7,7 +7,7 @@ const {
   getBearerTokenProvider,
 } = require("@azure/identity");
 const { mapEnvironments } = require("./parseAiResponses");
-const { aiPrompt } = require("./prompts");
+const { aiPrompt, resolutionClassificationPrompt } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -117,5 +117,43 @@ Make sure you include paragraphs to make your response easier to read.
   return content;
 }
 
+async function classifyResolution(threadMessages) {
+  const input = threadMessages.join("\n");
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: resolutionClassificationPrompt(),
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+
+  console.log("LLM Resolution Classification:", parsed);
+
+  return {
+    category: parsed.category,
+    confidence: parsed.confidence || "unknown",
+  };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
+module.exports.classifyResolution = classifyResolution;
