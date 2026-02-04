@@ -1,6 +1,6 @@
 const { optionBlock } = require("./util");
 
-function helpRequestResolveBlocks({ thread_ts, area }) {
+function helpRequestResolveBlocks({ thread_ts, area, suggestedCategory }) {
   function getResolutionCategories() {
     if (area === "other") {
       return [
@@ -93,11 +93,20 @@ function helpRequestResolveBlocks({ thread_ts, area }) {
             emoji: true,
           },
           options: resolutionCategories,
+          ...(suggestedCategory && {
+            initial_option: resolutionCategories.find(
+              (opt) => opt.value === suggestedCategory.category.toLowerCase(),
+            ),
+          }),
           action_id: "category",
         },
         label: {
           type: "plain_text",
-          text: "What was the issue?",
+          text: suggestedCategory
+            ? `What was the issue? :robot_face: (AI suggested - ${
+                suggestedCategory.confidence || "unknown"
+              } confidence)`
+            : "What was the issue?",
           emoji: true,
         },
       },
