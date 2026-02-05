@@ -1,6 +1,13 @@
 const { optionBlock } = require("./util");
 
-function helpRequestResolveBlocks({ thread_ts, area, suggestedCategory }) {
+function helpRequestResolveBlocks({
+  thread_ts,
+  area,
+  suggestedCategory,
+  suggestedHow,
+  suggestedHowConfidence,
+  suggestedHowHint,
+}) {
   function getResolutionCategories() {
     if (area === "other") {
       return [
@@ -121,11 +128,29 @@ function helpRequestResolveBlocks({ thread_ts, area, suggestedCategory }) {
             type: "plain_text",
             text: "Provide some details?",
           },
+          ...(suggestedHow && {
+            initial_value: suggestedHow,
+          }),
         },
         label: {
           type: "plain_text",
-          text: ":bulb: How?\n (Provide some details)",
+          text: suggestedHowConfidence
+            ? `:bulb: How? (AI confidence: ${suggestedHowConfidence})\n (Provide some details)`
+            : ":bulb: How?\n (Provide some details)",
         },
+        ...((suggestedHowHint || suggestedHowConfidence) && {
+          hint: {
+            type: "plain_text",
+            text: [
+              suggestedHowHint,
+              suggestedHowConfidence
+                ? `AI confidence: ${suggestedHowConfidence}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          },
+        }),
         optional: true,
       },
     ],

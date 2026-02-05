@@ -7,7 +7,11 @@ const {
   getBearerTokenProvider,
 } = require("@azure/identity");
 const { mapEnvironments } = require("./parseAiResponses");
-const { aiPrompt, resolutionClassificationPrompt } = require("./prompts");
+const {
+  aiPrompt,
+  resolutionClassificationPrompt,
+  resolutionHowSummaryPrompt,
+} = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -154,6 +158,52 @@ async function classifyResolution(threadMessages) {
   };
 }
 
+async function summariseResolutionHow({ issueContext, resolutionComments }) {
+  const input = [
+    "ISSUE CONTEXT:",
+    issueContext.join("\n"),
+    "",
+    "RESOLUTION COMMENTS:",
+    resolutionComments.join("\n"),
+  ]
+    .filter((section) => section.length > 0)
+    .join("\n");
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: resolutionHowSummaryPrompt(),
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+
+  console.log("LLM Resolution How Summary:", parsed);
+
+  return {
+    summary: parsed.summary,
+    confidence: parsed.confidence || "unknown",
+  };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
+module.exports.summariseResolutionHow = summariseResolutionHow;
