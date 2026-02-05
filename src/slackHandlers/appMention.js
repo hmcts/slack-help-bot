@@ -1,7 +1,8 @@
-const { summariseThread } = require("../ai/ai");
+const { summariseThread, answerQuestion } = require("../ai/ai");
 
 const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
 \`summarise\` - Summarises the thread using AI
+\`question\` [text] - Ask a question about this thread
 
 If you want to escalate a request please tag \`platformops-bau\`
 `;
@@ -12,9 +13,17 @@ const {
   extractJiraIdFromBlocks,
   markAsDuplicate,
 } = require("../service/persistence");
-const { extractSlackLinkFromText } = require("../messages/util");
+const {
+  convertJiraKeyToUrl,
+  convertStoragePathToHmctsWayUrl,
+  extractKnowledgeStoreHighlight,
+  extractSlackLinkFromText,
+  stringTrim,
+} = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
+const { searchHelpRequestsForQuestion } = require("../service/searchHelpRequests");
+const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -24,19 +33,70 @@ const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
 const feedback =
   "If this was useful, give me a :thumbsup: or if it wasn't then a :thumbsdown:";
 
-async function extractReplies({ client, messages }) {
+function extractMentionId(text) {
+  if (!text) {
+    return null;
+  }
+  const match = text.match(/<@([A-Z0-9]+)>/);
+  return match ? match[1] : null;
+}
+
+function stripMentions(text, mentionId) {
+  if (!text) {
+    return "";
+  }
+  if (mentionId) {
+    return text.replace(new RegExp(`<@${mentionId}>`, "g"), "").trim();
+  }
+  return text.replace(/<@[^>]+>/g, "").trim();
+}
+
+function parseCommandFromText(text, mentionId) {
+  const withoutMentions = stripMentions(text, mentionId);
+  if (!withoutMentions) {
+    return { command: null, argsText: "" };
+  }
+  const [command, ...rest] = withoutMentions.split(/\s+/);
+  return {
+    command: command.toLowerCase(),
+    argsText: rest.join(" ").trim(),
+  };
+}
+
+function normaliseCommand(command) {
+  if (!command) {
+    return null;
+  }
+  if (command === "summarize" || command === "summary") {
+    return "summarise";
+  }
+  return command;
+}
+
+async function extractReplies({
+  client,
+  messages,
+  mentionId,
+  excludedCommands = [],
+  includeBots = false,
+}) {
   return Promise.all(
     messages
       .filter((message) => {
-        if (message.bot_id) {
+        if (message.bot_id && !includeBots) {
           return false;
         }
-        const messageText = message.text;
-        return !(
-          messageText.endsWith("summarise") ||
-          messageText.endsWith("summarize") ||
-          messageText.endsWith("summary")
-        );
+        if (!message.text) {
+          return false;
+        }
+        if (mentionId) {
+          const parsed = parseCommandFromText(message.text, mentionId);
+          const command = normaliseCommand(parsed.command);
+          if (command && excludedCommands.includes(command)) {
+            return false;
+          }
+        }
+        return true;
       })
       .map(async (message) => {
         const user = await lookupUsersName({ client, user: message.user });
@@ -103,6 +163,129 @@ async function handleDuplicate({ event, client, helpRequestMessages, say }) {
   }
 }
 
+function formatHmctsWaySources(results) {
+  return results.map((item) => {
+    return {
+      title: item.document.title,
+      url: convertStoragePathToHmctsWayUrl(item.document.metadata_storage_path),
+      highlight: extractKnowledgeStoreHighlight(item),
+    };
+  });
+}
+
+function formatPastTicketSources(results) {
+  return results.map((issue) => {
+    const snippetSource = (
+      issue.resolution ||
+      issue.analysis ||
+      issue.description ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+    return {
+      key: issue.key,
+      title: issue.title,
+      snippet: stringTrim(snippetSource, 300, "..."),
+      slackUrl: issue.url,
+      jiraUrl: convertJiraKeyToUrl(issue.key),
+    };
+  });
+}
+
+function buildHmctsWaySection(hmctsWaySources) {
+  if (hmctsWaySources.length === 0) {
+    return "";
+  }
+  const lines = hmctsWaySources.map((source, index) => {
+    return `- **HMCTS_WAY_${index + 1}**: <${source.url}|${source.title}>\n  _Matched content:_ ${source.highlight}`;
+  });
+  return `\n\n---\n*Documentation:*\n${lines.join("\n\n")}`;
+}
+
+function buildPastTicketsSection(pastTickets) {
+  if (pastTickets.length === 0) {
+    return "";
+  }
+  const lines = pastTickets.map((ticket, index) => {
+    const links = [
+      ticket.jiraUrl ? `<${ticket.jiraUrl}|${ticket.key}>` : ticket.key,
+      ticket.slackUrl ? `<${ticket.slackUrl}|Slack thread>` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    return `- **TICKET_${index + 1}**: ${links} - ${ticket.title}\n  _Matched content:_ ${ticket.snippet}`;
+  });
+  return `\n\n---\n*Similar past tickets:*\n${lines.join("\n\n")}`;
+}
+
+async function handleQuestion({
+  event,
+  client,
+  helpRequestMessages,
+  say,
+  area,
+  mentionId,
+  questionText,
+}) {
+  if (!questionText) {
+    await say({
+      text: `Hi <@${event.user}>, please provide a question after the \`question\` command.`,
+      thread_ts: event.thread_ts,
+    });
+    return;
+  }
+
+  console.log(`Question command: area=${area}, channel=${event.channel}`);
+
+  await client.reactions.add({
+    name: "eyes",
+    timestamp: event.ts,
+    channel: event.channel,
+  });
+
+  const threadMessages = await extractReplies({
+    client,
+    messages: helpRequestMessages,
+    mentionId,
+    excludedCommands: ["summarise", "question"],
+    includeBots: true,
+  });
+
+  const [knowledgeStoreResults, pastTicketsResults] = await Promise.all([
+    searchKnowledgeStore(questionText, area),
+    searchHelpRequestsForQuestion(questionText, area),
+  ]);
+
+  console.log(
+    `Search results: HMCTS Way=${knowledgeStoreResults.length}, Past tickets=${pastTicketsResults.length}`,
+  );
+
+  const hmctsWaySources = formatHmctsWaySources(knowledgeStoreResults);
+  const pastTickets = formatPastTicketSources(pastTicketsResults);
+
+  const answer = await answerQuestion({
+    question: questionText,
+    threadMessages,
+    hmctsWaySources,
+    pastTickets,
+  });
+
+  const hmctsWaySection = buildHmctsWaySection(hmctsWaySources);
+  const pastTicketsSection = buildPastTicketsSection(pastTickets);
+
+  await say({
+    text: `Hi <@${event.user}>, ${answer}${hmctsWaySection}${pastTicketsSection}\n\n_${feedback}_`,
+    thread_ts: event.thread_ts,
+  });
+
+  await client.reactions.remove({
+    name: "eyes",
+    timestamp: event.ts,
+    channel: event.channel,
+  });
+}
+
 async function appMention(event, client, say) {
   try {
     // filter unwanted channels in case someone invites the bot to it
@@ -125,12 +308,19 @@ async function appMention(event, client, say) {
       }
 
       const helpRequestMessages = helpRequestResult.messages;
+      const area = "other"; // HARDCODED FOR TESTING - was: event.channel === reportChannelCrimeId ? "crime" : "other";
+      console.log(
+        `appMention: channel=${event.channel}, area=${area}, isCrime=${event.channel === reportChannelCrimeId}`,
+      );
+      const mentionId = extractMentionId(event.text);
+      const parsedCommand = parseCommandFromText(event.text, mentionId);
+      const command = normaliseCommand(parsedCommand.command);
 
       if (
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (event.text.includes("help")) {
+        if (!command || command === "help") {
           const usageMessage = `Hi <@${event.user}>, here is what I can do:
 
 ${helpText}`;
@@ -139,18 +329,14 @@ ${helpText}`;
             text: usageMessage,
             thread_ts: event.thread_ts,
           });
-        } else if (event.text.includes("duplicate")) {
+        } else if (command === "duplicate") {
           await handleDuplicate({
             event,
             client,
             helpRequestMessages,
             say,
           });
-        } else if (
-          event.text.includes("summarise") ||
-          event.text.includes("summarize") ||
-          event.text.includes("summary")
-        ) {
+        } else if (command === "summarise") {
           await client.reactions.add({
             name: "eyes",
             timestamp: event.ts,
@@ -160,6 +346,8 @@ ${helpText}`;
           const messages = await extractReplies({
             client,
             messages: helpRequestMessages,
+            mentionId,
+            excludedCommands: ["summarise", "question"],
           });
 
           const summary = await summariseThread(messages);
@@ -173,6 +361,16 @@ ${helpText}`;
             name: "eyes",
             timestamp: event.ts,
             channel: event.channel,
+          });
+        } else if (command === "question") {
+          await handleQuestion({
+            event,
+            client,
+            helpRequestMessages,
+            say,
+            area,
+            mentionId,
+            questionText: parsedCommand.argsText,
           });
         } else {
           await say({

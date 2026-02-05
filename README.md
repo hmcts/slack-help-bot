@@ -21,6 +21,7 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
   - `help` - list of all available commands
   - `duplicate <jira ticket id>` - mark a request as a duplicate of another ticket
   - `summarise` - an AI will summarise all replies in the Slack thread into one message
+  - `question <text>` - ask a question using the thread context, HMCTS Way, and similar past tickets
 - On close of a request the bot will ask for what type of help was required and what was done to resolve the issue.
 - `@PlatOps help` home page displays the following reports:
   - Open unassigned help requests

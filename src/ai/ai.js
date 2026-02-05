@@ -7,7 +7,11 @@ const {
   getBearerTokenProvider,
 } = require("@azure/identity");
 const { mapEnvironments } = require("./parseAiResponses");
-const { aiPrompt, resolutionClassificationPrompt } = require("./prompts");
+const {
+  aiPrompt,
+  resolutionClassificationPrompt,
+  questionAnswerPrompt,
+} = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -154,6 +158,62 @@ async function classifyResolution(threadMessages) {
   };
 }
 
+async function answerQuestion({
+  question,
+  threadMessages,
+  hmctsWaySources,
+  pastTickets,
+}) {
+  const hmctsWayContext = hmctsWaySources.length
+    ? hmctsWaySources
+        .map((source, index) => {
+          return `HMCTS_WAY_${index + 1}\nTitle: ${source.title}\nLink: ${source.url}\nSnippet: ${source.highlight}`;
+        })
+        .join("\n\n")
+    : "None";
+
+  const pastTicketsContext = pastTickets.length
+    ? pastTickets
+        .map((ticket, index) => {
+          const links = [ticket.jiraUrl, ticket.slackUrl]
+            .filter(Boolean)
+            .join(" | ");
+          return `TICKET_${index + 1}\nKey: ${ticket.key}\nTitle: ${ticket.title}\nLinks: ${links || "None"}\nSnippet: ${ticket.snippet}`;
+        })
+        .join("\n\n")
+    : "None";
+
+  const input = `Question:\n${question}\n\nThread:\n${threadMessages.join("\n")}\n\nHMCTS Way Sources:\n${hmctsWayContext}\n\nPast Tickets:\n${pastTicketsContext}`;
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: questionAnswerPrompt(),
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  console.log("LLM Question Answer:", content);
+
+  return content;
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
+module.exports.answerQuestion = answerQuestion;
