@@ -135,20 +135,13 @@ function helpRequestResolveBlocks({
         label: {
           type: "plain_text",
           text: suggestedHowConfidence
-            ? `:bulb: How? (AI confidence: ${suggestedHowConfidence})\n (Provide some details)`
-            : ":bulb: How?\n (Provide some details)",
+            ? `:bulb: How? :robot_face: (AI suggested - ${suggestedHowConfidence} confidence)`
+            : ":bulb: How?",
         },
-        ...((suggestedHowHint || suggestedHowConfidence) && {
+        ...((suggestedHowHint || !suggestedHow) && {
           hint: {
             type: "plain_text",
-            text: [
-              suggestedHowHint,
-              suggestedHowConfidence
-                ? `AI confidence: ${suggestedHowConfidence}`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" "),
+            text: suggestedHowHint || "Provide some details",
           },
         }),
         optional: true,
