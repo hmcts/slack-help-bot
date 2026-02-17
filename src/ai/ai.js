@@ -161,7 +161,7 @@ async function classifyResolution(threadMessages) {
   };
 }
 
-async function followUpQuestions(input, area) {
+async function followUpQuestions(input) {
   const result = await client.chat.completions.create({
     messages: [
       {

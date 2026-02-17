@@ -8,6 +8,22 @@ function createQuery(helpRequest) {
   return `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""}`;
 }
 
+function getAreaValue(area) {
+  if (typeof area === "string") {
+    return area;
+  }
+
+  return area?.value || "";
+}
+
+function getCacheKey(helpRequest, area) {
+  const query = createQuery(helpRequest);
+  const cacheInput = `${query} ${helpRequest.prBuildUrl || ""} ${getAreaValue(
+    area,
+  )}`;
+  return hashString(cacheInput);
+}
+
 async function handler(query, analyticsQuery, area) {
   const relatedIssuesPromise = searchHelpRequests(query, area);
 
@@ -18,13 +34,12 @@ async function handler(query, analyticsQuery, area) {
     area,
   );
 
-  const followUpQuestionsPromise = followUpQuestions(
-    analyticsQuery,
-    area,
-  ).catch((error) => {
-    console.log("An error occurred when fetching follow-up questions", error);
-    return [];
-  });
+  const followUpQuestionsPromise = followUpQuestions(analyticsQuery).catch(
+    (error) => {
+      console.log("An error occurred when fetching follow-up questions", error);
+      return [];
+    },
+  );
 
   const relatedIssues = await relatedIssuesPromise;
   const aiRecommendation = await aiRecommendationPromise;
@@ -44,16 +59,15 @@ async function handler(query, analyticsQuery, area) {
 async function queryAi(helpRequest, area) {
   const query = createQuery(helpRequest);
   const analyticsQuery = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""} ${helpRequest.prBuildUrl || ""}`;
-  const cacheKey = hashString(query);
+  const cacheKey = getCacheKey(helpRequest, area);
 
   return cajache.use(cacheKey, () => handler(query, analyticsQuery, area), {
     ttl: 7200, // 2 hours
   });
 }
 
-function deleteCacheEntry(helpRequest) {
-  const query = createQuery(helpRequest);
-  const cacheKey = hashString(query);
+function deleteCacheEntry(helpRequest, area) {
+  const cacheKey = getCacheKey(helpRequest, area);
 
   cajache.delete(cacheKey);
 }

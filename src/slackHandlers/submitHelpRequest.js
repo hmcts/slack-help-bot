@@ -48,8 +48,7 @@ function cleanLabel(label) {
 
 function findInputBlock(blocks, actionId) {
   return blocks.find(
-    (block) =>
-      block.type === "input" && block.element?.action_id === actionId,
+    (block) => block.type === "input" && block.element?.action_id === actionId,
   );
 }
 
@@ -73,7 +72,8 @@ function getSelectedOption(values, blocks, actionId) {
 
 function getFollowUpAnswers(values, blocks) {
   const inputBlocks = blocks.filter(
-    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+    (block) =>
+      block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
   );
 
   return inputBlocks
@@ -87,14 +87,15 @@ function getFollowUpAnswers(values, blocks) {
         values[actionId]?.value ?? block.element?.initial_value ?? "";
       const question = block.label?.text ?? "Follow-up question";
 
-      return { question, answer };
+      return { question, answer: answer.trim() };
     })
     .filter((item) => item && item.answer);
 }
 
 function getFollowUpAnswerMap(values, blocks) {
   const inputBlocks = blocks.filter(
-    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+    (block) =>
+      block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
   );
 
   return inputBlocks.reduce((acc, block) => {
@@ -111,7 +112,8 @@ function getFollowUpAnswerMap(values, blocks) {
 
 function getFollowUpQuestions(blocks) {
   const inputBlocks = blocks.filter(
-    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+    (block) =>
+      block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
   );
 
   return inputBlocks.map((block) => ({
@@ -183,7 +185,6 @@ async function submitHelpRequest(body, client, area) {
     const relatedIssuesBlocks = getRelatedIssuesBlocks(body);
     const followUpQuestions = getFollowUpQuestions(blocks);
     const followUpAnswerMap = getFollowUpAnswerMap(values, blocks);
-    const followUpAnswers = getFollowUpAnswers(values, blocks);
 
     const errorMessage = validateFullRequest(helpRequest);
     //Re-insert current values for text inputs and send the form back
@@ -351,7 +352,7 @@ async function submitHelpRequest(body, client, area) {
 
     appInsights.trackEvent("Submitted help request", { key: jiraId });
 
-    deleteCacheEntry(helpRequest);
+    deleteCacheEntry(helpRequest, area);
   } catch (error) {
     console.error("An error occurred when submitting a help form: ", error);
   }

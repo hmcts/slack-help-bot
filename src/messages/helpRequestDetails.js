@@ -6,7 +6,9 @@ function formatFollowUpAnswers(followUpAnswers) {
   }
 
   const lines = followUpAnswers
-    .filter((item) => item && item.question && item.answer)
+    .filter(
+      (item) => item && item.question && item.answer && item.answer.trim(),
+    )
     .map((item) => `*${item.question}*\n${item.answer}`)
     .join("\n\n");
 
