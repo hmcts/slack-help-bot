@@ -30,9 +30,7 @@ function sanitizeFollowUpQuestions(payload) {
         return {
           question: item.question.trim(),
           placeholder:
-            typeof item.placeholder === "string"
-              ? item.placeholder.trim()
-              : "",
+            typeof item.placeholder === "string" ? item.placeholder.trim() : "",
         };
       }
 

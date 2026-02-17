@@ -24,8 +24,7 @@ function validateInitialRequest(helpRequest) {
 
 function findInputBlock(blocks, actionId) {
   return blocks.find(
-    (block) =>
-      block.type === "input" && block.element?.action_id === actionId,
+    (block) => block.type === "input" && block.element?.action_id === actionId,
   );
 }
 
@@ -41,7 +40,8 @@ function getInputValue(values, blocks, actionId) {
 function getFollowUpAnswers(values, blocks) {
   const answers = {};
   const inputBlocks = blocks.filter(
-    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+    (block) =>
+      block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
   );
 
   inputBlocks.forEach((block) => {
@@ -50,8 +50,7 @@ function getFollowUpAnswers(values, blocks) {
       return;
     }
 
-    const value =
-      values[actionId]?.value ?? block.element?.initial_value ?? "";
+    const value = values[actionId]?.value ?? block.element?.initial_value ?? "";
 
     answers[actionId] = value;
   });
