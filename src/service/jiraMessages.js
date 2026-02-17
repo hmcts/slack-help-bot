@@ -5,11 +5,33 @@ function optionalField(prefix, value) {
   return "";
 }
 
+function formatFollowUpAnswers(followUpAnswers) {
+  if (!Array.isArray(followUpAnswers) || followUpAnswers.length === 0) {
+    return "";
+  }
+
+  const lines = followUpAnswers
+    .filter((item) => item && item.question && item.answer)
+    .map((item) => `*${item.question}*\n${item.answer}`)
+    .join("\n\n");
+
+  if (!lines) {
+    return "";
+  }
+
+  return `
+*AI follow-up answers*
+
+${lines}
+`;
+}
+
 function mapFieldsToDescription({
   prBuildUrl,
   environment,
   description,
   analysis,
+  followUpAnswers,
   checkedWithTeam,
   slackLink,
 }) {
@@ -26,6 +48,8 @@ ${optionalField("Environment", environment.text.text)}
 ${description}
 
 *Analysis done so far*: ${analysis ?? "None"}
+
+${formatFollowUpAnswers(followUpAnswers)}
 `;
 }
 

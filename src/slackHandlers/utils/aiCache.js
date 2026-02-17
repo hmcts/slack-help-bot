@@ -1,7 +1,7 @@
 const cajache = require("cajache");
 const { searchHelpRequests } = require("../../service/searchHelpRequests");
 const { searchKnowledgeStore } = require("../../service/searchKnowledgeStore");
-const { analyticsRecommendations } = require("../../ai/ai");
+const { analyticsRecommendations, followUpQuestions } = require("../../ai/ai");
 const { hashString } = require("./hashString");
 
 function createQuery(helpRequest) {
@@ -18,8 +18,17 @@ async function handler(query, analyticsQuery, area) {
     area,
   );
 
+  const followUpQuestionsPromise = followUpQuestions(
+    analyticsQuery,
+    area,
+  ).catch((error) => {
+    console.log("An error occurred when fetching follow-up questions", error);
+    return [];
+  });
+
   const relatedIssues = await relatedIssuesPromise;
   const aiRecommendation = await aiRecommendationPromise;
+  const followUpQuestionsResult = await followUpQuestionsPromise;
   const knowledgeStoreResults = await knowledgeStorePromise;
 
   console.log(relatedIssues);
@@ -28,6 +37,7 @@ async function handler(query, analyticsQuery, area) {
     relatedIssues,
     knowledgeStoreResults,
     aiRecommendation,
+    followUpQuestions: followUpQuestionsResult,
   };
 }
 

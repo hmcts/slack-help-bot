@@ -4,7 +4,10 @@ const {
   helpRequestDetailBlocks,
   helpFormGoodbyeBlocks,
 } = require("../messages");
-const { helpFormAnalyticsBlocks } = require("../messages/helpFormMain");
+const {
+  helpFormAnalyticsBlocks,
+  helpFormFollowUpBlocks,
+} = require("../messages/helpFormMain");
 const {
   createHelpRequest,
   updateHelpRequestDescription,
@@ -41,6 +44,80 @@ function validateFullRequest(helpRequest) {
 
 function cleanLabel(label) {
   return label.replace(" ", "-").toLowerCase();
+}
+
+function findInputBlock(blocks, actionId) {
+  return blocks.find(
+    (block) =>
+      block.type === "input" && block.element?.action_id === actionId,
+  );
+}
+
+function getInputValue(values, blocks, actionId) {
+  if (values[actionId] && values[actionId].value !== undefined) {
+    return values[actionId].value;
+  }
+
+  const inputBlock = findInputBlock(blocks, actionId);
+  return inputBlock?.element?.initial_value;
+}
+
+function getSelectedOption(values, blocks, actionId) {
+  if (values[actionId] && values[actionId].selected_option !== undefined) {
+    return values[actionId].selected_option;
+  }
+
+  const inputBlock = findInputBlock(blocks, actionId);
+  return inputBlock?.element?.initial_option;
+}
+
+function getFollowUpAnswers(values, blocks) {
+  const inputBlocks = blocks.filter(
+    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+  );
+
+  return inputBlocks
+    .map((block) => {
+      const actionId = block.element?.action_id;
+      if (!actionId) {
+        return null;
+      }
+
+      const answer =
+        values[actionId]?.value ?? block.element?.initial_value ?? "";
+      const question = block.label?.text ?? "Follow-up question";
+
+      return { question, answer };
+    })
+    .filter((item) => item && item.answer);
+}
+
+function getFollowUpAnswerMap(values, blocks) {
+  const inputBlocks = blocks.filter(
+    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+  );
+
+  return inputBlocks.reduce((acc, block) => {
+    const actionId = block.element?.action_id;
+    if (!actionId) {
+      return acc;
+    }
+
+    acc[actionId] =
+      values[actionId]?.value ?? block.element?.initial_value ?? "";
+    return acc;
+  }, {});
+}
+
+function getFollowUpQuestions(blocks) {
+  const inputBlocks = blocks.filter(
+    (block) => block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+  );
+
+  return inputBlocks.map((block) => ({
+    question: block.label?.text ?? "Follow-up question",
+    placeholder: block.element?.placeholder?.text ?? "",
+  }));
 }
 
 /**
@@ -90,35 +167,23 @@ async function submitHelpRequest(body, client, area) {
     // not update that field before submitting and the field may still
     // have a value in the initial_option block we set.
 
-    const inputBlocks = blocks.filter((block) => block.type === "input");
-
     const helpRequest = {
       user,
       // Blocks 0 and 1 are labels
-      summary: values.summary
-        ? values.summary.value
-        : inputBlocks[0].element.initial_value,
-      prBuildUrl: values.build_url
-        ? values.build_url.value
-        : inputBlocks[1].element.initial_value,
-      description: values.description
-        ? values.description.value
-        : inputBlocks[2].element.initial_value,
-      analysis: values.analysis
-        ? values.analysis.value
-        : inputBlocks[3].element.initial_value,
-      environment: values.environment
-        ? values.environment.selected_option
-        : inputBlocks[4].element.initial_option,
-      team: values.team
-        ? values.team.selected_option
-        : inputBlocks[5].element.initial_option,
-      area: values.area
-        ? values.area.selected_option
-        : inputBlocks[6].element.initial_option,
+      summary: getInputValue(values, blocks, "summary"),
+      prBuildUrl: getInputValue(values, blocks, "build_url"),
+      description: getInputValue(values, blocks, "description"),
+      analysis: getInputValue(values, blocks, "analysis"),
+      environment: getSelectedOption(values, blocks, "environment"),
+      team: getSelectedOption(values, blocks, "team"),
+      area: getSelectedOption(values, blocks, "area"),
+      followUpAnswers: getFollowUpAnswers(values, blocks),
     };
 
     const relatedIssuesBlocks = getRelatedIssuesBlocks(body);
+    const followUpQuestions = getFollowUpQuestions(blocks);
+    const followUpAnswerMap = getFollowUpAnswerMap(values, blocks);
+    const followUpAnswers = getFollowUpAnswers(values, blocks);
 
     const errorMessage = validateFullRequest(helpRequest);
     //Re-insert current values for text inputs and send the form back
@@ -130,6 +195,13 @@ async function submitHelpRequest(body, client, area) {
         helpRequest: helpRequest,
       });
 
+      const followUpBlocks = helpFormFollowUpBlocks({
+        questions: followUpQuestions,
+        answers: followUpAnswerMap,
+        isAdvanced: true,
+        area,
+      });
+
       const analyticsBlocks = helpFormAnalyticsBlocks({
         user: body.user.id,
         errorMessage: errorMessage,
@@ -139,6 +211,7 @@ async function submitHelpRequest(body, client, area) {
 
       const blocks = [
         ...mainBlocks,
+        ...followUpBlocks,
         ...relatedIssuesBlocks,
         ...analyticsBlocks,
       ];
@@ -165,6 +238,13 @@ async function submitHelpRequest(body, client, area) {
         helpRequest: helpRequest,
       });
 
+      const followUpBlocks = helpFormFollowUpBlocks({
+        questions: followUpQuestions,
+        answers: followUpAnswerMap,
+        isAdvanced: true,
+        area,
+      });
+
       const analyticsBlocks = helpFormAnalyticsBlocks({
         user: body.user.id,
         errorMessage: errorMessage,
@@ -175,6 +255,7 @@ async function submitHelpRequest(body, client, area) {
 
       const blocks = [
         ...mainBlocks,
+        ...followUpBlocks,
         ...relatedIssuesBlocks,
         ...analyticsBlocks,
       ];
