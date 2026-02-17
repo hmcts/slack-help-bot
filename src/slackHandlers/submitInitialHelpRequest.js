@@ -22,21 +22,6 @@ function validateInitialRequest(helpRequest) {
   return errorMessage;
 }
 
-function findInputBlock(blocks, actionId) {
-  return blocks.find(
-    (block) => block.type === "input" && block.element?.action_id === actionId,
-  );
-}
-
-function getInputValue(values, blocks, actionId) {
-  if (values[actionId] && values[actionId].value !== undefined) {
-    return values[actionId].value;
-  }
-
-  const inputBlock = findInputBlock(blocks, actionId);
-  return inputBlock?.element?.initial_value;
-}
-
 function getFollowUpAnswers(values, blocks) {
   const answers = {};
   const inputBlocks = blocks.filter(
@@ -95,11 +80,19 @@ async function submitInitialHelpRequest(body, client, source, area) {
     const helpRequest = {
       user,
       // Blocks 0 and 1 are labels
-      summary: getInputValue(values, blocks, "summary"),
-      prBuildUrl: getInputValue(values, blocks, "build_url"),
+      summary: values.summary
+        ? values.summary.value
+        : blocks[2].element.initial_value,
+      prBuildUrl: values.build_url
+        ? values.build_url.value
+        : blocks[3].element.initial_value,
       // 4 is a divider
-      description: getInputValue(values, blocks, "description"),
-      analysis: getInputValue(values, blocks, "analysis"),
+      description: values.description
+        ? values.description.value
+        : blocks[5].element.initial_value,
+      analysis: values.analysis
+        ? values.analysis.value
+        : blocks[6].element.initial_value,
     };
 
     const errorMessage = validateInitialRequest(helpRequest);
