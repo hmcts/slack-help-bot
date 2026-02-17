@@ -129,6 +129,84 @@ function helpFormAnalyticsBlocks({
   ];
 }
 
+function helpFormFollowUpBlocks({ questions, answers, isAdvanced, area }) {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return [];
+  }
+
+  const header = [
+    {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: "*Optional follow-up questions*\nYour initial request is missing some details. Answering these will help us respond faster. You can skip if you are unsure.",
+        },
+      ],
+    },
+  ];
+
+  const questionBlocks = questions.map((item, index) => {
+    const actionId = `ai_follow_up_${index}`;
+    const answer = answers?.[actionId] ?? "";
+
+    return {
+      type: "input",
+      block_id: actionId,
+      element: {
+        type: "plain_text_input",
+        action_id: actionId,
+        multiline: true,
+        initial_value: answer,
+        ...(item.placeholder
+          ? {
+              placeholder: {
+                type: "plain_text",
+                text: item.placeholder,
+              },
+            }
+          : {}),
+      },
+      label: {
+        type: "plain_text",
+        text: item.question,
+        emoji: true,
+      },
+      optional: true,
+    };
+  });
+
+  const footer = isAdvanced
+    ? []
+    : [
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Continue",
+                emoji: true,
+              },
+              action_id: `advance_from_follow_up${area === "crime" ? "_crime" : ""}`,
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Skip and continue",
+                emoji: true,
+              },
+              action_id: `advance_from_follow_up_skip${area === "crime" ? "_crime" : ""}`,
+            },
+          ],
+        },
+      ];
+
+  return [...header, ...questionBlocks, ...footer];
+}
+
 function mapStatus(status) {
   switch (status) {
     case "In Progress":
@@ -437,3 +515,4 @@ module.exports.helpFormMainBlocks = helpFormMainBlocks;
 module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
 module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;
 module.exports.helpFormKnowledgeStoreBlocks = helpFormKnowledgeStoreBlocks;
+module.exports.helpFormFollowUpBlocks = helpFormFollowUpBlocks;

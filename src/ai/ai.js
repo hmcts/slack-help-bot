@@ -6,8 +6,15 @@ const {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } = require("@azure/identity");
-const { mapEnvironments } = require("./parseAiResponses");
-const { aiPrompt, resolutionClassificationPrompt } = require("./prompts");
+const {
+  mapEnvironments,
+  sanitizeFollowUpQuestions,
+} = require("./parseAiResponses");
+const {
+  aiPrompt,
+  resolutionClassificationPrompt,
+  followUpQuestionsPrompt,
+} = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -154,6 +161,41 @@ async function classifyResolution(threadMessages) {
   };
 }
 
+async function followUpQuestions(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: followUpQuestionsPrompt(),
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+
+  const questions = sanitizeFollowUpQuestions(parsed);
+
+  console.log("LLM Follow-up questions:", questions);
+
+  return questions;
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
+module.exports.followUpQuestions = followUpQuestions;

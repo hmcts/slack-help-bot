@@ -165,6 +165,22 @@ app.action(
 );
 
 app.action(
+  "advance_from_follow_up",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "follow_up", "other");
+  },
+);
+
+app.action(
+  "advance_from_follow_up_skip",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "follow_up", "other");
+  },
+);
+
+app.action(
   "advance_from_related_issues",
   async ({ body, action, ack, client, context }) => {
     await ack();
@@ -177,6 +193,22 @@ app.action(
   async ({ body, action, ack, client, context }) => {
     await ack();
     await submitInitialHelpRequest(body, client, "related_issues", "crime");
+  },
+);
+
+app.action(
+  "advance_from_follow_up_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "follow_up", "crime");
+  },
+);
+
+app.action(
+  "advance_from_follow_up_skip_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "follow_up", "crime");
   },
 );
 

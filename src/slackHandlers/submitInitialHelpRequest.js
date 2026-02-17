@@ -1,6 +1,7 @@
 const { helpFormMainBlocks } = require("../messages");
 const {
   helpFormAnalyticsBlocks,
+  helpFormFollowUpBlocks,
   helpFormRelatedIssuesBlocks,
   helpFormKnowledgeStoreBlocks,
 } = require("../messages/helpFormMain");
@@ -19,6 +20,27 @@ function validateInitialRequest(helpRequest) {
     errorMessage = "Please provide a description of your issue.";
   }
   return errorMessage;
+}
+
+function getFollowUpAnswers(values, blocks) {
+  const answers = {};
+  const inputBlocks = blocks.filter(
+    (block) =>
+      block.type === "input" && block.block_id?.startsWith("ai_follow_up_"),
+  );
+
+  inputBlocks.forEach((block) => {
+    const actionId = block.element?.action_id;
+    if (!actionId) {
+      return;
+    }
+
+    const value = values[actionId]?.value ?? block.element?.initial_value ?? "";
+
+    answers[actionId] = value;
+  });
+
+  return answers;
 }
 
 async function submitInitialHelpRequest(body, client, source, area) {
@@ -125,11 +147,14 @@ async function submitInitialHelpRequest(body, client, source, area) {
       let relatedIssues = [];
       let knowledgeStoreResults = [];
       let aiRecommendation = {};
+      let followUpQuestions = [];
+      const followUpAnswers = getFollowUpAnswers(values, blocks);
       try {
         const result = await queryAi(helpRequest, area);
         relatedIssues = result.relatedIssues;
         knowledgeStoreResults = result.knowledgeStoreResults;
         aiRecommendation = result.aiRecommendation;
+        followUpQuestions = result.followUpQuestions || [];
       } catch (error) {
         console.log(
           "An error occurred when fetching AI recommendations",
@@ -137,42 +162,67 @@ async function submitInitialHelpRequest(body, client, source, area) {
         );
       }
 
-      const knowledgeStoreAdvanced =
-        source !== "initial" ? true : knowledgeStoreResults.length === 0;
-      const knowledgeStoreBlocks = helpFormKnowledgeStoreBlocks({
-        knowledgeStoreResults,
-        isAdvanced: knowledgeStoreAdvanced,
+      const followUpAdvanced =
+        source !== "initial" ? true : followUpQuestions.length === 0;
+
+      const followUpBlocks = helpFormFollowUpBlocks({
+        questions: followUpQuestions,
+        answers: followUpAnswers,
+        isAdvanced: followUpAdvanced,
         area,
       });
 
+      const showKnowledgeStore = followUpAdvanced;
+
+      const knowledgeStoreAdvanced = showKnowledgeStore
+        ? source !== "initial" && source !== "follow_up"
+          ? true
+          : knowledgeStoreResults.length === 0
+        : false;
+      const knowledgeStoreBlocks = showKnowledgeStore
+        ? helpFormKnowledgeStoreBlocks({
+            knowledgeStoreResults,
+            isAdvanced: knowledgeStoreAdvanced,
+            area,
+          })
+        : [];
+
       // always record the event, even if it won't be shown so that we can track drop-off accurately
-      if (source === "initial") {
+      if (source === "initial" && showKnowledgeStore) {
         appInsights.trackEvent("Knowledge store", {
           resultCount: knowledgeStoreResults.length,
         });
       }
 
-      const relatedIssuesAdvanced =
-        source === "related_issues" ? true : relatedIssues.length === 0;
+      const relatedIssuesAdvanced = showKnowledgeStore
+        ? source === "related_issues"
+          ? true
+          : relatedIssues.length === 0
+        : false;
 
-      if (
-        // if no results then record anyway
-        (knowledgeStoreAdvanced && relatedIssues.length === 0) ||
-        // otherwise record when we aren't advanced but knowledge store is
-        (knowledgeStoreAdvanced && !relatedIssuesAdvanced)
-      ) {
-        appInsights.trackEvent("Related issues", {
-          resultCount: relatedIssues.length,
-        });
+      if (showKnowledgeStore) {
+        if (
+          // if no results then record anyway
+          (knowledgeStoreAdvanced && relatedIssues.length === 0) ||
+          // otherwise record when we aren't advanced but knowledge store is
+          (knowledgeStoreAdvanced && !relatedIssuesAdvanced)
+        ) {
+          appInsights.trackEvent("Related issues", {
+            resultCount: relatedIssues.length,
+          });
+        }
       }
-      const relatedIssuesBlocks = helpFormRelatedIssuesBlocks({
-        // skip related issues if knowledge store results are present and next hasn't been clicked
-        relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
-        isAdvanced: relatedIssuesAdvanced,
-        area,
-      });
+      const relatedIssuesBlocks = showKnowledgeStore
+        ? helpFormRelatedIssuesBlocks({
+            // skip related issues if knowledge store results are present and next hasn't been clicked
+            relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
+            isAdvanced: relatedIssuesAdvanced,
+            area,
+          })
+        : [];
 
-      const showAnalytics = knowledgeStoreAdvanced && relatedIssuesAdvanced;
+      const showAnalytics =
+        showKnowledgeStore && knowledgeStoreAdvanced && relatedIssuesAdvanced;
 
       if (showAnalytics) {
         appInsights.trackEvent("Analytics fields", {
@@ -192,8 +242,9 @@ async function submitInitialHelpRequest(body, client, source, area) {
           })
         : [];
 
-      const blocks = [
+      const updatedBlocks = [
         ...mainBlocks,
+        ...followUpBlocks,
         ...knowledgeStoreBlocks,
         ...relatedIssuesBlocks,
         ...analyticsBlocks,
@@ -203,7 +254,7 @@ async function submitInitialHelpRequest(body, client, source, area) {
         channel: body.channel.id,
         ts: body.message.ts,
         text: "Raise a help request with Platform Operations",
-        blocks,
+        blocks: updatedBlocks,
       });
 
       checkSlackResponseError(
