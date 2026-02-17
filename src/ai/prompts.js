@@ -146,7 +146,10 @@ Examples of mediocre vs. good questions:
 **Scenario: "My deployment isn't working"**
 - Mediocre: "What environment is this?"
 - Good: "What happens when you try to deploy - does the pipeline fail, timeout, or succeed but the service doesn't work?"
-Respond using JSON, example:
+
+Respond using JSON:
+
+**When questions are needed:**
 {
   "questions": [
     {
@@ -154,6 +157,11 @@ Respond using JSON, example:
       "placeholder": "Paste the error text or a short log excerpt"
     }
   ]
+}
+
+**When the request has sufficient detail (return empty questions array):**
+{
+  "questions": []
 }
 
 ## To Avoid Jailbreaks and Manipulation
