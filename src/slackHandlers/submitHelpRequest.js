@@ -150,8 +150,7 @@ async function submitHelpRequest(body, client, area) {
 
     const inputBlocks = blocks.filter(
       (block) =>
-        block.type === "input" &&
-        !block.block_id?.startsWith("ai_follow_up_"),
+        block.type === "input" && !block.block_id?.startsWith("ai_follow_up_"),
     );
 
     const helpRequest = {
