@@ -105,7 +105,10 @@ function getRelatedIssuesBlocks(body) {
   const tempRelatedIssuesBlock = body.message.blocks
     .filter(
       (block) =>
-        block.type !== "input" && block.type !== "header" && !block?.accessory,
+        block.type !== "input" &&
+        block.type !== "header" &&
+        !block?.accessory &&
+        block.block_id !== "follow_up_questions_header",
     )
     .slice(2);
   return tempRelatedIssuesBlock.slice(0, tempRelatedIssuesBlock.length - 1);
@@ -145,7 +148,10 @@ async function submitHelpRequest(body, client, area) {
     // not update that field before submitting and the field may still
     // have a value in the initial_option block we set.
 
-    const inputBlocks = blocks.filter((block) => block.type === "input");
+    const inputBlocks = blocks.filter(
+      (block) =>
+        block.type === "input" && !block.block_id?.startsWith("ai_follow_up_"),
+    );
 
     const helpRequest = {
       user,
@@ -214,7 +220,7 @@ async function submitHelpRequest(body, client, area) {
         ts: body.message.ts,
         text: "Raise a help request With Platform Operations",
         errorMessage: errorMessage,
-        blocks,
+        blocks: blocks.slice(0, 50),
       });
 
       checkSlackResponseError(
@@ -257,7 +263,7 @@ async function submitHelpRequest(body, client, area) {
         channel: body.channel.id,
         ts: body.message.ts,
         text: "Raise a help request with Platform Operations",
-        blocks,
+        blocks: blocks.slice(0, 50),
       });
 
       checkSlackResponseError(
