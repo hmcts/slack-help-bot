@@ -137,6 +137,7 @@ function helpFormFollowUpBlocks({ questions, answers, isAdvanced, area }) {
   const header = [
     {
       type: "context",
+      block_id: "follow_up_questions_header",
       elements: [
         {
           type: "mrkdwn",
