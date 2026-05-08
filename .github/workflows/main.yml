@@ -17,7 +17,7 @@ jobs:
       AZURE_CONTAINER_REGISTRY_URL: hmctspublic.azurecr.io
       NEW_AZURE_CONTAINER_REGISTRY_URL: hmctsprod.azurecr.io
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: use node.js
         uses: actions/setup-node@v4
