@@ -178,7 +178,7 @@ async function createHelpRequestInJira(summary, project, user, labels) {
     try {
         await jira.transitionIssue(issue.key, {
             transition: {
-                id: "361" // Move to "Up Next"
+                id: "481" // Move to "Awaiting Initial Triage"
             }
         })
     } catch (err) {
