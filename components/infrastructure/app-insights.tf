@@ -3,6 +3,7 @@ module "application_insights" {
 
   product = var.product
   env     = var.env
+  sampling_percentage = 100
 
   resource_group_name = azurerm_resource_group.this.name
 
