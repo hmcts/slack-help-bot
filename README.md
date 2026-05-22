@@ -179,8 +179,8 @@ If you want to add “Begin Help Request” as a Workflow Builder step, follow S
 
 4. Invite the bot to the target channel
 
-- In Slack, run `/invite @YourAppName` in the channel you want the bot to use.  
-- From then on you should see an instance of your Bot App be suggested in the dropdown list when you begin typing `/Platops...`.  
+- In Slack, run `/invite @YourAppName` in the channel you want the bot to use.
+- From then on you should see an instance of your Bot App be suggested in the dropdown list when you begin typing `/Platops...`.
   - It is helpful to set custom name or picture on the app so that you can more easily differentiate from other people's test apps which may be present.
 - If your app does not appear when you begin typing `/Platops...` then it could be that Slack is slow to update, try restarting Slack and waiting some more - based on anecdotal experience this could take up to an hour.
 
