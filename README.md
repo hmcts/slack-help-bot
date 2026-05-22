@@ -171,11 +171,18 @@ If you want to add “Begin Help Request” as a Workflow Builder step, follow S
 3. Collect tokens
 
 - Create an **App-level token** with scope `connections:write` (needed for Socket Mode).
-- Install the app into the workspace to get the **Bot User OAuth Token**.
+- Install the app into the workspace (this will be `hmcts-platops-sandbox` for development/testing/debugging) to get the **Bot User OAuth Token**.
+  - This is a two step process, you will first need to **request permission to install** then **install** it to the workspace (same button).
+  - If you are waiting for an approval for a long time you can message the workspace admin and explain what you are trying to do
+  - You can find out who is the workspace admin by going to: **Home** > **(Top Left) Directories** > **Filter** > **Set Workspaces to** `hmcts-platops-sandbox` > **Set Account types to** `Admin`
+  - Organisation installation is not required - workspace install should be sufficient for the App to work despite following message `Org installation is required for Workflow Steps to work properly. Learn more` you might see on the OAUTH config pages.
 
 4. Invite the bot to the target channel
 
-In Slack, run `/invite @YourAppName` in the channel you want the bot to use.
+- In Slack, run `/invite @YourAppName` in the channel you want the bot to use.
+- From then on you should see an instance of your Bot App be suggested in the dropdown list when you begin typing `/Platops...`.
+  - It is helpful to set custom name or picture on the app so that you can more easily differentiate from other people's test apps which may be present.
+- If your app does not appear when you begin typing `/Platops...` then it could be that Slack is slow to update, try restarting Slack and waiting some more - based on anecdotal experience this could take up to an hour.
 
 5. Record the channel ID
 
