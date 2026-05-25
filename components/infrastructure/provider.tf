@@ -8,7 +8,7 @@ terraform {
     }
     azapi = {
       source  = "Azure/azapi"
-      version = "2.9.0"
+      version = "2.10.0"
     }
     restapi = {
       source  = "Mastercard/restapi"
