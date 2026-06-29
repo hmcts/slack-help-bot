@@ -44,7 +44,7 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 Running the application requires the following tools to be installed in your environment:
 
-  * [Node.js](https://nodejs.org/) v18.0.0 or later
+  * [Node.js](https://nodejs.org/) v24.0.0 or later
   * [npm](https://www.npmjs.com/)
   * [Docker](https://www.docker.com)
 

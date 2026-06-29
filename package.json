@@ -1,6 +1,6 @@
 {
   "name": "ccpay-slack-help-bot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "app.js",
   "scripts": {
@@ -9,19 +9,21 @@
   "author": "Fee & Payments",
   "license": "MIT",
   "dependencies": {
-    "@hmcts/properties-volume": "^1.0.0",
-    "@slack/bolt": "^4.0.0",
+    "@hmcts/properties-volume": "^1.4.0",
+    "@slack/bolt": "^4.7.3",
     "@types/config": "3.3.5",
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^2.2.2",
-    "config": "^3.3.9",
-    "jira-client": "^8.1.0",
-    "js-yaml": "^4.1.0",
+    "config": "^4.4.1",
+    "jira-client": "^8.2.2",
+    "js-yaml": "^4.2.0",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "jest": "29.7.0",
-    "jest-extended": "4.0.2"
+    "jest": "30.4.2",
+    "jest-extended": "7.0.0",
+    "@types/jira-client": "^7.1.9",
+    "nodemon": "^3.1.14"
   },
   "jest": {
     "setupFilesAfterEnv": [

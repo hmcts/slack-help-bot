@@ -13,6 +13,9 @@ const jiraStartTransitionId = config.get('jira.start_transition_id')
 const jiraDoneTransitionId = config.get('jira.done_transition_id')
 const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`)
 
+const DONE_TRANSITION_NAMES = ['Done', 'Resolve Issue', 'Resolved', 'Close Issue', 'Closed']
+const START_TRANSITION_NAMES = ['Start Progress', 'In Progress', 'Start']
+
 const jira = new JiraApi({
     protocol: 'https',
     host: 'tools.hmcts.net/jira',
@@ -21,13 +24,41 @@ const jira = new JiraApi({
     strictSSL: true
 });
 
+function normaliseName(name) {
+    return (name || '').trim().toLowerCase()
+}
+
+async function transitionIssueSafely(issueId, preferredTransitionId, fallbackTransitionNames) {
+    const transitionsResponse = await jira.listTransitions(issueId)
+    const availableTransitions = transitionsResponse.transitions || []
+
+    const preferred = availableTransitions.find((transition) => String(transition.id) === String(preferredTransitionId))
+    const byName = availableTransitions.find((transition) =>
+        fallbackTransitionNames.map(normaliseName).includes(normaliseName(transition.name))
+    )
+
+    const selectedTransition = preferred || byName
+    if (!selectedTransition) {
+        console.log(
+            `No valid transition found for issue ${issueId}. ` +
+            `Configured transition id: ${preferredTransitionId}. ` +
+            `Available transitions: ${availableTransitions.map((t) => `${t.id}:${t.name}`).join(', ')}`
+        )
+        return false
+    }
+
+    await jira.transitionIssue(issueId, {
+        transition: {
+            id: selectedTransition.id
+        }
+    })
+
+    return true
+}
+
 async function resolveHelpRequest(jiraId) {
     try {
-        await jira.transitionIssue(jiraId, {
-            transition: {
-                id: jiraDoneTransitionId
-            }
-        })
+        await transitionIssueSafely(jiraId, jiraDoneTransitionId, DONE_TRANSITION_NAMES)
     } catch (err) {
         console.log("Error resolving help request in jira", err)
     }
@@ -47,11 +78,7 @@ async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
             },
         });
 
-        await jira.transitionIssue(jiraIdToUpdate, {
-            transition: {
-                id: jiraDoneTransitionId
-            }
-        })
+        await transitionIssueSafely(jiraIdToUpdate, jiraDoneTransitionId, DONE_TRANSITION_NAMES)
     } catch (err) {
         console.log("Error marking help request as duplicate in jira", err)
     }
@@ -60,11 +87,7 @@ async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
 
 async function startHelpRequest(jiraId) {
     try {
-        await jira.transitionIssue(jiraId, {
-            transition: {
-                id: jiraStartTransitionId
-            }
-        })
+        await transitionIssueSafely(jiraId, jiraStartTransitionId, START_TRANSITION_NAMES)
     } catch (err) {
         console.log("Error starting help request in jira", err)
     }
@@ -120,16 +143,34 @@ async function assignHelpRequest(issueId, email) {
  * @param blocks
  */
 function extractJiraIdFromBlocks(blocks) {
-    let viewOnJiraText
-    if (blocks.length === 3) {
-        viewOnJiraText = blocks[2].fields[0].text
-    } else {
-        viewOnJiraText = blocks[4].elements[0].text
+    if (!Array.isArray(blocks)) {
+        return 'undefined'
     }
 
-    project = extractProjectRegex.exec(viewOnJiraText);
+    const textFragments = []
+    for (const block of blocks) {
+        if (block?.text?.text) {
+            textFragments.push(block.text.text)
+        }
+        if (Array.isArray(block?.fields)) {
+            for (const field of block.fields) {
+                if (field?.text) {
+                    textFragments.push(field.text)
+                }
+            }
+        }
+        if (Array.isArray(block?.elements)) {
+            for (const element of block.elements) {
+                if (element?.text) {
+                    textFragments.push(element.text)
+                }
+            }
+        }
+    }
 
-    return (project) ? project[1] : 'undefined';
+    const jiraText = textFragments.join(' ')
+    const project = extractProjectRegex.exec(jiraText)
+    return project ? project[1] : 'undefined'
 }
 
 function extraJiraId(text) {
@@ -142,7 +183,7 @@ async function convertEmail(email) {
     }
 
     try {
-        res = await jira.searchUsers(options = {
+        const res = await jira.searchUsers({
             username: email,
             maxResults: 1
         })
@@ -233,8 +274,12 @@ async function updateHelpRequestDescription(issueId, fields) {
 async function addCommentToHelpRequest(externalSystemId, fields) {
     try {
         await jira.addComment(externalSystemId, createComment(fields))
+        console.log(`Added Jira comment to issue ${externalSystemId}`)
     } catch (err) {
-        console.log("Error creating comment in jira", err)
+        console.log(`Error creating comment in jira for issue ${externalSystemId}`, {
+            error: err,
+            fields
+        })
     }
 }
 

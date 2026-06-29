@@ -14,11 +14,10 @@ jobs:
     permissions:
       id-token: write
     env:
-      AZURE_CONTAINER_REGISTRY_URL: hmctspublic.azurecr.io
-      NEW_AZURE_CONTAINER_REGISTRY_URL: hmctsprod.azurecr.io
+      AZURE_CONTAINER_REGISTRY_URL: hmctsprod.azurecr.io
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [24.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -65,17 +64,17 @@ jobs:
       - name: "Build and Push PR image - hmctsprod"
         if: startsWith(github.ref, 'refs/pull')
         run: |
-          docker build . -t ${{ env.NEW_AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
-          docker push ${{ env.NEW_AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:pr-${{github.event.number}}-${{ steps.get-short-sha.outputs.shortSha }}
 
       - name: "Build and push prod image - hmctsprod"
         if: github.ref == 'refs/heads/main'
         run: |
-          docker build . -t ${{ env.NEW_AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
-          docker push ${{ env.NEW_AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker build . -t ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY_URL }}/ccpay/slack-help-bot:prod-${{ steps.get-short-sha.outputs.shortSha }}-${{ steps.get-timestamp.outputs.timestamp }}
 
       ###################################################
-      # HMCTSPUBLIC ACR
+      # HMCTSPROD ACR
       ###################################################
       - name: "ACR Login - hmctspublic"
         uses: azure/docker-login@v1

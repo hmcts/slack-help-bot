@@ -760,6 +760,16 @@ function convertProfileToName(profile) {
 
 app.event('message', async ({ event, context, client, say }) => {
     try {
+        console.log('message event received', JSON.stringify({
+            channel: event.channel,
+            thread_ts: event.thread_ts,
+            ts: event.ts,
+            subtype: event.subtype,
+            user: event.user,
+            bot_id: event.bot_id,
+            text: event.text
+        }));
+
         // filter unwanted channels in case someone invites the bot to it
         // and only look at threaded messages
         if (event.channel === reportChannelId && event.thread_ts) {
@@ -785,6 +795,7 @@ app.event('message', async ({ event, context, client, say }) => {
                 helpRequestMessages[0].text === 'Duplicate issue')
             ) {
                 const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks)
+                console.log(`Attempting to mirror Slack message to Jira issue: ${jiraId}`)
 
                 const groupRegex = /<!subteam\^.+\|([^>.]+)>/g
                 const usernameRegex = /<@([^>.]+)>/g
@@ -803,6 +814,7 @@ app.event('message', async ({ event, context, client, say }) => {
                     name,
                     message: newTargetText
                 })
+                console.log(`Mirrored Slack message to Jira issue: ${jiraId}`)
             } else {
                 // either need to implement pagination or find a better way to get the first message in the thread
                 console.warn("Could not find jira ID, possibly thread is longer than 200 messages, TODO implement pagination");

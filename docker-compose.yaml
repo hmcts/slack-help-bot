@@ -1,7 +1,8 @@
-version: "3.8"
 services:
 
   slack-help-bot:
     build: .
+    ports:
+      - "3000:3000"
     env_file:
       - ./.env
