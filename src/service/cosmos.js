@@ -16,6 +16,40 @@ const client = new CosmosClient({
   aadCredentials: credential,
 });
 
+const MAX_SEARCH_TERM_BYTES = 32000;
+
+function truncateUtf8Bytes(value, maxBytes = MAX_SEARCH_TERM_BYTES) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  if (Buffer.byteLength(value, "utf8") <= maxBytes) {
+    return value;
+  }
+
+  let bytes = 0;
+  let truncated = "";
+
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character, "utf8");
+    if (bytes + characterBytes > maxBytes) {
+      break;
+    }
+
+    truncated += character;
+    bytes += characterBytes;
+  }
+
+  return truncated;
+}
+
+function truncateSearchableFields(item) {
+  return {
+    ...item,
+    description: truncateUtf8Bytes(item.description),
+  };
+}
+
 async function load() {
   const documents = JSON.parse(
     await fsPromises.readFile("documents.json", "utf-8"),
@@ -64,7 +98,7 @@ async function run(documents) {
     documents.map((document) => {
       return {
         operationType: "Create",
-        resourceBody: document,
+        resourceBody: truncateSearchableFields(document),
       };
     }),
     100,
@@ -92,7 +126,7 @@ function getContainer() {
 async function createHelpRequestInCosmos(item) {
   const container = getContainer();
 
-  await container.items.create(item);
+  await container.items.create(truncateSearchableFields(item));
 }
 
 async function updateCosmosWhenHelpRequestResolved(item) {
@@ -144,3 +178,4 @@ module.exports.load = load;
 module.exports.updateCosmosWhenHelpRequestResolved =
   updateCosmosWhenHelpRequestResolved;
 module.exports.createHelpRequestInCosmos = createHelpRequestInCosmos;
+module.exports.truncateUtf8Bytes = truncateUtf8Bytes;
