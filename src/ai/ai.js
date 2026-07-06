@@ -14,6 +14,7 @@ const {
   aiPrompt,
   resolutionClassificationPrompt,
   followUpQuestionsPrompt,
+  knowledgeAnswerPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -29,6 +30,62 @@ const client = new AzureOpenAI({
   endpoint: config.get("openai.endpoint"),
   apiVersion,
 });
+
+function truncateText(text, maxLength) {
+  if (!text) {
+    return "";
+  }
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength)}...`;
+}
+
+function formatKnowledgeStoreCaptions(result) {
+  if (!result.captions || result.captions.length === 0) {
+    return "None";
+  }
+
+  return result.captions
+    .map((caption) => caption.highlights || caption.text)
+    .filter(Boolean)
+    .join("\n");
+}
+
+function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
+  if (!Array.isArray(sourceIndexes)) {
+    return [];
+  }
+
+  return sourceIndexes.filter(
+    (sourceIndex) =>
+      Number.isInteger(sourceIndex) &&
+      sourceIndex >= 1 &&
+      sourceIndex <= sourceCount,
+  );
+}
+
+function formatKnowledgeStoreContext(knowledgeStoreResults) {
+  return knowledgeStoreResults
+    .map((result, index) => {
+      const document = result.document || {};
+      const title = document.title || "Untitled document";
+      const url = document.metadata_storage_path || "Unknown source";
+      const captions = formatKnowledgeStoreCaptions(result);
+      const content = truncateText(document.content, 3500);
+
+      return `[${index + 1}]
+Title: ${title}
+Source: ${url}
+Relevant search captions:
+${captions}
+Content:
+${content}`;
+    })
+    .join("\n\n");
+}
 
 async function analyticsRecommendations(input, area) {
   const result = await client.chat.completions.create({
@@ -195,7 +252,62 @@ async function followUpQuestions(input) {
   return questions;
 }
 
+async function answerFromKnowledgeStore(question, knowledgeStoreResults) {
+  if (knowledgeStoreResults.length === 0) {
+    return {
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    };
+  }
+
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: knowledgeAnswerPrompt(),
+      },
+      {
+        role: "user",
+        content: `Question:
+${question}
+
+Search results:
+${context}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+  const answer =
+    parsed.answer || "I couldn't find an answer in the documentation.";
+  const sourceIndexes = sanitizeSourceIndexes(
+    parsed.sourceIndexes,
+    knowledgeStoreResults.length,
+  );
+
+  console.log("LLM Knowledge Store Answer:", parsed);
+
+  return { answer, sourceIndexes };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
 module.exports.followUpQuestions = followUpQuestions;
+module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
+module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
+module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
+module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;

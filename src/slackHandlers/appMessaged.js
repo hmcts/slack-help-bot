@@ -1,4 +1,7 @@
 const { beginHelpRequest } = require("./beginHelpRequest");
+const { answerFromKnowledgeStore } = require("../ai/ai");
+const { knowledgeAnswerText } = require("../messages/knowledgeAnswer");
+const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
 const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,
@@ -31,20 +34,73 @@ async function replaceAsync(str, regex, asyncFn) {
   return str.replace(regex, () => data.shift());
 }
 
+async function answerDirectMessage(event, client, say) {
+  const question = event.text.trim();
+  const processingMessage = await say(
+    "Searching documentation and generating an answer...",
+  );
+
+  try {
+    const knowledgeStoreResults = await searchKnowledgeStore(question, "other");
+    const knowledgeAnswer = await answerFromKnowledgeStore(
+      question,
+      knowledgeStoreResults,
+    );
+    const text = knowledgeAnswerText({
+      answer: knowledgeAnswer.answer,
+      knowledgeStoreResults,
+      sourceIndexes: knowledgeAnswer.sourceIndexes,
+    });
+
+    if (processingMessage?.channel && processingMessage?.ts) {
+      await client.chat.update({
+        channel: processingMessage.channel,
+        ts: processingMessage.ts,
+        text,
+      });
+      return;
+    }
+
+    await say(text);
+  } catch (error) {
+    console.error("An error occurred when answering a direct message", error);
+    const text =
+      'Sorry, I could not search the documentation right now. You can reply with "help" to raise a Platform Operations help request.';
+
+    if (processingMessage?.channel && processingMessage?.ts) {
+      await client.chat.update({
+        channel: processingMessage.channel,
+        ts: processingMessage.ts,
+        text,
+      });
+      return;
+    }
+
+    await say(text);
+  }
+}
+
 async function appMessaged(event, context, client, say) {
   try {
+    if (event.bot_id || event.subtype === "message_changed") {
+      return;
+    }
+
     // Filters for direct(instant) messages
-    if (event.channel_type === "im" && event.subtype !== "message_changed") {
-      switch (event.text?.toLowerCase()) {
+    if (event.channel_type === "im") {
+      const text = event.text?.trim();
+
+      if (!text) {
+        return;
+      }
+
+      switch (text.toLowerCase()) {
         case "help":
           // Open the PlatOps help request form. Alternative to the shortcut above
           await beginHelpRequest({ userId: context.userId, client });
           return;
         default:
-          //
-          await say(
-            "Sorry, I didn't catch that. Here's what I can help you with:\n`help` Open a Platform Help Request",
-          );
+          await answerDirectMessage(event, client, say);
           return;
       }
     }
@@ -124,3 +180,4 @@ async function appMessaged(event, context, client, say) {
 }
 
 module.exports.appMessaged = appMessaged;
+module.exports.answerDirectMessage = answerDirectMessage;

@@ -8,6 +8,7 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 - Users can request help from Platform Operations by:
   - Using the `/PlatOps help` shortcut.
   - Messaging the PlatOps help bot and saying `help`.
+- Users can ask the bot a question in a direct message. The bot searches the `the-hmcts-way` index in `Azure AI Search`, generates a grounded response using `Azure AI Services`, and links to the source documents it used.
 - While requesting help the bot will:
   - Provide initial guidance, linking to documentation, recent announcements and providing guidance on what should be raised here.
   - Link to our QnA maker bot Plato which has pre-programmed answers to some common questions.
@@ -45,6 +46,12 @@ During help request workflow the application:
 5. Stores the request in Cosmos DB.
 6. Replies on the help request Slack thread are added to Jira.
    - Replies on Jira are not added to Slack.
+
+For direct-message questions the application:
+
+1. Searches the `the-hmcts-way` index in `Azure AI Search`.
+2. Sends the retrieved documentation snippets and the user's question to `Azure AI Services`.
+3. Replies in Slack with a generated answer and source links.
 
 On close of the help request:
 
