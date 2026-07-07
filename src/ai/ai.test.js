@@ -1,6 +1,7 @@
 const {
   formatKnowledgeStoreCaptions,
   formatKnowledgeStoreContext,
+  sanitizeResolutionSummary,
   sanitizeSourceIndexes,
 } = require("./ai");
 
@@ -57,5 +58,17 @@ describe("formatKnowledgeStoreContext", () => {
 describe("sanitizeSourceIndexes", () => {
   it("keeps only valid one-based source indexes", () => {
     expect(sanitizeSourceIndexes([0, 1, 3, 4, "2"], 3)).toStrictEqual([1, 3]);
+  });
+});
+
+describe("sanitizeResolutionSummary", () => {
+  it("falls back when the summary is empty", () => {
+    expect(sanitizeResolutionSummary("   ")).toBe(
+      "Resolution not clear from the thread.",
+    );
+  });
+
+  it("truncates long summaries for Slack modal input", () => {
+    expect(sanitizeResolutionSummary("a".repeat(3000))).toHaveLength(2903);
   });
 });
