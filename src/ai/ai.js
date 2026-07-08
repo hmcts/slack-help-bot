@@ -13,6 +13,7 @@ const {
 const {
   aiPrompt,
   resolutionClassificationPrompt,
+  resolutionDocumentationPrompt,
   followUpQuestionsPrompt,
   knowledgeAnswerPrompt,
 } = require("./prompts");
@@ -65,6 +66,21 @@ function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
       sourceIndex >= 1 &&
       sourceIndex <= sourceCount,
   );
+}
+
+function sanitizeResolutionSummary(resolutionSummary) {
+  const fallback = "Resolution not clear from the thread.";
+
+  if (typeof resolutionSummary !== "string") {
+    return fallback;
+  }
+
+  const trimmed = resolutionSummary.trim();
+  if (trimmed.length === 0) {
+    return fallback;
+  }
+
+  return truncateText(trimmed, 2900);
 }
 
 function formatKnowledgeStoreContext(knowledgeStoreResults) {
@@ -218,6 +234,44 @@ async function classifyResolution(threadMessages) {
   };
 }
 
+async function suggestResolutionDocumentation(threadMessages) {
+  const input = threadMessages.join("\n");
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: resolutionDocumentationPrompt(),
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+
+  console.log("LLM Resolution Documentation:", parsed);
+
+  return {
+    category: parsed.category,
+    confidence: parsed.confidence || "unknown",
+    resolutionSummary: sanitizeResolutionSummary(parsed.resolutionSummary),
+  };
+}
+
 async function followUpQuestions(input) {
   const result = await client.chat.completions.create({
     messages: [
@@ -306,8 +360,10 @@ ${context}`,
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
+module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
+module.exports.sanitizeResolutionSummary = sanitizeResolutionSummary;
