@@ -131,7 +131,7 @@ The category must be ONE of:
 Resolution note rules:
 - Only include facts present in the thread.
 - Summarise what was done to resolve the request, not the whole discussion.
-- Keep it short enough to fit in a Slack modal text input.
+- Keep it under 600 characters so it fits cleanly in the Slack modal text input.
 - If the resolution is not clear from the thread, say: "Resolution not clear from the thread."
 - Do not invent commands, owners, causes, links, dates, or follow-up actions.
 - Do not include a header or intro.
