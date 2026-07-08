@@ -72,6 +72,13 @@ locals {
         sortable   = true
       },
       {
+        name       = "resolution"
+        type       = "Edm.String"
+        searchable = true
+        filterable = false
+        sortable   = false
+      },
+      {
         name       = "rid"
         type       = "Edm.String"
         searchable = false
@@ -100,6 +107,9 @@ locals {
               },
               {
                 fieldName = "analysis"
+              },
+              {
+                fieldName = "resolution"
               }
             ],
             prioritizedKeywordsFields = []
