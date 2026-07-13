@@ -230,6 +230,8 @@ function formatDate(date) {
 }
 
 function relatedIssueBlock(issue) {
+  const resolutionText = issue.resolution ? issue.resolution.trim() : "";
+
   return [
     {
       type: "section",
@@ -255,6 +257,19 @@ function relatedIssueBlock(issue) {
         },
       ],
     },
+    ...(resolutionText
+      ? [
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `*Resolution:* ${resolutionText}`,
+              },
+            ],
+          },
+        ]
+      : []),
     { type: "divider" },
   ];
 }

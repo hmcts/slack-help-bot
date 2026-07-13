@@ -58,10 +58,9 @@ async function answerDirectMessage(event, client, say) {
         ts: processingMessage.ts,
         text,
       });
-      return;
+    } else {
+      await say(text);
     }
-
-    await say(text);
   } catch (error) {
     console.error("An error occurred when answering a direct message", error);
     const text =
