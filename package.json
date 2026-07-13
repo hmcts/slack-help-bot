@@ -21,7 +21,7 @@
     "cajache": "^2.0.2",
     "config": "^4.0.0",
     "jira-client": "^8.1.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^5.0.0",
     "lodash": "^4.17.21",
     "luxon": "^3.4.4",
     "node-cron": "^4.0.0",
