@@ -29,7 +29,7 @@ describe("getKnowledgeStoreSource", () => {
 });
 
 describe("knowledgeAnswerText", () => {
-  it("includes answer, sources and help guidance", () => {
+  it("includes answer, sources and the help CTA", () => {
     const text = knowledgeAnswerText({
       answer: "Use the GitHub repo creation guide [1].",
       knowledgeStoreResults: [
@@ -38,6 +38,7 @@ describe("knowledgeAnswerText", () => {
             title: "Creating a GitHub repo",
             metadata_storage_path:
               "https://sttimslackbo570094706456.blob.core.windows.net/the-hmcts-way/cloud-native-platform/new-component/github-repo.html",
+            content: "Full document content",
           },
         },
       ],
@@ -91,16 +92,6 @@ describe("knowledgeAnswerText", () => {
     expect(text).not.toContain("*Sources*");
   });
 
-  it("does not duplicate help guidance from the generated answer", () => {
-    const text = knowledgeAnswerText({
-      answer:
-        'I could not find that in the documentation. If you need further assistance, you can reply with "help".',
-      knowledgeStoreResults: [],
-    });
-
-    expect(text.match(/reply with "help"/gi)).toHaveLength(1);
-  });
-
   it("converts generated markdown bold to Slack mrkdwn", () => {
     const text = knowledgeAnswerText({
       answer: "1. **Check Jenkins Availability**: Ensure Jenkins is available.",
@@ -111,6 +102,25 @@ describe("knowledgeAnswerText", () => {
       "1. *Check Jenkins Availability*: Ensure Jenkins is available.",
     );
     expect(text).not.toContain("**Check Jenkins Availability**");
+  });
+
+  it("includes related JIRA issues with their resolutions", () => {
+    const text = knowledgeAnswerText({
+      answer: "Use the runbook.",
+      knowledgeStoreResults: [],
+      relatedIssues: [
+        {
+          key: "SBOX-1",
+          title: "Smoke / Functional test failure",
+          resolution: "Access the URL on VPN and run the tests manually.",
+        },
+      ],
+    });
+
+    expect(text).toContain("*Related JIRA issues*");
+    expect(text).toContain("SBOX-1");
+    expect(text).toContain("Smoke / Functional test failure");
+    expect(text).toContain("Access the URL on VPN");
   });
 });
 

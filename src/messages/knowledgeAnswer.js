@@ -1,4 +1,8 @@
-const { convertStoragePathToHmctsWayUrl, stringTrim } = require("./util");
+const {
+  convertJiraKeyToUrl,
+  convertStoragePathToHmctsWayUrl,
+  stringTrim,
+} = require("./util");
 
 function getKnowledgeStoreSource(item, index) {
   const document = item.document || {};
@@ -44,17 +48,43 @@ function getSourceResults(knowledgeStoreResults, sourceIndexes) {
     .filter(({ item }) => item);
 }
 
-function knowledgeAnswerText({ answer, knowledgeStoreResults, sourceIndexes }) {
+function relatedHelpRequestResultsText(relatedIssues) {
+  if (!Array.isArray(relatedIssues) || relatedIssues.length === 0) {
+    return undefined;
+  }
+
+  const items = relatedIssues
+    .map((issue, index) => {
+      const title = issue.title || "Untitled issue";
+      const resolution = issue.resolution
+        ? stringTrim(issue.resolution.trim(), 400, "...")
+        : "Resolution not available.";
+
+      return `${index + 1}. <${convertJiraKeyToUrl(issue.key)}|${issue.key}> - ${title}\n   *Resolution:* ${resolution}`;
+    })
+    .join("\n\n");
+
+  return `*Related JIRA issues*\n${items}`;
+}
+
+function knowledgeAnswerText({
+  answer,
+  knowledgeStoreResults,
+  sourceIndexes,
+  relatedIssues,
+}) {
   const cleanedAnswer = convertMarkdownToSlackMrkdwn(
     removeHelpGuidance(answer),
   );
   const sourceText = getSourceResults(knowledgeStoreResults, sourceIndexes)
     .map(({ item, index }) => getKnowledgeStoreSource(item, index))
     .join("\n");
+  const relatedHelpRequestsText = relatedHelpRequestResultsText(relatedIssues);
 
   const sections = [
     cleanedAnswer,
     sourceText ? `*Sources*\n${sourceText}` : undefined,
+    relatedHelpRequestsText,
     '_Reply with "help" if you need to raise a Platform Operations help request._',
   ].filter(Boolean);
 
@@ -70,3 +100,4 @@ module.exports.getKnowledgeStoreSource = getKnowledgeStoreSource;
 module.exports.removeHelpGuidance = removeHelpGuidance;
 module.exports.convertMarkdownToSlackMrkdwn = convertMarkdownToSlackMrkdwn;
 module.exports.getSourceResults = getSourceResults;
+module.exports.relatedHelpRequestResultsText = relatedHelpRequestResultsText;
