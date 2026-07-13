@@ -56,9 +56,7 @@ const {
 const {
   viewRequestsAssignedToMe,
 } = require("./src/slackHandlers/appHome/viewRequestsAssignedToMe");
-const {
-  appMessaged,
-} = require("./src/slackHandlers/appMessaged");
+const { appMessaged } = require("./src/slackHandlers/appMessaged");
 const {
   viewRequestsRaisedByMe,
 } = require("./src/slackHandlers/appHome/viewRequestsRaisedByMe");
