@@ -34,6 +34,31 @@ describe("formatKnowledgeStoreCaptions", () => {
 
 describe("formatKnowledgeStoreContext", () => {
   it("puts relevant search captions into the model context", () => {
+    const context = formatKnowledgeStoreContext(
+      [
+        {
+          captions: [
+            {
+              highlights:
+                "Smoke / Functional test failure. Access the URL on VPN.",
+            },
+          ],
+          document: {
+            title: "Troubleshooting issues",
+            metadata_storage_path: "https://example.com/troubleshooting.html",
+            content: "Full document content",
+          },
+        },
+      ],
+      "other",
+    );
+
+    expect(context).toContain("Platform: Cloud Native / SDS");
+    expect(context).toContain("Relevant search captions:");
+    expect(context).toContain("Smoke / Functional test failure");
+  });
+
+  it("falls back to all platforms when the area is unknown", () => {
     const context = formatKnowledgeStoreContext([
       {
         captions: [
@@ -50,8 +75,7 @@ describe("formatKnowledgeStoreContext", () => {
       },
     ]);
 
-    expect(context).toContain("Relevant search captions:");
-    expect(context).toContain("Smoke / Functional test failure");
+    expect(context).toContain("Platform: All platforms");
   });
 });
 

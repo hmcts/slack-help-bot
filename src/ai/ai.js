@@ -44,6 +44,18 @@ function truncateText(text, maxLength) {
   return `${text.slice(0, maxLength)}...`;
 }
 
+function getKnowledgeStoreScope(area) {
+  if (area === "crime") {
+    return "Common Platform / CPP";
+  }
+
+  if (area === "other") {
+    return "Cloud Native / SDS";
+  }
+
+  return "All platforms";
+}
+
 function formatKnowledgeStoreCaptions(result) {
   if (!result.captions || result.captions.length === 0) {
     return "None";
@@ -83,21 +95,24 @@ function sanitizeResolutionSummary(resolutionSummary) {
   return truncateText(trimmed, 2900);
 }
 
-function formatKnowledgeStoreContext(knowledgeStoreResults) {
+function formatKnowledgeStoreContext(knowledgeStoreResults, area) {
+  const platformScope = getKnowledgeStoreScope(area);
+
   return knowledgeStoreResults
     .map((result, index) => {
       const document = result.document || {};
       const title = document.title || "Untitled document";
       const url = document.metadata_storage_path || "Unknown source";
       const captions = formatKnowledgeStoreCaptions(result);
-      const content = truncateText(document.content, 3500);
+      const content = truncateText(document.content, 1200);
 
       return `[${index + 1}]
+Platform: ${platformScope}
 Title: ${title}
 Source: ${url}
 Relevant search captions:
 ${captions}
-Content:
+Content excerpt:
 ${content}`;
     })
     .join("\n\n");
@@ -306,7 +321,11 @@ async function followUpQuestions(input) {
   return questions;
 }
 
-async function answerFromKnowledgeStore(question, knowledgeStoreResults) {
+async function answerFromKnowledgeStore(
+  question,
+  knowledgeStoreResults,
+  area = "other",
+) {
   if (knowledgeStoreResults.length === 0) {
     return {
       answer: "I couldn't find an answer in the documentation.",
@@ -314,7 +333,7 @@ async function answerFromKnowledgeStore(question, knowledgeStoreResults) {
     };
   }
 
-  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults, area);
 
   const result = await client.chat.completions.create({
     messages: [
@@ -324,11 +343,17 @@ async function answerFromKnowledgeStore(question, knowledgeStoreResults) {
       },
       {
         role: "user",
-        content: `Question:
+        content: `Selected platform: ${getKnowledgeStoreScope(area)}
+Question:
 ${question}
 
 Search results:
-${context}`,
+${context}
+
+Instructions:
+- Answer with the most likely fix or next step first.
+- Prefer the strongest matching result over stitching together weak matches.
+- Only use the supplied search results.`,
       },
     ],
     response_format: { type: "json_object" },
