@@ -45,6 +45,7 @@ async function answerDirectMessage(event, client, say) {
     const knowledgeAnswer = await answerFromKnowledgeStore(
       question,
       knowledgeStoreResults,
+      "other",
     );
     const text = knowledgeAnswerText({
       answer: knowledgeAnswer.answer,

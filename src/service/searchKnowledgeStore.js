@@ -14,12 +14,16 @@ const searchClient = new SearchClient(
 );
 
 async function searchKnowledgeStore(query, area) {
-  if (area === "crime") {
-    // no known knowledge store for crime at this time so just skip it for now
-    return [];
-  }
+  const filter =
+    area === "crime"
+      ? `search.ismatch('"common-platform"', 'metadata_storage_path')`
+      : area === "other"
+        ? `search.ismatch('"cloud-native-platform"', 'metadata_storage_path')`
+        : undefined;
+
   const searchResults = await searchClient.search(query, {
     queryType: "semantic",
+    ...(filter && { filter }),
     semanticSearchOptions: {
       captions: {
         captionType: "extractive",
