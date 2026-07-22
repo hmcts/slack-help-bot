@@ -1,8 +1,8 @@
 const { beginHelpRequest } = require("./beginHelpRequest");
-const { knowledgeSearchPromptBlocks } = require("../messages/knowledgeSearchPrompt");
 const {
-  setPendingKnowledgeSearch,
-} = require("./utils/pendingKnowledgeSearch");
+  knowledgeSearchPromptBlocks,
+} = require("../messages/knowledgeSearchPrompt");
+const { setPendingKnowledgeSearch } = require("./utils/pendingKnowledgeSearch");
 const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,

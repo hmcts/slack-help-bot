@@ -12,11 +12,15 @@ function setPendingKnowledgeSearch({ channelId, userId, question }) {
 }
 
 function getPendingKnowledgeSearch({ channelId, userId }) {
-  return pendingKnowledgeSearch.get(getPendingKnowledgeSearchKey(channelId, userId));
+  return pendingKnowledgeSearch.get(
+    getPendingKnowledgeSearchKey(channelId, userId),
+  );
 }
 
 function clearPendingKnowledgeSearch({ channelId, userId }) {
-  pendingKnowledgeSearch.delete(getPendingKnowledgeSearchKey(channelId, userId));
+  pendingKnowledgeSearch.delete(
+    getPendingKnowledgeSearchKey(channelId, userId),
+  );
 }
 
 module.exports.setPendingKnowledgeSearch = setPendingKnowledgeSearch;

@@ -8,9 +8,8 @@ describe("helpFormGreetingBlocks", () => {
       isAdvanced: false,
     });
 
-    const button = blocks.find(
-      (block) => block.type === "actions",
-    )?.elements?.[0];
+    const button = blocks.find((block) => block.type === "actions")
+      ?.elements?.[0];
 
     expect(button?.action_id).toBe("start_help_form");
     expect(button?.text?.text).toBe("I Still Need Help");

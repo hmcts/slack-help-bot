@@ -1,7 +1,9 @@
 const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
 const { answerFromKnowledgeStore } = require("../ai/ai");
 const { knowledgeAnswerText } = require("../messages/knowledgeAnswer");
-const { knowledgeSearchAnswerBlocks } = require("../messages/knowledgeSearchAnswer");
+const {
+  knowledgeSearchAnswerBlocks,
+} = require("../messages/knowledgeSearchAnswer");
 const {
   clearPendingKnowledgeSearch,
   getPendingKnowledgeSearch,
@@ -17,8 +19,7 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
     await client.chat.update({
       channel: body.channel.id,
       ts: body.message.ts,
-      text:
-        "I could not find the original question. Please send it again and choose a platform.",
+      text: "I could not find the original question. Please send it again and choose a platform.",
       blocks: [],
     });
     return;
@@ -56,8 +57,7 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
     console.error("An error occurred when answering a knowledge search", error);
     await client.chat.postMessage({
       channel: body.channel.id,
-      text:
-        "Sorry, I could not search the documentation right now. Please use the help request button to continue.",
+      text: "Sorry, I could not search the documentation right now. Please use the help request button to continue.",
       blocks: knowledgeSearchAnswerBlocks({
         answer:
           "Sorry, I could not search the documentation right now. Please use the help request button to continue.",

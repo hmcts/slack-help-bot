@@ -1,7 +1,4 @@
-const {
-  helpFormMainBlocks,
-  helpFormGreetingBlocks,
-} = require("../messages");
+const { helpFormMainBlocks, helpFormGreetingBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
 const appInsights = require("../modules/appInsights");
 

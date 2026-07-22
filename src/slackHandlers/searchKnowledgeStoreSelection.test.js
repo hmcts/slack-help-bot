@@ -6,9 +6,7 @@ jest.mock("../ai/ai", () => ({
   answerFromKnowledgeStore: jest.fn(),
 }));
 
-const {
-  searchKnowledgeStore,
-} = require("../service/searchKnowledgeStore");
+const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
 const { answerFromKnowledgeStore } = require("../ai/ai");
 const {
   setPendingKnowledgeSearch,
