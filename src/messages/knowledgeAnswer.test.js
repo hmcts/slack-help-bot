@@ -29,7 +29,7 @@ describe("getKnowledgeStoreSource", () => {
 });
 
 describe("knowledgeAnswerText", () => {
-  it("includes answer, sources and the help CTA", () => {
+  it("includes answer and sources", () => {
     const text = knowledgeAnswerText({
       answer: "Use the GitHub repo creation guide [1].",
       knowledgeStoreResults: [
@@ -47,7 +47,6 @@ describe("knowledgeAnswerText", () => {
     expect(text).toContain("Use the GitHub repo creation guide [1].");
     expect(text).toContain("*Sources*");
     expect(text).toContain("Creating a GitHub repo");
-    expect(text).toContain('Reply with "help"');
   });
 
   it("only includes source indexes used by the answer", () => {

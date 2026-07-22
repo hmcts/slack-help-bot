@@ -4,8 +4,6 @@ slack:
   #app_token: no default
   report_channel_id: C01KHKNJUKE
   report_channel_crime_id: C01KHKQJZ3V
-  plato_link: slack://app?team=T1L0WSW9F&id=A01CW2HNX3J&tab=messages
-  plato_user_id: U01C35YF6S1
 
 jira:
   start_transition_id: 21

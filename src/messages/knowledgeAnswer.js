@@ -85,7 +85,6 @@ function knowledgeAnswerText({
     cleanedAnswer,
     sourceText ? `*Sources*\n${sourceText}` : undefined,
     relatedHelpRequestsText,
-    '_Reply with "help" if you need to raise a Platform Operations help request._',
   ].filter(Boolean);
 
   return stringTrim(

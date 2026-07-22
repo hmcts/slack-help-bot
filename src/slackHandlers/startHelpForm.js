@@ -1,34 +1,21 @@
 const {
   helpFormMainBlocks,
-  helpFormPlatoBlocks,
   helpFormGreetingBlocks,
 } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
 const appInsights = require("../modules/appInsights");
 
 async function updateLastMessage(client, body, area) {
-  if (area === "other") {
-    return await client.chat.update({
-      channel: body.channel.id,
-      ts: body.message.ts,
-      text: "Chat to Plato",
-      blocks: helpFormPlatoBlocks({
-        user: body.user.id,
-        isAdvanced: true,
-      }),
-    });
-  } else {
-    return await client.chat.update({
-      channel: body.channel.id,
-      ts: body.message.ts,
-      text: "Hello!",
-      blocks: helpFormGreetingBlocks({
-        user: body.user.id,
-        area,
-        isAdvanced: true,
-      }),
-    });
-  }
+  return await client.chat.update({
+    channel: body.channel.id,
+    ts: body.message.ts,
+    text: "Hello!",
+    blocks: helpFormGreetingBlocks({
+      user: body.user.id,
+      area,
+      isAdvanced: true,
+    }),
+  });
 }
 
 async function startHelpForm(client, body, area) {
@@ -54,10 +41,10 @@ async function startHelpForm(client, body, area) {
 
     checkSlackResponseError(
       updateRes,
-      "An error occurred when updating a 'Chat to Plato' message",
+      "An error occurred when updating the help request prompt",
     );
 
-    appInsights.trackEvent("Plato couldn't help");
+    appInsights.trackEvent("Help request form started");
   } catch (error) {
     console.error(error);
   }
