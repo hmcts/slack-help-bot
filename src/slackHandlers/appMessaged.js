@@ -1,7 +1,8 @@
 const { beginHelpRequest } = require("./beginHelpRequest");
-const { answerFromKnowledgeStore } = require("../ai/ai");
-const { knowledgeAnswerText } = require("../messages/knowledgeAnswer");
-const { searchKnowledgeStore } = require("../service/searchKnowledgeStore");
+const {
+  knowledgeSearchPromptBlocks,
+} = require("../messages/knowledgeSearchPrompt");
+const { setPendingKnowledgeSearch } = require("./utils/pendingKnowledgeSearch");
 const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,
@@ -34,50 +35,18 @@ async function replaceAsync(str, regex, asyncFn) {
   return str.replace(regex, () => data.shift());
 }
 
-async function answerDirectMessage(event, client, say) {
+async function promptForKnowledgeSearchPlatform(event, say) {
   const question = event.text.trim();
-  const processingMessage = await say(
-    "Searching documentation and generating an answer...",
-  );
+  setPendingKnowledgeSearch({
+    channelId: event.channel,
+    userId: event.user,
+    question,
+  });
 
-  try {
-    const knowledgeStoreResults = await searchKnowledgeStore(question, "other");
-    const knowledgeAnswer = await answerFromKnowledgeStore(
-      question,
-      knowledgeStoreResults,
-      "other",
-    );
-    const text = knowledgeAnswerText({
-      answer: knowledgeAnswer.answer,
-      knowledgeStoreResults,
-      sourceIndexes: knowledgeAnswer.sourceIndexes,
-    });
-
-    if (processingMessage?.channel && processingMessage?.ts) {
-      await client.chat.update({
-        channel: processingMessage.channel,
-        ts: processingMessage.ts,
-        text,
-      });
-    } else {
-      await say(text);
-    }
-  } catch (error) {
-    console.error("An error occurred when answering a direct message", error);
-    const text =
-      'Sorry, I could not search the documentation right now. You can reply with "help" to raise a Platform Operations help request.';
-
-    if (processingMessage?.channel && processingMessage?.ts) {
-      await client.chat.update({
-        channel: processingMessage.channel,
-        ts: processingMessage.ts,
-        text,
-      });
-      return;
-    }
-
-    await say(text);
-  }
+  await say({
+    text: "Which platform should I search?",
+    blocks: knowledgeSearchPromptBlocks(),
+  });
 }
 
 async function appMessaged(event, context, client, say) {
@@ -100,7 +69,7 @@ async function appMessaged(event, context, client, say) {
           await beginHelpRequest({ userId: context.userId, client });
           return;
         default:
-          await answerDirectMessage(event, client, say);
+          await promptForKnowledgeSearchPlatform(event, say);
           return;
       }
     }
@@ -180,4 +149,5 @@ async function appMessaged(event, context, client, say) {
 }
 
 module.exports.appMessaged = appMessaged;
-module.exports.answerDirectMessage = answerDirectMessage;
+module.exports.promptForKnowledgeSearchPlatform =
+  promptForKnowledgeSearchPlatform;

@@ -132,7 +132,7 @@ function helpFormGreetingBlocks({ user, area, isAdvanced }) {
               text: "I Still Need Help",
               emoji: true,
             },
-            action_id: "show_plato_dialogue",
+            action_id: "start_help_form",
           },
         ],
       });

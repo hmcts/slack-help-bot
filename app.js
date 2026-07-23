@@ -34,7 +34,6 @@ const http = require("http");
 const cron = require("node-cron");
 const { requestListener } = require("./src/routes/server");
 const { beginHelpRequest } = require("./src/slackHandlers/beginHelpRequest");
-const { showPlatoDialogue } = require("./src/slackHandlers/showPlatoDialogue");
 const { startHelpForm } = require("./src/slackHandlers/startHelpForm");
 const {
   submitInitialHelpRequest,
@@ -57,6 +56,9 @@ const {
   viewRequestsAssignedToMe,
 } = require("./src/slackHandlers/appHome/viewRequestsAssignedToMe");
 const { appMessaged } = require("./src/slackHandlers/appMessaged");
+const {
+  handleKnowledgeSearchPlatformSelection,
+} = require("./src/slackHandlers/searchKnowledgeStoreSelection");
 const {
   viewRequestsRaisedByMe,
 } = require("./src/slackHandlers/appHome/viewRequestsRaisedByMe");
@@ -117,14 +119,6 @@ app.action(
 );
 
 app.action(
-  "show_plato_dialogue",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await showPlatoDialogue(client, body);
-  },
-);
-
-app.action(
   "start_help_form_crime",
   async ({ body, action, ack, client, context }) => {
     await ack();
@@ -137,6 +131,22 @@ app.action(
   async ({ body, action, ack, client, context }) => {
     await ack();
     await startHelpForm(client, body, "other");
+  },
+);
+
+app.action(
+  "search_knowledge_store_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await handleKnowledgeSearchPlatformSelection(client, body, "crime");
+  },
+);
+
+app.action(
+  "search_knowledge_store_non_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await handleKnowledgeSearchPlatformSelection(client, body, "other");
   },
 );
 

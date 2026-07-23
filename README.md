@@ -11,7 +11,7 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 - Users can ask the bot a question in a direct message. The bot searches the `the-hmcts-way` index in `Azure AI Search`, generates a grounded response using `Azure AI Services`, and links to the source documents it used.
 - While requesting help the bot will:
   - Provide initial guidance, linking to documentation, recent announcements and providing guidance on what should be raised here.
-  - Link to our QnA maker bot Plato which has pre-programmed answers to some common questions.
+  - Prompt the user to choose the platform in DM before continuing into the normal help workflow.
   - Ask users to fill in some details about their request.
   - Search the `help-requests` index in `Azure AI Search` which will return the top 3 most relevant results from previous requests.
   - Search the `the-hmcts-way` index in `Azure AI Search` which will return the top 3 most relevant results from the HMCTS Way.
