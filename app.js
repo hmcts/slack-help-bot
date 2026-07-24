@@ -154,7 +154,7 @@ app.action(
   "submit_initial_help_request",
   async ({ body, action, ack, client, context }) => {
     await ack();
-    await submitInitialHelpRequest(body, client, "initial", "area");
+    await submitInitialHelpRequest(body, client, "initial", "other");
   },
 );
 
@@ -171,6 +171,14 @@ app.action(
   async ({ body, action, ack, client, context }) => {
     await ack();
     await submitInitialHelpRequest(body, client, "knowledge_store", "other");
+  },
+);
+
+app.action(
+  "advance_from_knowledge_store_crime",
+  async ({ body, action, ack, client, context }) => {
+    await ack();
+    await submitInitialHelpRequest(body, client, "knowledge_store", "crime");
   },
 );
 

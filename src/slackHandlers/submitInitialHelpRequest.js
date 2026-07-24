@@ -47,7 +47,7 @@ async function submitInitialHelpRequest(body, client, source, area) {
   try {
     const user = body.user.id;
 
-    const values = Object.values(body.state.values).reduce(
+    const values = Object.values(body.state?.values ?? {}).reduce(
       (r, c) => Object.assign(r, c),
       {},
     );
