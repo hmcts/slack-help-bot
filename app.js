@@ -68,9 +68,10 @@ const {
 const {
   documentHelpRequest,
 } = require("./src/slackHandlers/documentHelpRequest");
-const {
-  withdrawInactiveIssues,
-} = require("./src/slackHandlers/withdrawInactiveIssues");
+// disable automatic withdrawal of inactive issues until further notice
+// const {
+//   withdrawInactiveIssues,
+// } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const port = process.env.PORT || 3000;
 
@@ -349,6 +350,7 @@ app.action(
   },
 );
 
-cron.schedule("0 8 * * 1-5", async () => {
-  await withdrawInactiveIssues(app);
-});
+// disable automatic withdrawal of inactive issues until further notice
+// cron.schedule("0 8 * * 1-5", async () => {
+//  await withdrawInactiveIssues(app);
+// });
