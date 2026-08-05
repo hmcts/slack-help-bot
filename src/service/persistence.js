@@ -365,7 +365,7 @@ async function addLabel(externalSystemId, { category }) {
 }
 
 async function searchForInactiveIssues() {
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -10d`;
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -30d`;
   try {
     return await jira.searchJira(jqlQuery, {
       fields: [
