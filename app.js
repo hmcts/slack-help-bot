@@ -72,6 +72,10 @@ const {
   withdrawInactiveIssues,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
+const {
+  watchHelpRequestThread,
+  unwatchHelpRequestThread,
+} = require("./src/slackHandlers/watchHelpRequestThread");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -265,6 +269,16 @@ app.action(
     await assignHelpRequestToUser(action, body, client);
   },
 );
+
+app.action("watch_help_request_thread", async ({ body, ack, client }) => {
+  await ack();
+  await watchHelpRequestThread(body, client);
+});
+
+app.action("unwatch_help_request_thread", async ({ body, ack, client }) => {
+  await ack();
+  await unwatchHelpRequestThread(body, client);
+});
 
 app.action(
   "resolve_help_request",

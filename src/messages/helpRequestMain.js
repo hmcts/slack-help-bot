@@ -97,6 +97,42 @@ function helpRequestMainBlocks({
       ],
     },
     {
+      type: "context",
+      block_id: "thread_watchers",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: ":eyes: *Watching:* Nobody yet",
+        },
+      ],
+    },
+    {
+      type: "actions",
+      block_id: "thread_watch_actions",
+      elements: [
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: ":eyes: Watch thread",
+            emoji: true,
+          },
+          action_id: "watch_help_request_thread",
+          value: "watch_help_request_thread",
+        },
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "Stop watching",
+            emoji: true,
+          },
+          action_id: "unwatch_help_request_thread",
+          value: "unwatch_help_request_thread",
+        },
+      ],
+    },
+    {
       type: "divider",
     },
   ];
