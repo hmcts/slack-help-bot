@@ -9,6 +9,7 @@ const {
 } = require("../service/persistence");
 const { lookupUsersName, convertProfileToName } = require("./utils/lookupUser");
 const config = require("config");
+const { notifyThreadWatchers } = require("./watchHelpRequestThread");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -111,6 +112,12 @@ async function appMessaged(event, context, client, say) {
       (helpRequestMessages[0].text === "New platform help request raised" ||
         helpRequestMessages[0].text === "Duplicate issue")
     ) {
+      await notifyThreadWatchers({
+        event,
+        rootMessage: helpRequestMessages[0],
+        client,
+      });
+
       const jiraId = extractJiraIdFromBlocks(helpRequestMessages[0].blocks);
 
       const groupRegex = /<!subteam\^.+\|([^>.]+)>/g;

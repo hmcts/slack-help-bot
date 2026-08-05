@@ -72,6 +72,9 @@ const {
   withdrawInactiveIssues,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
+const {
+  watchHelpRequestThread,
+} = require("./src/slackHandlers/watchHelpRequestThread");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -265,6 +268,24 @@ app.action(
     await assignHelpRequestToUser(action, body, client);
   },
 );
+
+async function updateThreadWatch({ body, ack, client }) {
+  await ack();
+  const result = await watchHelpRequestThread(body, client);
+  if (result) {
+    await client.chat.postEphemeral({
+      channel: body.channel.id,
+      user: body.user.id,
+      thread_ts: body.message.ts,
+      text: result.isWatching
+        ? "👀 You are now watching this thread."
+        : "You are no longer watching this thread.",
+    });
+  }
+}
+
+app.action("manage_help_request_thread_watch", updateThreadWatch);
+app.action("watch_help_request_thread", updateThreadWatch);
 
 app.action(
   "resolve_help_request",
