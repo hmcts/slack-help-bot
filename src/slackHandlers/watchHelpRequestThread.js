@@ -62,6 +62,14 @@ function setThreadWatcherIds(blocks, watcherIds) {
   return blocks;
 }
 
+function getHelpRequestTitle(rootMessage) {
+  return (
+    rootMessage.blocks?.find(
+      (block) => block.type === "section" && block.text?.type === "mrkdwn",
+    )?.text?.text ?? "a help request"
+  );
+}
+
 async function updateThreadWatchers(body, client) {
   try {
     const blocks = structuredClone(body.message.blocks);
@@ -106,6 +114,7 @@ async function notifyThreadWatchers({ event, rootMessage, client }) {
       message_ts: event.thread_ts,
     })
   ).permalink;
+  const helpRequestTitle = getHelpRequestTitle(rootMessage);
 
   await Promise.all(
     watcherIds.map(async (watcherId) => {
@@ -115,13 +124,13 @@ async function notifyThreadWatchers({ event, rootMessage, client }) {
         });
         await client.chat.postMessage({
           channel: conversation.channel.id,
-          text: `New reply from <@${event.user}> in a help request you are watching: <#${event.channel}>`,
+          text: `New reply from <@${event.user}> in help request: ${helpRequestTitle}`,
           blocks: [
             {
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: `:eyes: <@${event.user}> replied in a help request you are watching.`,
+                text: `:eyes: <@${event.user}> replied in ${helpRequestTitle}.`,
               },
             },
             {
@@ -150,6 +159,7 @@ async function notifyThreadWatchers({ event, rootMessage, client }) {
 module.exports = {
   getThreadWatcherIds,
   setThreadWatcherIds,
+  getHelpRequestTitle,
   watchHelpRequestThread,
   notifyThreadWatchers,
 };

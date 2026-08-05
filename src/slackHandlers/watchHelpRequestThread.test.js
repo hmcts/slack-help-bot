@@ -1,6 +1,7 @@
 const {
   getThreadWatcherIds,
   setThreadWatcherIds,
+  getHelpRequestTitle,
 } = require("./watchHelpRequestThread");
 
 describe("thread watchers", () => {
@@ -51,5 +52,18 @@ describe("thread watchers", () => {
     ];
 
     expect(getThreadWatcherIds(blocks)).toStrictEqual(["U123"]);
+  });
+
+  test("gets the help-request title for watcher notifications", () => {
+    expect(
+      getHelpRequestTitle({
+        blocks: [
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: "*Unable to deploy to prod*" },
+          },
+        ],
+      }),
+    ).toBe("*Unable to deploy to prod*");
   });
 });
