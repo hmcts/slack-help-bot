@@ -34,7 +34,22 @@ describe("thread watchers", () => {
     expect(blocks[0].elements[0].text.text).toBe(":eyes: Watch 1");
     expect(blocks[0].elements[0].value).toBe('["U123"]');
 
-    setThreadWatcherIds(blocks, []);
+    setThreadWatcherIds(blocks, [], false);
     expect(blocks[0].elements[0].text.text).toBe(":eyes: Watch 0");
+  });
+
+  test("does not count the same watcher twice", () => {
+    const blocks = [
+      {
+        elements: [
+          {
+            action_id: "watch_help_request_thread",
+            value: '["U123","U123"]',
+          },
+        ],
+      },
+    ];
+
+    expect(getThreadWatcherIds(blocks)).toStrictEqual(["U123"]);
   });
 });

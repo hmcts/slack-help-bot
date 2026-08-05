@@ -1,10 +1,17 @@
 const WATCHERS_BLOCK_ID = "thread_watchers";
-const WATCH_BUTTON_ACTION_ID = "watch_help_request_thread";
+const WATCH_BUTTON_ACTION_IDS = [
+  "manage_help_request_thread_watch",
+  "watch_help_request_thread",
+];
+
+function getWatchButton(blocks = []) {
+  return blocks
+    .flatMap((block) => block.elements ?? [])
+    .find((element) => WATCH_BUTTON_ACTION_IDS.includes(element.action_id));
+}
 
 function getThreadWatcherIds(blocks = []) {
-  const watchButton = blocks
-    .flatMap((block) => block.elements ?? [])
-    .find((element) => element.action_id === WATCH_BUTTON_ACTION_ID);
+  const watchButton = getWatchButton(blocks);
 
   try {
     const watcherIds = JSON.parse(watchButton?.value ?? "");
@@ -12,7 +19,7 @@ function getThreadWatcherIds(blocks = []) {
       Array.isArray(watcherIds) &&
       watcherIds.every((id) => typeof id === "string" && /^[A-Z0-9]+$/.test(id))
     ) {
-      return watcherIds;
+      return [...new Set(watcherIds)];
     }
   } catch (_) {
     // Requests created before the counter used the visible watcher list below.
@@ -26,9 +33,7 @@ function getThreadWatcherIds(blocks = []) {
 }
 
 function setThreadWatcherIds(blocks, watcherIds) {
-  const watchButton = blocks
-    .flatMap((block) => block.elements ?? [])
-    .find((element) => element.action_id === WATCH_BUTTON_ACTION_ID);
+  const watchButton = getWatchButton(blocks);
   if (!watchButton) {
     return blocks;
   }
@@ -46,15 +51,24 @@ function setThreadWatcherIds(blocks, watcherIds) {
   if (existingWatcherBlockIndex !== -1) {
     blocks.splice(existingWatcherBlockIndex, 1);
   }
+
+  blocks.forEach((block) => {
+    if (block.type === "actions") {
+      block.elements = block.elements.filter(
+        (element) => element.action_id !== "unwatch_help_request_thread",
+      );
+    }
+  });
   return blocks;
 }
 
-async function updateThreadWatchers(body, client, shouldWatch) {
+async function updateThreadWatchers(body, client) {
   try {
     const blocks = structuredClone(body.message.blocks);
     const watcherIds = new Set(getThreadWatcherIds(blocks));
+    const isWatching = !watcherIds.has(body.user.id);
 
-    if (shouldWatch) {
+    if (isWatching) {
       watcherIds.add(body.user.id);
     } else {
       watcherIds.delete(body.user.id);
@@ -66,17 +80,15 @@ async function updateThreadWatchers(body, client, shouldWatch) {
       text: "New platform help request raised",
       blocks: setThreadWatcherIds(blocks, [...watcherIds]),
     });
+    return { isWatching, watcherCount: watcherIds.size };
   } catch (error) {
     console.error("Unable to update thread watchers", error);
+    return null;
   }
 }
 
 async function watchHelpRequestThread(body, client) {
-  await updateThreadWatchers(body, client, true);
-}
-
-async function unwatchHelpRequestThread(body, client) {
-  await updateThreadWatchers(body, client, false);
+  return updateThreadWatchers(body, client);
 }
 
 async function notifyThreadWatchers({ event, rootMessage, client }) {
@@ -139,6 +151,5 @@ module.exports = {
   getThreadWatcherIds,
   setThreadWatcherIds,
   watchHelpRequestThread,
-  unwatchHelpRequestThread,
   notifyThreadWatchers,
 };
