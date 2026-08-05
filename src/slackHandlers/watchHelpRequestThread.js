@@ -1,6 +1,23 @@
 const WATCHERS_BLOCK_ID = "thread_watchers";
+const WATCH_BUTTON_ACTION_ID = "watch_help_request_thread";
 
 function getThreadWatcherIds(blocks = []) {
+  const watchButton = blocks
+    .flatMap((block) => block.elements ?? [])
+    .find((element) => element.action_id === WATCH_BUTTON_ACTION_ID);
+
+  try {
+    const watcherIds = JSON.parse(watchButton?.value ?? "");
+    if (
+      Array.isArray(watcherIds) &&
+      watcherIds.every((id) => typeof id === "string" && /^[A-Z0-9]+$/.test(id))
+    ) {
+      return watcherIds;
+    }
+  } catch (_) {
+    // Requests created before the counter used the visible watcher list below.
+  }
+
   const watcherBlock = blocks.find(
     (block) => block.block_id === WATCHERS_BLOCK_ID,
   );
@@ -9,22 +26,26 @@ function getThreadWatcherIds(blocks = []) {
 }
 
 function setThreadWatcherIds(blocks, watcherIds) {
-  const watcherBlock = blocks.find(
-    (block) => block.block_id === WATCHERS_BLOCK_ID,
-  );
-  if (!watcherBlock) {
+  const watchButton = blocks
+    .flatMap((block) => block.elements ?? [])
+    .find((element) => element.action_id === WATCH_BUTTON_ACTION_ID);
+  if (!watchButton) {
     return blocks;
   }
 
-  watcherBlock.elements = [
-    {
-      type: "mrkdwn",
-      text:
-        watcherIds.length > 0
-          ? `:eyes: *Watching:* ${watcherIds.map((id) => `<@${id}>`).join(", ")}`
-          : ":eyes: *Watching:* Nobody yet",
-    },
-  ];
+  watchButton.value = JSON.stringify(watcherIds);
+  watchButton.text = {
+    type: "plain_text",
+    text: `:eyes: Watch ${watcherIds.length}`,
+    emoji: true,
+  };
+
+  const existingWatcherBlockIndex = blocks.findIndex(
+    (block) => block.block_id === WATCHERS_BLOCK_ID,
+  );
+  if (existingWatcherBlockIndex !== -1) {
+    blocks.splice(existingWatcherBlockIndex, 1);
+  }
   return blocks;
 }
 

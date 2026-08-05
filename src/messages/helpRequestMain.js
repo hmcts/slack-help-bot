@@ -97,16 +97,6 @@ function helpRequestMainBlocks({
       ],
     },
     {
-      type: "context",
-      block_id: "thread_watchers",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: ":eyes: *Watching:* Nobody yet",
-        },
-      ],
-    },
-    {
       type: "actions",
       block_id: "thread_watch_actions",
       elements: [
@@ -114,11 +104,11 @@ function helpRequestMainBlocks({
           type: "button",
           text: {
             type: "plain_text",
-            text: ":eyes: Watch thread",
+            text: ":eyes: Watch 0",
             emoji: true,
           },
           action_id: "watch_help_request_thread",
-          value: "watch_help_request_thread",
+          value: "[]",
         },
         {
           type: "button",
