@@ -31,11 +31,11 @@ describe("thread watchers", () => {
 
     setThreadWatcherIds(blocks, ["U123"]);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].elements[0].text.text).toBe(":eyes: Watch 1");
+    expect(blocks[0].elements[0].text.text).toBe(":eyes: Watching: 1");
     expect(blocks[0].elements[0].value).toBe('["U123"]');
 
     setThreadWatcherIds(blocks, [], false);
-    expect(blocks[0].elements[0].text.text).toBe(":eyes: Watch 0");
+    expect(blocks[0].elements[0].text.text).toBe(":eyes: Watching: 0");
   });
 
   test("does not count the same watcher twice", () => {

@@ -41,7 +41,7 @@ function setThreadWatcherIds(blocks, watcherIds) {
   watchButton.value = JSON.stringify(watcherIds);
   watchButton.text = {
     type: "plain_text",
-    text: `:eyes: Watch ${watcherIds.length}`,
+    text: `:eyes: Watching: ${watcherIds.length}`,
     emoji: true,
   };
 

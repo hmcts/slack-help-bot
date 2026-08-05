@@ -94,17 +94,11 @@ function helpRequestMainBlocks({
           value: "start_help_request",
           action_id: `start_help_request${area === "crime" ? "_crime" : ""}`,
         },
-      ],
-    },
-    {
-      type: "actions",
-      block_id: "thread_watch_actions",
-      elements: [
         {
           type: "button",
           text: {
             type: "plain_text",
-            text: ":eyes: Watch 0",
+            text: ":eyes: Watching: 0",
             emoji: true,
           },
           action_id: "manage_help_request_thread_watch",
