@@ -17,6 +17,10 @@ const { analyticsRecommendations, followUpQuestions } = require("../../ai/ai");
 const { queryAi } = require("./aiCache");
 
 describe("queryAi", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   it("returns related help request results from the search index", async () => {
     searchHelpRequests.mockResolvedValue([
       {
@@ -46,5 +50,25 @@ describe("queryAi", () => {
         resolution: "Restarted the pods after adding the missing secret.",
       },
     ]);
+  });
+
+  it("does not search the knowledge store when skipKnowledgeStore is enabled", async () => {
+    searchHelpRequests.mockResolvedValue([]);
+    analyticsRecommendations.mockResolvedValue({});
+    followUpQuestions.mockResolvedValue([]);
+
+    const result = await queryAi(
+      {
+        summary: "Preview deployment failing",
+        description: "The original DM was already searched in documentation",
+        analysis: "",
+        prBuildUrl: "",
+      },
+      "other",
+      { skipKnowledgeStore: true },
+    );
+
+    expect(searchKnowledgeStore).not.toHaveBeenCalled();
+    expect(result.knowledgeStoreResults).toStrictEqual([]);
   });
 });

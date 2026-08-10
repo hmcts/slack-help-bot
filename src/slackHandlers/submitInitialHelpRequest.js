@@ -43,6 +43,15 @@ function getFollowUpAnswers(values, blocks) {
   return answers;
 }
 
+function getHelpFormSource(blocks) {
+  const sourcePrefix = "help_form_source_";
+  const sourceBlock = blocks.find((block) =>
+    block.block_id?.startsWith(sourcePrefix),
+  );
+
+  return sourceBlock?.block_id?.slice(sourcePrefix.length) ?? "manual";
+}
+
 async function submitInitialHelpRequest(body, client, source, area) {
   try {
     const user = body.user.id;
@@ -52,6 +61,8 @@ async function submitInitialHelpRequest(body, client, source, area) {
       {},
     );
     const blocks = body.message.blocks;
+    const formSource = getHelpFormSource(blocks);
+    const skipKnowledgeStore = formSource === "knowledge_search";
 
     // New inputs will be found in our 'values' object if present.
     // If there is a validation problem with the form, it must be re-sent
@@ -108,6 +119,7 @@ async function submitInitialHelpRequest(body, client, source, area) {
           errorMessage: errorMessage,
           helpRequest: helpRequest,
           area,
+          formSource,
         }),
       });
 
@@ -122,6 +134,7 @@ async function submitInitialHelpRequest(body, client, source, area) {
         isAdvanced: true,
         helpRequest: helpRequest,
         area,
+        formSource,
       });
 
       const notifyProcessingRequest = await client.chat.update({
@@ -150,7 +163,9 @@ async function submitInitialHelpRequest(body, client, source, area) {
       let followUpQuestions = [];
       const followUpAnswers = getFollowUpAnswers(values, blocks);
       try {
-        const result = await queryAi(helpRequest, area);
+        const result = await queryAi(helpRequest, area, {
+          skipKnowledgeStore,
+        });
         relatedIssues = result.relatedIssues;
         knowledgeStoreResults = result.knowledgeStoreResults;
         aiRecommendation = result.aiRecommendation;
@@ -172,7 +187,7 @@ async function submitInitialHelpRequest(body, client, source, area) {
         area,
       });
 
-      const showKnowledgeStore = followUpAdvanced;
+      const showKnowledgeStore = followUpAdvanced && !skipKnowledgeStore;
 
       const knowledgeStoreAdvanced = showKnowledgeStore
         ? source !== "initial" && source !== "follow_up"
@@ -194,35 +209,42 @@ async function submitInitialHelpRequest(body, client, source, area) {
         });
       }
 
-      const relatedIssuesAdvanced = showKnowledgeStore
+      const showRelatedIssues = followUpAdvanced;
+
+      const relatedIssuesAdvanced = showRelatedIssues
         ? source === "related_issues"
           ? true
           : relatedIssues.length === 0
         : false;
 
-      if (showKnowledgeStore) {
+      if (showRelatedIssues) {
         if (
           // if no results then record anyway
-          (knowledgeStoreAdvanced && relatedIssues.length === 0) ||
+          ((skipKnowledgeStore || knowledgeStoreAdvanced) &&
+            relatedIssues.length === 0) ||
           // otherwise record when we aren't advanced but knowledge store is
-          (knowledgeStoreAdvanced && !relatedIssuesAdvanced)
+          ((skipKnowledgeStore || knowledgeStoreAdvanced) &&
+            !relatedIssuesAdvanced)
         ) {
           appInsights.trackEvent("Related issues", {
             resultCount: relatedIssues.length,
           });
         }
       }
-      const relatedIssuesBlocks = showKnowledgeStore
+      const relatedIssuesBlocks = showRelatedIssues
         ? helpFormRelatedIssuesBlocks({
             // skip related issues if knowledge store results are present and next hasn't been clicked
-            relatedIssues: knowledgeStoreAdvanced ? relatedIssues : [],
+            relatedIssues:
+              skipKnowledgeStore || knowledgeStoreAdvanced ? relatedIssues : [],
             isAdvanced: relatedIssuesAdvanced,
             area,
           })
         : [];
 
       const showAnalytics =
-        showKnowledgeStore && knowledgeStoreAdvanced && relatedIssuesAdvanced;
+        followUpAdvanced &&
+        (skipKnowledgeStore || knowledgeStoreAdvanced) &&
+        relatedIssuesAdvanced;
 
       if (showAnalytics) {
         appInsights.trackEvent("Analytics fields", {

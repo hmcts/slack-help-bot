@@ -1,35 +1,36 @@
 const { checkSlackResponseError } = require("./errorHandling");
-const { helpFormGreetingBlocks } = require("../messages/helpFormGreeting");
+const { postHelpForm } = require("./startHelpForm");
+const {
+  helpGuidanceBlocks,
+  helpGuidanceText,
+} = require("../messages/helpGuidance");
 
 const appInsights = require("../modules/appInsights");
 
-async function sendMessage(client, channelId, ts, userId, area) {
+async function sendHelpGuidanceMessage(client, channelId, ts) {
+  const message = {
+    channel: channelId,
+    text: helpGuidanceText,
+    blocks: helpGuidanceBlocks(),
+  };
+
   if (ts) {
     return await client.chat.update({
-      channel: channelId,
-      ts: ts,
-      text: "Hello!",
-      blocks: helpFormGreetingBlocks({
-        user: userId,
-        isAdvanced: false,
-        area,
-      }),
-    });
-  } else {
-    return await client.chat.postMessage({
-      channel: channelId,
-      ts: ts,
-      text: "Hello!",
-      blocks: helpFormGreetingBlocks({
-        user: userId,
-        isAdvanced: false,
-        area,
-      }),
+      ...message,
+      ts,
     });
   }
+
+  return await client.chat.postMessage(message);
 }
 
-async function beginHelpRequest({ userId, client, area, ts }) {
+async function beginHelpRequest({
+  userId,
+  client,
+  area,
+  ts,
+  initialDescription,
+}) {
   try {
     const openDmResponse = await client.conversations.open({
       users: userId,
@@ -38,12 +39,26 @@ async function beginHelpRequest({ userId, client, area, ts }) {
 
     const channelId = openDmResponse.channel.id;
 
-    const postMessageResponse = await sendMessage(
+    if (area && initialDescription) {
+      await postHelpForm({
+        client,
+        channelId,
+        userId,
+        area,
+        helpRequest: {
+          description: initialDescription,
+        },
+        formSource: "knowledge_search",
+      });
+
+      appInsights.trackEvent("Begin Help Request");
+      return;
+    }
+
+    const postMessageResponse = await sendHelpGuidanceMessage(
       client,
       channelId,
       ts,
-      userId,
-      area,
     );
 
     checkSlackResponseError(
@@ -51,10 +66,11 @@ async function beginHelpRequest({ userId, client, area, ts }) {
       "An error occurred when posting a direct message",
     );
 
-    appInsights.trackEvent("Begin Help Request");
+    appInsights.trackEvent("Help guidance shown");
   } catch (error) {
     console.error(error);
   }
 }
 
 module.exports.beginHelpRequest = beginHelpRequest;
+module.exports.sendHelpGuidanceMessage = sendHelpGuidanceMessage;

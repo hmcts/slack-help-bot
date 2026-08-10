@@ -1,4 +1,19 @@
-const { helpFormRelatedIssuesBlocks } = require("./helpFormMain");
+const {
+  helpFormMainBlocks,
+  helpFormRelatedIssuesBlocks,
+} = require("./helpFormMain");
+
+describe("helpFormMainBlocks", () => {
+  it("marks forms that start from a knowledge search answer", () => {
+    const blocks = helpFormMainBlocks({
+      area: "other",
+      isAdvanced: false,
+      formSource: "knowledge_search",
+    });
+
+    expect(blocks[0].block_id).toBe("help_form_source_knowledge_search");
+  });
+});
 
 describe("helpFormRelatedIssuesBlocks", () => {
   it("shows the resolution for related issues when present", () => {

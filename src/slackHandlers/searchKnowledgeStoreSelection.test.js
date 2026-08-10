@@ -29,7 +29,7 @@ describe("handleKnowledgeSearchPlatformSelection", () => {
     clearPendingKnowledgeSearch({ channelId: "C1", userId: "U1" });
   });
 
-  it("searches using the stored question and posts a help request button", async () => {
+  it("searches using the stored question and skips read confirmation when no docs are found", async () => {
     setPendingKnowledgeSearch({
       channelId: "C1",
       userId: "U1",
@@ -63,8 +63,24 @@ describe("handleKnowledgeSearchPlatformSelection", () => {
     expect(client.chat.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: "C1",
-        blocks: expect.any(Array),
+        blocks: expect.arrayContaining([
+          expect.objectContaining({
+            elements: expect.arrayContaining([
+              expect.objectContaining({
+                action_id: "knowledge_search_still_need_help",
+                value: JSON.stringify({
+                  area: "other",
+                  question: "How do I find related tickets?",
+                  requiresReadConfirmation: false,
+                }),
+              }),
+            ]),
+          }),
+        ]),
       }),
     );
+    expect(
+      JSON.stringify(client.chat.postMessage.mock.calls[0][0].blocks),
+    ).not.toContain("I have read the above suggestion");
   });
 });

@@ -1,50 +1,62 @@
-const { helpFormMainBlocks, helpFormGreetingBlocks } = require("../messages");
+const { helpFormMainBlocks } = require("../messages");
 const { checkSlackResponseError } = require("./errorHandling");
+const {
+  helpGuidanceBlocks,
+  helpGuidanceText,
+} = require("../messages/helpGuidance");
 const appInsights = require("../modules/appInsights");
 
-async function updateLastMessage(client, body, area) {
+async function updateLastMessage(client, body) {
   return await client.chat.update({
     channel: body.channel.id,
     ts: body.message.ts,
-    text: "Hello!",
-    blocks: helpFormGreetingBlocks({
-      user: body.user.id,
-      area,
-      isAdvanced: true,
-    }),
+    text: helpGuidanceText,
+    blocks: helpGuidanceBlocks(),
   });
 }
 
-async function startHelpForm(client, body, area) {
+async function postHelpForm({
+  client,
+  channelId,
+  userId,
+  area,
+  helpRequest,
+  formSource,
+}) {
+  const postRes = await client.chat.postMessage({
+    channel: channelId,
+    text: "Raise a help request with Platform Operations",
+    blocks: helpFormMainBlocks({
+      user: userId,
+      isAdvanced: false,
+      area,
+      helpRequest,
+      formSource,
+    }),
+  });
+
+  checkSlackResponseError(
+    postRes,
+    "An error occurred when posting a help request form",
+  );
+
+  appInsights.trackEvent("Help request form started");
+}
+
+async function startHelpForm(client, body) {
   try {
-    // Post Ticket raising form
-    const postRes = await client.chat.postMessage({
-      channel: body.channel.id,
-      text: "Raise a help request with Platform Operations",
-      blocks: helpFormMainBlocks({
-        user: body.user.id,
-        isAdvanced: false,
-        area,
-      }),
-    });
-
-    checkSlackResponseError(
-      postRes,
-      "An error occurred when posting a help request form",
-    );
-
-    // Edit button from last message
-    const updateRes = await updateLastMessage(client, body, area);
+    const updateRes = await updateLastMessage(client, body);
 
     checkSlackResponseError(
       updateRes,
       "An error occurred when updating the help request prompt",
     );
 
-    appInsights.trackEvent("Help request form started");
+    appInsights.trackEvent("Help guidance shown");
   } catch (error) {
     console.error(error);
   }
 }
 
 module.exports.startHelpForm = startHelpForm;
+module.exports.postHelpForm = postHelpForm;

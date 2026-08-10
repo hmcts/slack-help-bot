@@ -1,4 +1,3 @@
-const { helpFormGreetingBlocks } = require("./messages/helpFormGreeting");
 const { helpFormMainBlocks } = require("./messages/helpFormMain");
 const { helpFormGoodbyeBlocks } = require("./messages/helpFormGoodbye");
 const {
@@ -20,7 +19,6 @@ const { appHomeIssueBlocks } = require("./messages/appHomeIssue");
 
 const { appHomeHeaderBlocks } = require("./messages/appHomeHeader");
 
-module.exports.helpFormGreetingBlocks = helpFormGreetingBlocks;
 module.exports.helpFormMainBlocks = helpFormMainBlocks;
 module.exports.helpFormGoodbyeBlocks = helpFormGoodbyeBlocks;
 module.exports.knowledgeSearchAnswerBlocks = knowledgeSearchAnswerBlocks;
