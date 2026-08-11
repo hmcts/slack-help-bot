@@ -5,16 +5,14 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 
 ## Features
 
-- Users can request help from Platform Operations by:
-  - Using the `/PlatOps help` shortcut.
-  - Messaging the PlatOps help bot and saying `help`.
 - Users can ask the bot a question in a direct message. The bot searches the `the-hmcts-way` index in `Azure AI Search`, generates a grounded response using `Azure AI Services`, and links to the source documents it used.
+- Users confirm they have read the direct-message answer before the bot offers ticket creation.
+- Users can request help from Platform Operations from the direct-message answer by confirming they have read it and clicking `Still need help`.
+- If users type `help`, the bot tells them to send their actual question in DM with the full issue description.
 - While requesting help the bot will:
-  - Provide initial guidance, linking to documentation, recent announcements and providing guidance on what should be raised here.
-  - Prompt the user to choose the platform in DM before continuing into the normal help workflow.
+  - Use the user's original direct message as the ticket description.
   - Ask users to fill in some details about their request.
   - Search the `help-requests` index in `Azure AI Search` which will return the top 3 most relevant results from previous requests.
-  - Search the `the-hmcts-way` index in `Azure AI Search` which will return the top 3 most relevant results from the HMCTS Way.
   - Send the data to `Azure AI Services` to determine which area, environment and team the request is likely about and will preselect these fields for the user.
   - Create a ticket in Jira with the data provided.
   - Post the request in the `#platops-help` channel.
@@ -41,17 +39,18 @@ During help request workflow the application:
 
 1. Asks Azure AI services for recommendation for area, environment and team.
 2. Searches Azure AI search for similar requests.
-3. Searches Azure AI search for anything on the hmcts way that might be relevant.
-4. Creates the request in Slack and Jira.
-5. Stores the request in Cosmos DB.
-6. Replies on the help request Slack thread are added to Jira.
+3. Creates the request in Slack and Jira.
+4. Stores the request in Cosmos DB.
+5. Replies on the help request Slack thread are added to Jira.
    - Replies on Jira are not added to Slack.
 
 For direct-message questions the application:
 
 1. Searches the `the-hmcts-way` index in `Azure AI Search`.
 2. Sends the retrieved documentation snippets and the user's question to `Azure AI Services`.
-3. Replies in Slack with a generated answer and source links.
+3. Replies in Slack with a generated answer, source links, an `I have read the above suggestion` checkbox and `Solved` / `Still need help` buttons.
+4. Opens the ticket form when the user confirms they read the suggestion and selects `Still need help`.
+5. Uses the original direct message as the ticket description.
 
 On close of the help request:
 

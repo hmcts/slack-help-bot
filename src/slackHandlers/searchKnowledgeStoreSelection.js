@@ -51,7 +51,12 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
     await client.chat.postMessage({
       channel: body.channel.id,
       text,
-      blocks: knowledgeSearchAnswerBlocks({ answer: text, area }),
+      blocks: knowledgeSearchAnswerBlocks({
+        answer: text,
+        area,
+        question: pending.question,
+        requiresReadConfirmation: knowledgeStoreResults.length > 0,
+      }),
     });
   } catch (error) {
     console.error("An error occurred when answering a knowledge search", error);
@@ -62,6 +67,8 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
         answer:
           "Sorry, I could not search the documentation right now. Please use the help request button to continue.",
         area,
+        question: pending.question,
+        requiresReadConfirmation: false,
       }),
     });
   } finally {

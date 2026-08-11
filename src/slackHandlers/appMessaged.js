@@ -1,8 +1,8 @@
-const { beginHelpRequest } = require("./beginHelpRequest");
 const {
   knowledgeSearchPromptBlocks,
 } = require("../messages/knowledgeSearchPrompt");
 const { setPendingKnowledgeSearch } = require("./utils/pendingKnowledgeSearch");
+const { helpGuidanceBlocks } = require("../messages/helpGuidance");
 const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,
@@ -66,8 +66,10 @@ async function appMessaged(event, context, client, say) {
 
       switch (text.toLowerCase()) {
         case "help":
-          // Open the PlatOps help request form. Alternative to the shortcut above
-          await beginHelpRequest({ userId: context.userId, client });
+          await say({
+            text: "Send me your question in this DM to get started.",
+            blocks: helpGuidanceBlocks(),
+          });
           return;
         default:
           await promptForKnowledgeSearchPlatform(event, say);

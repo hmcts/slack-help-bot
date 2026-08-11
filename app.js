@@ -60,6 +60,11 @@ const {
   handleKnowledgeSearchPlatformSelection,
 } = require("./src/slackHandlers/searchKnowledgeStoreSelection");
 const {
+  handleKnowledgeSearchReadSuggestion,
+  handleKnowledgeSearchSolved,
+  handleKnowledgeSearchStillNeedHelp,
+} = require("./src/slackHandlers/knowledgeSearchFeedback");
+const {
   viewRequestsRaisedByMe,
 } = require("./src/slackHandlers/appHome/viewRequestsRaisedByMe");
 const {
@@ -97,26 +102,28 @@ app.shortcut(
 
 app.action(
   "begin_help_request_non_crime",
-  async ({ body, context, client, ack }) => {
+  async ({ body, action, context, client, ack }) => {
     await ack();
     await beginHelpRequest({
-      userId: context.userId,
+      userId: body.user.id,
       client,
       area: "other",
       ts: body.message.ts,
+      initialDescription: action?.value,
     });
   },
 );
 
 app.action(
   "begin_help_request_crime",
-  async ({ body, context, client, ack }) => {
+  async ({ body, action, context, client, ack }) => {
     await ack();
     await beginHelpRequest({
-      userId: context.userId,
+      userId: body.user.id,
       client,
       area: "crime",
       ts: body.message.ts,
+      initialDescription: action?.value,
     });
   },
 );
@@ -150,6 +157,27 @@ app.action(
   async ({ body, action, ack, client, context }) => {
     await ack();
     await handleKnowledgeSearchPlatformSelection(client, body, "other");
+  },
+);
+
+app.action("knowledge_search_solved", async ({ body, action, ack, client }) => {
+  await ack();
+  await handleKnowledgeSearchSolved(client, body, action);
+});
+
+app.action(
+  "knowledge_search_read_suggestion",
+  async ({ body, action, ack, client }) => {
+    await ack();
+    await handleKnowledgeSearchReadSuggestion(client, body, action);
+  },
+);
+
+app.action(
+  "knowledge_search_still_need_help",
+  async ({ body, action, ack, client }) => {
+    await ack();
+    await handleKnowledgeSearchStillNeedHelp(client, body, action);
   },
 );
 

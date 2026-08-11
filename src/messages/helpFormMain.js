@@ -414,10 +414,17 @@ function helpFormRelatedIssuesBlocks({ relatedIssues, isAdvanced, area }) {
   return blocks;
 }
 
-function helpFormMainBlocks({ errorMessage, helpRequest, isAdvanced, area }) {
+function helpFormMainBlocks({
+  errorMessage,
+  helpRequest,
+  isAdvanced,
+  area,
+  formSource = "manual",
+}) {
   return [
     {
       type: "header",
+      block_id: `help_form_source_${formSource}`,
       text: {
         type: "plain_text",
         text: "Platform Help Request",

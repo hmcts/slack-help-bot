@@ -24,10 +24,12 @@ function getCacheKey(helpRequest, area) {
   return hashString(cacheInput);
 }
 
-async function handler(query, analyticsQuery, area) {
+async function handler(query, analyticsQuery, area, options = {}) {
   const relatedIssuesPromise = searchHelpRequests(query, area);
 
-  const knowledgeStorePromise = searchKnowledgeStore(query, area);
+  const knowledgeStorePromise = options.skipKnowledgeStore
+    ? Promise.resolve([])
+    : searchKnowledgeStore(query, area);
 
   const aiRecommendationPromise = analyticsRecommendations(
     analyticsQuery,
@@ -56,20 +58,25 @@ async function handler(query, analyticsQuery, area) {
   };
 }
 
-async function queryAi(helpRequest, area) {
+async function queryAi(helpRequest, area, options = {}) {
   const query = createQuery(helpRequest);
   const analyticsQuery = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""} ${helpRequest.prBuildUrl || ""}`;
-  const cacheKey = getCacheKey(helpRequest, area);
+  const cacheKey = `${getCacheKey(helpRequest, area)}:${options.skipKnowledgeStore ? "skip-knowledge-store" : "with-knowledge-store"}`;
 
-  return cajache.use(cacheKey, () => handler(query, analyticsQuery, area), {
-    ttl: 7200, // 2 hours
-  });
+  return cajache.use(
+    cacheKey,
+    () => handler(query, analyticsQuery, area, options),
+    {
+      ttl: 7200, // 2 hours
+    },
+  );
 }
 
 function deleteCacheEntry(helpRequest, area) {
   const cacheKey = getCacheKey(helpRequest, area);
 
-  cajache.delete(cacheKey);
+  cajache.delete(`${cacheKey}:with-knowledge-store`);
+  cajache.delete(`${cacheKey}:skip-knowledge-store`);
 }
 
 module.exports.queryAi = queryAi;
