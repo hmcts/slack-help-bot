@@ -14,7 +14,7 @@
     "@azure/identity": "^4.3.0",
     "@azure/search-documents": "^13.0.0",
     "@hmcts/properties-volume": "^1.0.0",
-    "@slack/bolt": "^4.0.0",
+    "@slack/bolt": "^5.0.0",
     "@types/config": "4.4.0",
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
