@@ -55,7 +55,7 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
         answer: text,
         area,
         question: pending.question,
-        requiresReadConfirmation: knowledgeStoreResults.length > 0,
+        requiresReadConfirmation: knowledgeAnswer.sourceIndexes.length > 0,
       }),
     });
   } catch (error) {

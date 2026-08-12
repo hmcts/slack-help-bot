@@ -83,4 +83,51 @@ describe("handleKnowledgeSearchPlatformSelection", () => {
       JSON.stringify(client.chat.postMessage.mock.calls[0][0].blocks),
     ).not.toContain("I have read the above suggestion");
   });
+
+  it("skips read confirmation when docs are found but the AI does not cite a source", async () => {
+    setPendingKnowledgeSearch({
+      channelId: "C1",
+      userId: "U1",
+      question: "How do I fix preview?",
+    });
+    searchKnowledgeStore.mockResolvedValue([
+      {
+        document: {
+          title: "Unrelated guide",
+          metadata_storage_path:
+            "https://example.com/the-hmcts-way/unrelated.html",
+        },
+      },
+    ]);
+    answerFromKnowledgeStore.mockResolvedValue({
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    });
+
+    await handleKnowledgeSearchPlatformSelection(
+      client,
+      {
+        channel: { id: "C1" },
+        user: { id: "U1" },
+        message: { ts: "123.456" },
+      },
+      "other",
+    );
+
+    const blocks = client.chat.postMessage.mock.calls[0][0].blocks;
+    const stillNeedHelpButton = blocks
+      .flatMap((block) => block.elements ?? [])
+      .find(
+        (element) => element.action_id === "knowledge_search_still_need_help",
+      );
+
+    expect(JSON.stringify(blocks)).not.toContain(
+      "I have read the above suggestion",
+    );
+    expect(JSON.parse(stillNeedHelpButton.value)).toEqual(
+      expect.objectContaining({
+        requiresReadConfirmation: false,
+      }),
+    );
+  });
 });
