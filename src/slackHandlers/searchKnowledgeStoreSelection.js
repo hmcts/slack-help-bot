@@ -16,6 +16,13 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
   });
 
   if (!pending?.question) {
+    console.warn("Knowledge search platform selection missing question", {
+      channelId: body.channel.id,
+      userId: body.user.id,
+      messageTs: body.message?.ts,
+      pendingFound: pending !== undefined,
+    });
+
     await client.chat.update({
       channel: body.channel.id,
       ts: body.message.ts,
