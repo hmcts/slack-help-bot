@@ -19,7 +19,7 @@
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
     "cajache": "^2.0.2",
-    "config": "^4.0.0",
+    "config": "^5.0.0",
     "jira-client": "^8.1.0",
     "js-yaml": "^5.0.0",
     "lodash": "^4.17.21",
