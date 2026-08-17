@@ -6,14 +6,20 @@ const {
 } = require("../messages/knowledgeSearchAnswer");
 const {
   clearPendingKnowledgeSearch,
+  getPendingKnowledgeSearchForChannel,
   getPendingKnowledgeSearch,
 } = require("./utils/pendingKnowledgeSearch");
 
 async function handleKnowledgeSearchPlatformSelection(client, body, area) {
-  const pending = getPendingKnowledgeSearch({
+  const exactPending = getPendingKnowledgeSearch({
     channelId: body.channel.id,
     userId: body.user.id,
   });
+  const pending =
+    exactPending ??
+    getPendingKnowledgeSearchForChannel({
+      channelId: body.channel.id,
+    });
 
   if (!pending?.question) {
     console.warn("Knowledge search platform selection missing question", {
@@ -81,7 +87,7 @@ async function handleKnowledgeSearchPlatformSelection(client, body, area) {
   } finally {
     clearPendingKnowledgeSearch({
       channelId: body.channel.id,
-      userId: body.user.id,
+      userId: pending.userId,
     });
   }
 }

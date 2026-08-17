@@ -7,6 +7,9 @@ function getPendingKnowledgeSearchKey(channelId, userId) {
 function setPendingKnowledgeSearch({ channelId, userId, question }) {
   const key = getPendingKnowledgeSearchKey(channelId, userId);
   pendingKnowledgeSearch.set(key, {
+    key,
+    channelId,
+    userId,
     question,
     createdAt: Date.now(),
   });
@@ -37,6 +40,14 @@ function getPendingKnowledgeSearch({ channelId, userId }) {
   return pending;
 }
 
+function getPendingKnowledgeSearchForChannel({ channelId }) {
+  const matches = Array.from(pendingKnowledgeSearch.values()).filter(
+    (pending) => pending.channelId === channelId,
+  );
+
+  return matches.sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
 function clearPendingKnowledgeSearch({ channelId, userId }) {
   const key = getPendingKnowledgeSearchKey(channelId, userId);
   const deleted = pendingKnowledgeSearch.delete(key);
@@ -52,4 +63,6 @@ function clearPendingKnowledgeSearch({ channelId, userId }) {
 
 module.exports.setPendingKnowledgeSearch = setPendingKnowledgeSearch;
 module.exports.getPendingKnowledgeSearch = getPendingKnowledgeSearch;
+module.exports.getPendingKnowledgeSearchForChannel =
+  getPendingKnowledgeSearchForChannel;
 module.exports.clearPendingKnowledgeSearch = clearPendingKnowledgeSearch;

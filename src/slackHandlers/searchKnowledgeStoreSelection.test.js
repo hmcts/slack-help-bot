@@ -27,6 +27,7 @@ describe("handleKnowledgeSearchPlatformSelection", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     clearPendingKnowledgeSearch({ channelId: "C1", userId: "U1" });
+    clearPendingKnowledgeSearch({ channelId: "C1", userId: "U2" });
   });
 
   it("searches using the stored question and skips read confirmation when no docs are found", async () => {
@@ -128,6 +129,39 @@ describe("handleKnowledgeSearchPlatformSelection", () => {
       expect.objectContaining({
         requiresReadConfirmation: false,
       }),
+    );
+  });
+
+  it("falls back to the pending question for the same DM channel when Slack user ids differ", async () => {
+    setPendingKnowledgeSearch({
+      channelId: "C1",
+      userId: "U1",
+      question: "Why is my deployment failing?",
+    });
+    searchKnowledgeStore.mockResolvedValue([]);
+    answerFromKnowledgeStore.mockResolvedValue({
+      answer: "Try the docs.",
+      sourceIndexes: [],
+    });
+
+    await handleKnowledgeSearchPlatformSelection(
+      client,
+      {
+        channel: { id: "C1" },
+        user: { id: "U2" },
+        message: { ts: "123.456" },
+      },
+      "other",
+    );
+
+    expect(searchKnowledgeStore).toHaveBeenCalledWith(
+      "Why is my deployment failing?",
+      "other",
+    );
+    expect(answerFromKnowledgeStore).toHaveBeenCalledWith(
+      "Why is my deployment failing?",
+      [],
+      "other",
     );
   });
 });
