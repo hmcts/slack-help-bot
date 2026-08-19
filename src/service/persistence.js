@@ -365,16 +365,24 @@ async function addLabel(externalSystemId, { category }) {
 }
 
 const withdrawFailedLabel = "auto-withdraw-failed";
+// Local-only override for testing the notify/withdraw process end-to-end against
+// one known issue instead of whatever currently matches the real inactivity criteria
+const testIssueKey = process.env.JIRA_TEST_ISSUE_KEY;
 
 async function searchForInactiveIssues(days, notificationLabel) {
-  const excludedLabels = notificationLabel
-    ? [notificationLabel, withdrawFailedLabel]
-    : [withdrawFailedLabel];
-  const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
-    .map((label) => `"${label}"`)
-    .join(", ")}))`;
-  const period = days ? `${days}d` : "3m";
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
+  let jqlQuery;
+  if (testIssueKey) {
+    jqlQuery = `key = "${testIssueKey}"`;
+  } else {
+    const excludedLabels = notificationLabel
+      ? [notificationLabel, withdrawFailedLabel]
+      : [withdrawFailedLabel];
+    const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
+      .map((label) => `"${label}"`)
+      .join(", ")}))`;
+    const period = days ? `${days}d` : "3m";
+    jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
+  }
   try {
     return await jira.searchJira(jqlQuery, {
       fields: [
