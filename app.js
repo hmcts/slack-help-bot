@@ -402,5 +402,8 @@ app.action(
 cron.schedule("0 8 * * 1-5", async () => {
   await notifyInactiveIssues(app, 10);
   await notifyInactiveIssues(app, 20);
+});
+
+cron.schedule("*/5 * * * *", async () => {
   await withdrawInactiveIssues(app);
 });

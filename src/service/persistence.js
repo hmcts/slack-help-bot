@@ -366,14 +366,15 @@ async function addLabel(externalSystemId, { category }) {
 
 const withdrawFailedLabel = "auto-withdraw-failed";
 
-async function searchForInactiveIssues(days = 30, notificationLabel) {
+async function searchForInactiveIssues(days, notificationLabel) {
   const excludedLabels = notificationLabel
     ? [notificationLabel, withdrawFailedLabel]
     : [withdrawFailedLabel];
   const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
     .map((label) => `"${label}"`)
     .join(", ")}))`;
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${days}d${labelFilter}`;
+  const period = days ? `${days}d` : "3m";
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
   try {
     return await jira.searchJira(jqlQuery, {
       fields: [
