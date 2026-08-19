@@ -19,6 +19,8 @@ const getSlackUserInfo = async (app, userEmail) => {
   }
 };
 
+const WITHDRAW_AFTER_DAYS = 30;
+
 const sendSlackMessage = async (
   app,
   channel,
@@ -28,7 +30,8 @@ const sendSlackMessage = async (
 ) => {
   let message;
   if (reminderDays !== undefined) {
-    message = `Hi there! Issue ${jiraIssue} has been inactive for ${reminderDays} days. Please add an update if you still require help. If there is no activity, this issue will be withdrawn after 30 days.`;
+    const daysRemaining = WITHDRAW_AFTER_DAYS - reminderDays;
+    message = `Hi there! Issue ${jiraIssue} has been inactive for ${reminderDays} days. Please add an update if you still require help. If there is no activity, this issue will be withdrawn in ${daysRemaining} days.`;
   } else if (thread === undefined) {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact Platform Operations.`;
   } else {
