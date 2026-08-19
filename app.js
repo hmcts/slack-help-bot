@@ -403,8 +403,10 @@ app.action(
 // and skip withdraw entirely so the reminder can be observed before withdrawal fires.
 // Revert to "0 8 * * 1-5" and re-enable the withdraw cron before committing/pushing.
 cron.schedule("*/2 * * * *", async () => {
+  console.log(`[test] notify cron firing at ${new Date().toISOString()}`);
   await notifyInactiveIssues(app, 10);
   await notifyInactiveIssues(app, 20);
+  console.log("[test] notify cron finished");
 });
 
 // cron.schedule("*/5 * * * *", async () => {
