@@ -36,8 +36,6 @@ function validateFullRequest(helpRequest) {
     return "Please specify the team experiencing the problem.";
   } else if (!helpRequest.area) {
     return "Please specify what area you're experiencing problems with.";
-  } else if (!helpRequest.ticketType) {
-    return "Please specify whether this is a Support ticket or a Task.";
   } else if (!helpRequest.description) {
     return "Please provide a description of your issue.";
   }
@@ -179,9 +177,6 @@ async function submitHelpRequest(body, client, area) {
       area: values.area
         ? values.area.selected_option
         : inputBlocks[6].element.initial_option,
-      ticketType: values.ticket_type
-        ? values.ticket_type.selected_option
-        : inputBlocks[7].element.initial_option,
       followUpAnswers: getFollowUpAnswers(values, blocks),
     };
 
@@ -285,10 +280,9 @@ async function submitHelpRequest(body, client, area) {
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
-        cleanLabel(`ticket-type-${helpRequest.ticketType.value}`),
+        "ticket-type-support",
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
-      issueType: helpRequest.ticketType.value,
     });
 
     const mainRes = await client.chat.postMessage({
@@ -352,7 +346,7 @@ async function submitHelpRequest(body, client, area) {
       title: helpRequest.summary,
       description: helpRequest.description,
       analysis: helpRequest.analysis,
-      ticket_type: helpRequest.ticketType.value,
+      ticket_type: "support",
       url: permaLink,
     });
 

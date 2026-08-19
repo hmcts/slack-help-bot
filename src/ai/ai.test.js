@@ -3,16 +3,7 @@ const {
   formatKnowledgeStoreContext,
   sanitizeResolutionSummary,
   sanitizeSourceIndexes,
-  sanitizeTicketType,
 } = require("./ai");
-
-describe("sanitizeTicketType", () => {
-  it("defaults unknown values to support", () => {
-    expect(sanitizeTicketType("task")).toBe("task");
-    expect(sanitizeTicketType("unknown")).toBe("support");
-    expect(sanitizeTicketType(undefined)).toBe("support");
-  });
-});
 
 describe("formatKnowledgeStoreCaptions", () => {
   it("includes semantic highlights", () => {
