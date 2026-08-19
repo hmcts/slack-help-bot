@@ -399,11 +399,14 @@ app.action(
   },
 );
 
-cron.schedule("0 8 * * 1-5", async () => {
+// TEMP for local testing with JIRA_TEST_ISSUE_KEY: fire every 2 min instead of 8am,
+// and skip withdraw entirely so the reminder can be observed before withdrawal fires.
+// Revert to "0 8 * * 1-5" and re-enable the withdraw cron before committing/pushing.
+cron.schedule("*/2 * * * *", async () => {
   await notifyInactiveIssues(app, 10);
   await notifyInactiveIssues(app, 20);
 });
 
-cron.schedule("*/5 * * * *", async () => {
-  await withdrawInactiveIssues(app);
-});
+// cron.schedule("*/5 * * * *", async () => {
+//   await withdrawInactiveIssues(app);
+// });
