@@ -16,6 +16,7 @@ const {
   resolutionDocumentationPrompt,
   followUpQuestionsPrompt,
   knowledgeAnswerPrompt,
+  runbookAnswerPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -382,12 +383,68 @@ Instructions:
   return { answer, sourceIndexes };
 }
 
+async function answerFromRunbookKnowledgeStore(question, knowledgeStoreResults) {
+  if (knowledgeStoreResults.length === 0) {
+    return {
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    };
+  }
+
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: runbookAnswerPrompt(),
+      },
+      {
+        role: "user",
+        content: `Ticket details:
+${question}
+
+Search results:
+${context}
+
+Instructions:
+- Produce a runbook-ready answer with exactly the four required sections.
+- Only use supplied search results.`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  const content = result.choices.pop().message.content;
+  const parsed = JSON.parse(content);
+  const answer =
+    parsed.answer || "I couldn't find an answer in the documentation.";
+  const sourceIndexes = sanitizeSourceIndexes(
+    parsed.sourceIndexes,
+    knowledgeStoreResults.length,
+  );
+
+  console.log("LLM Runbook Answer:", parsed);
+
+  return { answer, sourceIndexes };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
+module.exports.answerFromRunbookKnowledgeStore = answerFromRunbookKnowledgeStore;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
