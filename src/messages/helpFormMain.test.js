@@ -1,5 +1,6 @@
 const {
   helpFormMainBlocks,
+  helpFormAnalyticsBlocks,
   helpFormRelatedIssuesBlocks,
 } = require("./helpFormMain");
 
@@ -40,5 +41,42 @@ describe("helpFormRelatedIssuesBlocks", () => {
           block.elements?.[0]?.text?.includes("Resolution:"),
       ),
     ).toBeDefined();
+  });
+});
+
+describe("helpFormAnalyticsBlocks ticket type", () => {
+  it("offers Support and Task with Support selected by default", () => {
+    const blocks = helpFormAnalyticsBlocks({
+      area: "other",
+      helpRequest: {},
+      isAdvanced: true,
+    });
+    const ticketType = blocks.find(
+      (block) => block.element?.action_id === "ticket_type",
+    );
+
+    expect(ticketType.element.options.map((option) => option.value)).toEqual([
+      "support",
+      "task",
+    ]);
+    expect(ticketType.element.initial_option.value).toBe("support");
+  });
+
+  it("preserves a selected Task when the form is rebuilt", () => {
+    const blocks = helpFormAnalyticsBlocks({
+      area: "other",
+      helpRequest: {
+        ticketType: {
+          text: { type: "plain_text", text: "Task", emoji: true },
+          value: "task",
+        },
+      },
+      isAdvanced: true,
+    });
+    const ticketType = blocks.find(
+      (block) => block.element?.action_id === "ticket_type",
+    );
+
+    expect(ticketType.element.initial_option.value).toBe("task");
   });
 });

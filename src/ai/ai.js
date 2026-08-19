@@ -95,6 +95,10 @@ function sanitizeResolutionSummary(resolutionSummary) {
   return truncateText(trimmed, 2900);
 }
 
+function sanitizeTicketType(ticketType) {
+  return ticketType === "task" ? "task" : "support";
+}
+
 function formatKnowledgeStoreContext(knowledgeStoreResults, area) {
   const platformScope = getKnowledgeStoreScope(area);
 
@@ -153,6 +157,7 @@ async function analyticsRecommendations(input, area) {
     team: parsed.team,
     area: parsed.area,
     environment: mapEnvironments(parsed.environment),
+    ticketType: parsed.ticketType === "task" ? "task" : "support",
   };
   console.log("LLM recommended", parsed);
 
@@ -392,3 +397,4 @@ module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
 module.exports.sanitizeResolutionSummary = sanitizeResolutionSummary;
+module.exports.sanitizeTicketType = sanitizeTicketType;

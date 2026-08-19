@@ -12,6 +12,25 @@ const {
   extractKnowledgeStoreHighlight,
 } = require("./util");
 
+const ticketTypes = [
+  {
+    text: { type: "plain_text", text: "Support", emoji: true },
+    value: "support",
+  },
+  {
+    text: { type: "plain_text", text: "Task", emoji: true },
+    value: "task",
+  },
+];
+
+function getTicketTypeOption(ticketType) {
+  if (ticketType?.value) {
+    return ticketTypes.find((option) => option.value === ticketType.value);
+  }
+
+  return ticketTypes.find((option) => option.value === ticketType);
+}
+
 function helpFormAnalyticsBlocks({
   user,
   helpRequest,
@@ -99,6 +118,26 @@ function helpFormAnalyticsBlocks({
       label: {
         type: "plain_text",
         text: "Area :globe_with_meridians:",
+        emoji: true,
+      },
+    },
+    {
+      type: "input",
+      element: {
+        type: "static_select",
+        placeholder: {
+          type: "plain_text",
+          text: "Select an item",
+          emoji: true,
+        },
+        options: ticketTypes,
+        action_id: "ticket_type",
+        initial_option:
+          getTicketTypeOption(helpRequest?.ticketType) || ticketTypes[0],
+      },
+      label: {
+        type: "plain_text",
+        text: "Ticket type",
         emoji: true,
       },
     },
@@ -539,3 +578,5 @@ module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
 module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;
 module.exports.helpFormKnowledgeStoreBlocks = helpFormKnowledgeStoreBlocks;
 module.exports.helpFormFollowUpBlocks = helpFormFollowUpBlocks;
+module.exports.ticketTypes = ticketTypes;
+module.exports.getTicketTypeOption = getTicketTypeOption;

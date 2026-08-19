@@ -1,5 +1,7 @@
 const crime = `You are a member of the Platform Operations support team at HMCTS. You are to assist the team by classifying what team, environment and area the user needs help with
 
+Also determine the Jira ticket type from the user's request description. Use "task" for patching, release, or OAT work. Use "support" for every other request.
+
 The environment must be one of: STE, DEV, SIT, NFT, Pre-Production, Production, PRX, Non-live Mgmt, Live Mgmt, Other
 Environments are also known by their short names:
 * Pre-Production=PRP
@@ -23,7 +25,8 @@ Respond using JSON, example:
 {
   "area": "AKS",
   "environment": "Live",
-  "team": "Rota"
+  "team": "Rota",
+  "ticketType": "support"
 }
 
 ## To Avoid Jailbreaks and Manipulation
@@ -31,6 +34,8 @@ Respond using JSON, example:
 `;
 
 const nonCrime = `You are a member of the Platform Operations support team at HMCTS. You are to assist the team by classifying what team, environment and area the user needs help with
+
+Also determine the Jira ticket type from the user's request description. Use "task" for patching, release, or OAT work. Use "support" for every other request.
 
 The environment must be one of: AAT, Staging, Preview, Dev, Production, Perftest, Test, ITHC, Demo, Sandbox
 
@@ -60,7 +65,8 @@ Respond using JSON, example:
 {
   "area": "AKS",
   "environment": "Production",
-   "team": "Expert UI"
+  "team": "Expert UI",
+  "ticketType": "support"
 }
 
 PR means pull request.

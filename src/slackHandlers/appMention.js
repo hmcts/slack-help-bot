@@ -1,6 +1,7 @@
 const { summariseThread } = require("../ai/ai");
 
 const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
+\`ticket-type\ [support|task]\` - Changes this ticket's Jira type
 \`summarise\` - Summarises the thread using AI
 
 If you want to escalate a request please tag \`platformops-bau\`
@@ -11,6 +12,7 @@ const {
   getIssueDescription,
   extractJiraIdFromBlocks,
   markAsDuplicate,
+  updateHelpRequestType,
 } = require("../service/persistence");
 const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
@@ -103,6 +105,65 @@ async function handleDuplicate({ event, client, helpRequestMessages, say }) {
   }
 }
 
+function updateTicketTypeDisplay(blocks, ticketType) {
+  const updatedBlocks = structuredClone(blocks);
+  const contextBlock = updatedBlocks.find((block) => block.type === "context");
+  const ticketTypeElement = contextBlock?.elements?.find((element) =>
+    element.text?.startsWith("Ticket type:"),
+  );
+
+  if (ticketTypeElement) {
+    ticketTypeElement.text = `Ticket type: ${
+      ticketType === "task" ? "Task" : "Support"
+    }`;
+  }
+
+  return updatedBlocks;
+}
+
+async function handleTicketType({ event, client, helpRequestMessages, say }) {
+  const result = event.text.match(/ticket-type\s+(support|task)\b/i);
+  if (!result) {
+    await say({
+      text: `Hi <@${event.user}>, use \`@PlatOps help ticket-type support\` or \`@PlatOps help ticket-type task\`.`,
+      thread_ts: event.thread_ts,
+    });
+    return;
+  }
+
+  const ticketType = result[1].toLowerCase();
+  const blocks = helpRequestMessages[0].blocks;
+  const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
+
+  try {
+    await updateHelpRequestType(currentIssueJiraId, ticketType);
+
+    await client.chat.update({
+      channel: event.channel,
+      ts: helpRequestMessages[0].ts,
+      text: "New platform help request raised",
+      blocks: updateTicketTypeDisplay(blocks, ticketType),
+    });
+
+    await say({
+      text: `Hi <@${event.user}>, this ticket is now a ${ticketType === "task" ? "Task" : "Support"}.`,
+      thread_ts: event.thread_ts,
+    });
+
+    await client.reactions.add({
+      name: "white_check_mark",
+      timestamp: event.ts,
+      channel: event.channel,
+    });
+  } catch (error) {
+    console.error("Unable to change help request type", error);
+    await say({
+      text: `Hi <@${event.user}>, I couldn't change the Jira ticket type. Please check the Jira workflow and try again.`,
+      thread_ts: event.thread_ts,
+    });
+  }
+}
+
 async function appMention(event, client, say) {
   try {
     // filter unwanted channels in case someone invites the bot to it
@@ -130,7 +191,14 @@ async function appMention(event, client, say) {
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (event.text.includes("help")) {
+        if (event.text.includes("ticket-type")) {
+          await handleTicketType({
+            event,
+            client,
+            helpRequestMessages,
+            say,
+          });
+        } else if (event.text.includes("help")) {
           const usageMessage = `Hi <@${event.user}>, here is what I can do:
 
 ${helpText}`;
@@ -198,3 +266,5 @@ ${helpText}`,
 
 module.exports.appMention = appMention;
 module.exports.feedback = feedback;
+module.exports.handleTicketType = handleTicketType;
+module.exports.updateTicketTypeDisplay = updateTicketTypeDisplay;
