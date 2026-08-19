@@ -364,10 +364,15 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
+const withdrawFailedLabel = "auto-withdraw-failed";
+
 async function searchForInactiveIssues(days, notificationLabel) {
-  const labelFilter = notificationLabel
-    ? ` AND (labels IS EMPTY OR labels NOT IN ("${notificationLabel}") )`
-    : "";
+  const excludedLabels = notificationLabel
+    ? [notificationLabel, withdrawFailedLabel]
+    : [withdrawFailedLabel];
+  const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
+    .map((label) => `"${label}"`)
+    .join(", ")}))`;
   const period = days ? `${days}d` : "3m";
   const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
   try {
@@ -449,6 +454,27 @@ async function withdrawIssue(issueId) {
   });
 }
 
+// Marks an issue so it's excluded from future withdrawal attempts, since a failed
+// transition (e.g. a Jira workflow config error) will otherwise be retried every run
+async function addWithdrawFailedLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: withdrawFailedLabel,
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(
+      `Error adding withdraw-failed label to issue ${issueId} in jira`,
+      err,
+    );
+  }
+}
+
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
 async function getUserByKey(key) {
   const token = config.get("jira.api_token");
@@ -499,5 +525,6 @@ module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.addWithdrawFailedLabel = addWithdrawFailedLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
 module.exports.getUserByKey = getUserByKey;

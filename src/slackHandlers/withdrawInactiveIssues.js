@@ -2,6 +2,7 @@ const {
   searchForInactiveIssues,
   addInactivityNotificationLabel,
   addWithdrawnLabel,
+  addWithdrawFailedLabel,
   withdrawIssue,
   getUserByKey,
 } = require("../service/persistence");
@@ -153,13 +154,25 @@ const withdrawInactiveIssues = async (app) => {
   if (results.issues.length > 0) {
     for (const issue of results.issues) {
       const issueId = issue.key;
+
       try {
         // Withdraw issue and add withdrawn label in Jira
         console.log(`Withdrawing issue ${issueId}...`);
         await addWithdrawnLabel(issueId);
         await withdrawIssue(issueId);
         console.log(`Issue ${issueId} withdrawn`);
+      } catch (err) {
+        // Mark as withdraw-failed so this issue is skipped on future runs instead
+        // of being retried (and erroring) every time the cron fires
+        console.error(
+          `Error transitioning issue ${issueId}, marking as withdraw-failed`,
+          err,
+        );
+        await addWithdrawFailedLabel(issueId);
+        continue;
+      }
 
+      try {
         const reporterKey = issue.fields.reporter.key;
         const reporter = await getUserByKey(reporterKey);
         const reporterEmail = reporter.emailAddress;
@@ -189,7 +202,7 @@ const withdrawInactiveIssues = async (app) => {
           await sendSlackMessage(app, slackUserId, issueId);
         }
       } catch (err) {
-        console.error(`Error withdrawing issue ${issueId}`, err);
+        console.error(`Error notifying reporter of withdrawn issue ${issueId}`, err);
       }
     }
   } else {
