@@ -13,6 +13,21 @@ locals {
       "@odata.type" : "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy",
     },
   }
+
+  ops_runbook_datasource_json = {
+    name : "ops-runbook",
+    description : "HTML content from Ops Runbook documentation",
+    type : "azureblob",
+    credentials : {
+      connectionString : "ResourceId=${azurerm_storage_account.default.id};"
+    },
+    container : {
+      name : "ops-runbook",
+    },
+    dataDeletionDetectionPolicy : {
+      "@odata.type" : "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy",
+    },
+  }
 }
 
 # https://learn.microsoft.com/en-us/rest/api/searchservice/create-data-source
@@ -20,6 +35,18 @@ resource "restapi_object" "storage_account_datasource" {
   path         = "/datasources"
   query_string = "api-version=2023-10-01-Preview"
   data         = jsonencode(local.hmcts_way_datasource_json)
+  id_attribute = "name" # The ID field on the response
+  depends_on = [
+    azurerm_search_service.this, azurerm_role_assignment.search_search_reader,
+    azurerm_role_assignment.storage_blob_data_reader_search_service
+  ]
+}
+
+# https://learn.microsoft.com/en-us/rest/api/searchservice/create-data-source
+resource "restapi_object" "storage_account_datasource_ops_runbook" {
+  path         = "/datasources"
+  query_string = "api-version=2026-04-01"
+  data         = jsonencode(local.ops_runbook_datasource_json)
   id_attribute = "name" # The ID field on the response
   depends_on = [
     azurerm_search_service.this, azurerm_role_assignment.search_search_reader,
