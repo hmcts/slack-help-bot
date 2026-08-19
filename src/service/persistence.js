@@ -125,6 +125,23 @@ async function startHelpRequest(jiraId) {
   }
 }
 
+async function updateIssueStatus(issueId, status) {
+  const transitions = await jira.listTransitions(issueId);
+  const transition = transitions.transitions.find(
+    (item) => item.to?.name === status || item.name === status,
+  );
+
+  if (!transition) {
+    throw new Error(`No Jira transition found for status ${status}`);
+  }
+
+  await jira.transitionIssue(issueId, {
+    transition: {
+      id: transition.id,
+    },
+  });
+}
+
 async function getIssueDescription(issueId) {
   try {
     const issue = await jira.getIssue(issueId, "description");
@@ -456,6 +473,7 @@ async function getUserByKey(key) {
 
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
+module.exports.updateIssueStatus = updateIssueStatus;
 module.exports.assignHelpRequest = assignHelpRequest;
 module.exports.createHelpRequest = createHelpRequest;
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription;

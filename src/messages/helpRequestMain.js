@@ -104,6 +104,29 @@ function helpRequestMainBlocks({
           action_id: "manage_help_request_thread_watch",
           value: "[]",
         },
+        {
+          type: "static_select",
+          placeholder: {
+            type: "plain_text",
+            text: "Change status",
+            emoji: true,
+          },
+          action_id: "change_help_request_status",
+          options: [
+            "Withdrawn",
+            "Blocked",
+            "Rejected",
+            "Triaged",
+            "In Progress",
+            "In review",
+          ].map((status) => ({
+            text: {
+              type: "plain_text",
+              text: status,
+            },
+            value: status,
+          })),
+        },
       ],
     },
     {
