@@ -1,6 +1,7 @@
 const { summariseThread } = require("../ai/ai");
 
 const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
+\`help status [status]\` - Changes this ticket's Jira status
 \`summarise\` - Summarises the thread using AI
 
 If you want to escalate a request please tag \`platformops-bau\`
@@ -12,6 +13,9 @@ const {
   extractJiraIdFromBlocks,
   markAsDuplicate,
 } = require("../service/persistence");
+const {
+  changeHelpRequestStatusFromCommand,
+} = require("./changeHelpRequestStatus");
 const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
@@ -48,7 +52,6 @@ async function extractReplies({ client, messages }) {
 function extractSummaryFromBlocks(blocks) {
   return blocks[0].text.text;
 }
-
 async function handleDuplicate({ event, client, helpRequestMessages, say }) {
   // handle pasted text that is a link in the format of <https://tools.hmcts.net/jira/browse/SBOX-494|SBOX-494>
   // or <https://tools.hmcts.net/jira/browse/SBOX-494>
@@ -130,7 +133,13 @@ async function appMention(event, client, say) {
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (event.text.includes("help")) {
+        if (/^help\s+status\s+/i.test(event.text.trim())) {
+          await changeHelpRequestStatusFromCommand({
+            event,
+            client,
+            message: helpRequestMessages[0],
+          });
+        } else if (event.text.includes("help")) {
           const usageMessage = `Hi <@${event.user}>, here is what I can do:
 
 ${helpText}`;

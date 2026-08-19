@@ -76,9 +76,6 @@ const {
 const {
   withdrawInactiveIssues,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
-const {
-  changeHelpRequestStatus,
-} = require("./src/slackHandlers/changeHelpRequestStatus");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
   watchHelpRequestThread,
@@ -317,14 +314,6 @@ async function updateThreadWatch({ body, ack, client }) {
 
 app.action("manage_help_request_thread_watch", updateThreadWatch);
 app.action("watch_help_request_thread", updateThreadWatch);
-
-app.action(
-  "change_help_request_status",
-  async ({ body, ack, client }) => {
-    await ack();
-    await changeHelpRequestStatus(body, client);
-  },
-);
 
 app.action(
   "resolve_help_request",

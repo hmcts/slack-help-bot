@@ -12,31 +12,74 @@ const statusIcons = {
   "In review": ":eyes:",
 };
 
-async function changeHelpRequestStatus(body, client) {
-  const status = body.actions[0].selected_option.value;
-  const jiraId = extractJiraIdFromBlocks(body.message.blocks);
+const allowedStatuses = Object.keys(statusIcons);
 
-  try {
-    await updateIssueStatus(jiraId, status);
-
-    const blocks = body.message.blocks;
-    blocks[2].fields[0].text = `Status ${statusIcons[status] ?? ""}:\n ${status}`;
-
-    await client.chat.update({
-      channel: body.channel.id,
-      ts: body.message.ts,
-      text: "New platform help request raised",
-      blocks,
-    });
-  } catch (error) {
-    console.error(`Error changing status for issue ${jiraId}`, error);
-    await client.chat.postEphemeral({
-      channel: body.channel.id,
-      user: body.user.id,
-      thread_ts: body.message.ts,
-      text: `Unable to change ${jiraId} to ${status}. Check that the Jira workflow allows this transition.`,
-    });
-  }
+function getStatus(statusText) {
+  return allowedStatuses.find(
+    (status) => status.toLowerCase() === statusText.trim().toLowerCase(),
+  );
 }
 
-module.exports.changeHelpRequestStatus = changeHelpRequestStatus;
+async function updateSlackTicketStatus({ client, channel, message, status }) {
+  const jiraId = extractJiraIdFromBlocks(message.blocks);
+  await updateIssueStatus(jiraId, status);
+
+  const statusField = message.blocks[2]?.fields?.[0];
+  if (!statusField) {
+    throw new Error(`Could not find the status field for ${jiraId}`);
+  }
+
+  statusField.text = `Status ${statusIcons[status]}:\n ${status}`;
+
+  await client.chat.update({
+    channel,
+    ts: message.ts,
+    text: "New platform help request raised",
+    blocks: message.blocks,
+  });
+
+  return jiraId;
+}
+
+async function changeHelpRequestStatusFromCommand({ event, client, message }) {
+  const statusText = event.text.trim().replace(/^help\s+status\s+/i, "");
+  const status = getStatus(statusText);
+
+  if (!status) {
+    await client.chat.postEphemeral({
+      channel: event.channel,
+      user: event.user,
+      thread_ts: event.thread_ts,
+      text: `Unknown status. Choose one of: ${allowedStatuses.join(", ")}.`,
+    });
+    return true;
+  }
+
+  try {
+    await updateSlackTicketStatus({
+      client,
+      channel: event.channel,
+      message,
+      status,
+    });
+    await client.reactions.add({
+      name: "white_check_mark",
+      timestamp: event.ts,
+      channel: event.channel,
+    });
+  } catch (error) {
+    console.error("Error changing ticket status from Slack command", error);
+    await client.chat.postEphemeral({
+      channel: event.channel,
+      user: event.user,
+      thread_ts: event.thread_ts,
+      text: `I could not change the ticket to ${status}. Check that the Jira workflow allows this transition.`,
+    });
+  }
+
+  return true;
+}
+
+module.exports.changeHelpRequestStatusFromCommand =
+  changeHelpRequestStatusFromCommand;
+module.exports.getStatus = getStatus;
