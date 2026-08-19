@@ -45,7 +45,7 @@ resource "restapi_object" "storage_account_datasource" {
 # https://learn.microsoft.com/en-us/rest/api/searchservice/create-data-source
 resource "restapi_object" "storage_account_datasource_ops_runbook" {
   path         = "/datasources"
-  query_string = "api-version=2023-10-01-Preview"
+  query_string = "api-version=2026-04-01"
   data         = jsonencode(local.ops_runbook_datasource_json)
   id_attribute = "name" # The ID field on the response
   depends_on = [

@@ -15,7 +15,7 @@ locals {
 // https://learn.microsoft.com/en-us/rest/api/searchservice/preview-api/create-or-update-indexer
 resource "restapi_object" "ops_runbook_indexer" {
   path         = "/indexers"
-  query_string = "api-version=2023-10-01-Preview"
+  query_string = "api-version=2026-04-01"
   data         = jsonencode(local.ops_runbook_indexer_json)
   id_attribute = "name" # The ID field on the response
   depends_on   = [azurerm_search_service.this, restapi_object.ops_runbook_index, restapi_object.storage_account_datasource_ops_runbook]

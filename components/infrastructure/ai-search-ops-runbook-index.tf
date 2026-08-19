@@ -85,7 +85,7 @@ locals {
 # To do this: https://learn.microsoft.com/en-us/rest/api/searchservice/preview-api/create-or-update-index
 resource "restapi_object" "ops_runbook_index" {
   path         = "/indexes"
-  query_string = "api-version=2023-10-01-Preview"
+  query_string = "api-version=2026-04-01"
   data         = jsonencode(local.ops_runbook_index_json)
   id_attribute = "name" # The ID field on the response
 }
