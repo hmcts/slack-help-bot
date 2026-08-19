@@ -364,11 +364,12 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
-async function searchForInactiveIssues(days = 30, notificationLabel) {
+async function searchForInactiveIssues(days, notificationLabel) {
   const labelFilter = notificationLabel
     ? ` AND (labels IS EMPTY OR labels NOT IN ("${notificationLabel}") )`
     : "";
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${days}d${labelFilter}`;
+  const period = days ? `${days}d` : "3m";
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
   try {
     return await jira.searchJira(jqlQuery, {
       fields: [
