@@ -86,9 +86,6 @@ const notifyInactiveIssue = async (app, issue, reminderDays) => {
 const notifyInactiveIssues = async (app, days) => {
   const notificationLabel = `inactivity-notified-${days}-days`;
   const results = await searchForInactiveIssues(days, notificationLabel);
-  console.log(
-    `[test] notifyInactiveIssues(${days}) found ${results.issues.length} issue(s)`,
-  );
 
   for (const issue of results.issues) {
     try {
