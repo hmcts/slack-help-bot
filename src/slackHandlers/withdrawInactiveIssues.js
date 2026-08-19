@@ -202,7 +202,10 @@ const withdrawInactiveIssues = async (app) => {
           await sendSlackMessage(app, slackUserId, issueId);
         }
       } catch (err) {
-        console.error(`Error notifying reporter of withdrawn issue ${issueId}`, err);
+        console.error(
+          `Error notifying reporter of withdrawn issue ${issueId}`,
+          err,
+        );
       }
     }
   } else {
