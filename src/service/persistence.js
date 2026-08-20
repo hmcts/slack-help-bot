@@ -374,17 +374,14 @@ async function searchForInactiveIssues(days, notificationLabel) {
   if (testIssueKey) {
     jqlQuery = `key = "${testIssueKey}"`;
   } else {
-    const excludedLabels = notificationLabel
-      ? [notificationLabel, withdrawFailedLabel]
-      : [withdrawFailedLabel];
+    const excludedLabels = [withdrawFailedLabel];
     const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
       .map((label) => `"${label}"`)
       .join(", ")}))`;
-    const period = days ? `${days}d` : "3m";
-    jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${period}${labelFilter}`;
+    jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress")${labelFilter}`;
   }
   try {
-    return await jira.searchJira(jqlQuery, {
+    const results = await jira.searchJira(jqlQuery, {
       fields: [
         "created",
         "description",
@@ -395,6 +392,74 @@ async function searchForInactiveIssues(days, notificationLabel) {
         "labels",
       ],
     });
+
+    // Keep the local test override focused on the selected issue. In test mode
+    // we intentionally skip production age/label filtering.
+    if (testIssueKey) return results;
+
+    const now = Date.now();
+    const tenDays = 10 * 24 * 60 * 60 * 1000;
+    const twentyDays = 20 * 24 * 60 * 60 * 1000;
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const prefix = notificationLabel;
+    results.issues = results.issues.filter((issue) => {
+      const labels = issue.fields.labels || [];
+      if (labels.includes(withdrawFailedLabel)) return false;
+
+      const updatedAt = new Date(issue.fields.updated).getTime();
+      const age = now - updatedAt;
+      const hasLabel = (labelPrefix) =>
+        labels.some((label) => label.startsWith(`${labelPrefix}-`));
+      const getLabelTime = (labelPrefix) => {
+        const label = labels.find((item) =>
+          item.startsWith(`${labelPrefix}-`),
+        );
+        if (!label) return undefined;
+        const value = Number(label.slice(labelPrefix.length + 1));
+        return Number.isFinite(value) ? value : undefined;
+      };
+      const currentNotifiedAt = prefix ? getLabelTime(prefix) : undefined;
+      const currentLabelActive =
+        currentNotifiedAt !== undefined &&
+        updatedAt <= currentNotifiedAt + 5 * 60 * 1000;
+
+      if (days === 10) {
+        return (
+          !currentLabelActive &&
+          age >= tenDays &&
+          age < twentyDays
+        );
+      }
+
+      const previousPrefix = days === 20
+        ? "inactivity-notified-10-days-"
+        : "inactivity-notified-20-days-";
+      const previousLabelTime = getLabelTime(previousPrefix);
+      const previousLabelActive =
+        previousLabelTime !== undefined &&
+        updatedAt <= previousLabelTime + 5 * 60 * 1000;
+      const notifiedAt = previousLabelActive ? previousLabelTime : undefined;
+      const baselineAge = notifiedAt === undefined ? age : now - notifiedAt;
+      const unchangedSinceNotification =
+        notifiedAt === undefined || updatedAt <= notifiedAt + 5 * 60 * 1000;
+
+      if (days === 20) {
+        return (
+          !currentLabelActive &&
+          unchangedSinceNotification &&
+          ((notifiedAt !== undefined && baselineAge >= tenDays && baselineAge < twentyDays) ||
+            (notifiedAt === undefined && age >= twentyDays && age < thirtyDays))
+        );
+      }
+
+      return (
+        !hasLabel("inactivity-notified-20-days") &&
+        unchangedSinceNotification &&
+        ((notifiedAt !== undefined && baselineAge >= tenDays) ||
+          (notifiedAt === undefined && age >= thirtyDays))
+      );
+    });
+    return results;
   } catch (err) {
     console.log("Error searching for issues in jira", err);
     return {
@@ -432,6 +497,7 @@ async function addWithdrawnLabel(issueId) {
         ],
       },
     });
+    return results;
   } catch (err) {
     console.log(`Error adding label to issue ${issueId} in jira`, err);
   }

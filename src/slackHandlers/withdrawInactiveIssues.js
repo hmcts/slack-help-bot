@@ -2,7 +2,6 @@ const {
   searchForInactiveIssues,
   addInactivityNotificationLabel,
   addWithdrawnLabel,
-  addWithdrawFailedLabel,
   withdrawIssue,
   getUserByKey,
 } = require("../service/persistence");
@@ -45,7 +44,9 @@ const sendSlackMessage = async (
     });
   } catch (error) {
     console.error(`Error sending message to user ${channel}`, error);
+    return false;
   }
+  return true;
 };
 
 const notifyInactiveIssue = async (app, issue, reminderDays) => {
@@ -59,21 +60,22 @@ const notifyInactiveIssue = async (app, issue, reminderDays) => {
   if (urlMatch) {
     const urlString = urlMatch[0];
     const url = new URL(urlString);
-    await sendSlackMessage(
+    const dmSent = await sendSlackMessage(
       app,
       slackUserInfo.user.id,
       issue.key,
       urlString,
       reminderDays,
     );
-    await commentOnSlackThread(
+    const threadSent = await commentOnSlackThread(
       app,
       url.searchParams.get("cid"),
       url.searchParams.get("thread_ts"),
       reminderDays,
     );
+    return dmSent && threadSent;
   } else {
-    await sendSlackMessage(
+    return await sendSlackMessage(
       app,
       slackUserInfo.user.id,
       issue.key,
@@ -89,8 +91,12 @@ const notifyInactiveIssues = async (app, days) => {
 
   for (const issue of results.issues) {
     try {
-      if (await addInactivityNotificationLabel(issue.key, notificationLabel)) {
-        await notifyInactiveIssue(app, issue, days);
+      if (!issue.fields.description) continue;
+      if (await notifyInactiveIssue(app, issue, days)) {
+        await addInactivityNotificationLabel(
+          issue.key,
+          `${notificationLabel}-${Date.now()}`,
+        );
       }
     } catch (err) {
       console.error(`Error notifying issue ${issue.key}`, err);
@@ -110,7 +116,9 @@ const commentOnSlackThread = async (app, channel, timestamp, reminderDays) => {
     });
   } catch (error) {
     console.error(`Error replying to Slack thread ${channel}`, error);
+    return false;
   }
+  return true;
 };
 
 const setRequestStatusSlack = async (app, channel, timestamp) => {
@@ -165,13 +173,10 @@ const withdrawInactiveIssues = async (app) => {
         await withdrawIssue(issueId);
         console.log(`Issue ${issueId} withdrawn`);
       } catch (err) {
-        // Mark as withdraw-failed so this issue is skipped on future runs instead
-        // of being retried (and erroring) every time the cron fires
         console.error(
-          `Error transitioning issue ${issueId}, marking as withdraw-failed`,
+          `Error transitioning issue ${issueId}; it will be retried`,
           err,
         );
-        await addWithdrawFailedLabel(issueId);
         continue;
       }
 
