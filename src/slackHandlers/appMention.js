@@ -17,7 +17,7 @@ const {
 const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
-const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
+const { updateHelpRequestInCosmos } = require("../service/cosmos");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -140,7 +140,7 @@ async function handleTicketType({ event, client, helpRequestMessages, say }) {
   try {
     await updateHelpRequestType(currentIssueJiraId, ticketType);
 
-    await updateCosmosWhenHelpRequestResolved({
+    await updateHelpRequestInCosmos({
       key: currentIssueJiraId,
       ticket_type: ticketType,
     });
