@@ -2,8 +2,10 @@ jest.mock("../service/conversationKnowledge", () => ({
   answerConversation: jest.fn(),
 }));
 
-jest.mock("../service/conversationIntent", () => ({
-  classifyConversationIntent: jest.fn().mockResolvedValue("work_question"),
+jest.mock("../service/conversationOrchestrator", () => ({
+  orchestrateConversation: jest
+    .fn()
+    .mockResolvedValue({ action: "platform_related" }),
 }));
 
 jest.mock("./conversationalHelpRequest", () => ({
@@ -19,7 +21,9 @@ jest.mock("./conversationEscalation", () => ({
 }));
 
 const { answerConversation } = require("../service/conversationKnowledge");
-const { classifyConversationIntent } = require("../service/conversationIntent");
+const {
+  orchestrateConversation,
+} = require("../service/conversationOrchestrator");
 const { continueAfterDocumentation } = require("./conversationEscalation");
 const {
   conversationFromHistory,
@@ -36,10 +40,14 @@ const {
 describe("Slack assistant", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    orchestrateConversation.mockResolvedValue({ action: "platform_related" });
   });
 
   it("greets without searching when the user only says hello", async () => {
-    classifyConversationIntent.mockResolvedValueOnce("greeting");
+    orchestrateConversation.mockResolvedValueOnce({
+      action: "reply",
+      text: "Hi! I’m here to help with HMCTS Platform Operations",
+    });
     const say = jest.fn();
     const client = {
       conversations: {

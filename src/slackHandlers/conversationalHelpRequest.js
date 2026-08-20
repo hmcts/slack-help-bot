@@ -12,23 +12,6 @@ const TERMINAL_BLOCK_IDS = new Set([
   "help_request_conversation_cancelled",
 ]);
 
-const FIELD_ALIASES = {
-  summary: "summary",
-  title: "summary",
-  description: "description",
-  issue: "description",
-  url: "prBuildUrl",
-  link: "prBuildUrl",
-  build: "prBuildUrl",
-  analysis: "analysis",
-  investigation: "analysis",
-  environment: "environment",
-  env: "environment",
-  team: "team",
-  area: "area",
-  platform: "platformArea",
-};
-
 function blockId(message, prefix) {
   return message.blocks?.find((block) => block.block_id?.startsWith(prefix))
     ?.block_id;
@@ -283,28 +266,6 @@ function validateAnswer(step, answer, platformArea) {
   return { value: trimmed };
 }
 
-function parseChange(answer) {
-  const match = /^change\s+([^:]+):\s*(.+)$/i.exec(answer.trim());
-  if (!match) return null;
-  return {
-    field: FIELD_ALIASES[normalize(match[1])],
-    value: match[2],
-  };
-}
-
-function applyChange(state, answer, platformArea) {
-  const change = parseChange(answer);
-  if (!change?.field) {
-    return {
-      error: "Reply `yes` to submit or `cancel` to stop.",
-    };
-  }
-  const result = validateAnswer(change.field, change.value, platformArea);
-  if (result.error) return result;
-  state[change.field] = result.value;
-  return { value: result.value };
-}
-
 function buildState(messages, session, excludedTs) {
   const savedReview = session.reviewState ?? {};
   const savedPlatformArea = savedReview.platform_area ?? session.platformArea;
@@ -369,13 +330,7 @@ function buildState(messages, session, excludedTs) {
       continue;
     }
     if (promptStep && !isBotMessage(message) && messageText(message)) {
-      if (promptStep === "confirmation") {
-        applyChange(
-          state,
-          messageText(message),
-          state.platformArea?.value ?? session.platformArea,
-        );
-      } else {
+      if (promptStep !== "confirmation") {
         const result = validateAnswer(
           promptStep,
           messageText(message),
@@ -435,24 +390,6 @@ function promptText(step, platformArea, error) {
 
 function formatValue(value) {
   return (value?.text?.text ?? value) || "Not provided";
-}
-
-function summaryText(state) {
-  return [
-    "*Review help request*",
-    `*Summary*\n${state.summary}`,
-    `*Description*\n${state.description}`,
-    state.prBuildUrl ? `*Links*\n${state.prBuildUrl}` : undefined,
-    state.analysis ? `*Already checked*\n${state.analysis}` : undefined,
-    `*Classification*\nPlatform: ${formatValue(
-      state.platformArea,
-    )}\nEnvironment: ${formatValue(state.environment)}\nTeam: ${formatValue(
-      state.team,
-    )}\nArea: ${formatValue(state.area)}`,
-    "Submit below, reply `yes` to submit, or `cancel` to stop. Use the Edit buttons or dropdowns to change values.",
-  ]
-    .filter((line) => line !== undefined)
-    .join("\n\n");
 }
 
 async function postMarkedMessage({
@@ -955,14 +892,14 @@ async function handleConversationalHelpReply({ message, client, messages }) {
       return true;
     }
 
-    const changed = applyChange(state, answer, platformArea);
     await postPrompt({
       client,
       channelId: message.channel,
       threadTs,
       step: "confirmation",
       platformArea,
-      error: changed.error,
+      error:
+        "Use the Edit buttons or dropdowns to change a field, then reply `yes` to submit or `cancel` to stop.",
       state,
     });
     return true;
@@ -1301,4 +1238,3 @@ module.exports.handleConversationalHelpAction = handleConversationalHelpAction;
 module.exports.findActiveSession = findActiveSession;
 module.exports.buildState = buildState;
 module.exports.validateAnswer = validateAnswer;
-module.exports.parseChange = parseChange;
