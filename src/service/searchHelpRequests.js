@@ -14,6 +14,19 @@ const searchClient = new SearchClient(
   credential,
 );
 
+// cap on how many reranked candidates we embed, to bound per-search embedding calls
+const MAX_CANDIDATES_TO_EMBED = 10;
+
+function newestThree(candidates) {
+  return [...candidates]
+    .sort(
+      (a, b) =>
+        DateTime.fromISO(b.created_at.toISOString()) -
+        DateTime.fromISO(a.created_at.toISOString()),
+    )
+    .slice(0, 3);
+}
+
 // ranks candidates by true semantic similarity instead of just recency, so
 // duplicates with different wording surface even if they aren't the newest match
 async function rankByEmbeddingSimilarity(query, candidates) {
@@ -21,31 +34,42 @@ async function rankByEmbeddingSimilarity(query, candidates) {
     return [];
   }
 
-  const queryEmbedding = await getEmbedding(query);
-  const candidateEmbeddings = await Promise.all(
-    candidates.map((candidate) =>
-      // analysis/resolution capture the thread's troubleshooting/outcome, not just the initial report
-      getEmbedding(
-        [
-          candidate.title,
-          candidate.description,
-          candidate.analysis,
-          candidate.resolution,
-        ]
-          .filter(Boolean)
-          .join("\n"),
+  try {
+    const queryEmbedding = await getEmbedding(query);
+    const candidateEmbeddings = await Promise.all(
+      candidates.map((candidate) =>
+        // analysis/resolution capture the thread's troubleshooting/outcome, not just the initial report
+        getEmbedding(
+          [
+            candidate.title,
+            candidate.description,
+            candidate.analysis,
+            candidate.resolution,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        ),
       ),
-    ),
-  );
+    );
 
-  return candidates
-    .map((candidate, index) => ({
-      candidate,
-      similarity: cosineSimilarity(queryEmbedding, candidateEmbeddings[index]),
-    }))
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 3)
-    .map(({ candidate }) => candidate);
+    return candidates
+      .map((candidate, index) => ({
+        candidate,
+        similarity: cosineSimilarity(
+          queryEmbedding,
+          candidateEmbeddings[index],
+        ),
+      }))
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 3)
+      .map(({ candidate }) => candidate);
+  } catch (error) {
+    console.log(
+      "Embedding ranking failed, falling back to newest results",
+      error,
+    );
+    return newestThree(candidates);
+  }
 }
 
 function areaQuery(area) {
@@ -79,7 +103,11 @@ async function searchHelpRequests(query, area) {
       resultsWithHighScore.push(result.document);
     }
   }
-  return rankByEmbeddingSimilarity(query, resultsWithHighScore);
+  // results are already ordered by the reranker, so cap before the more expensive embedding step
+  return rankByEmbeddingSimilarity(
+    query,
+    resultsWithHighScore.slice(0, MAX_CANDIDATES_TO_EMBED),
+  );
 }
 
 module.exports.searchHelpRequests = searchHelpRequests;

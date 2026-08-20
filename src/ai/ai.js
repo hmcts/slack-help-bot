@@ -33,8 +33,17 @@ const client = new AzureOpenAI({
   apiVersion,
 });
 
+// Azure OpenAI routes by the deployment baked into the client URL, so embeddings
+// need their own client rather than passing a different model to the chat client
+const embeddingClient = new AzureOpenAI({
+  azureADTokenProvider,
+  deployment: embeddingDeployment,
+  endpoint: config.get("openai.endpoint"),
+  apiVersion,
+});
+
 async function getEmbedding(text) {
-  const result = await client.embeddings.create({
+  const result = await embeddingClient.embeddings.create({
     input: text,
     model: embeddingDeployment,
   });
