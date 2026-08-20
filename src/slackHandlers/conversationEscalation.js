@@ -1,5 +1,6 @@
 const {
   followUpQuestions,
+  classifyClarificationReply,
   generateTicketSummary,
   analyticsRecommendations,
 } = require("../ai/ai");
@@ -769,9 +770,59 @@ async function handleClarificationReply({ message, client, messages }) {
   const latestQuestion = clarificationQuestion(latestQuestionMessage ?? {});
   if (!latestQuestion) return false;
 
+  let replyType = "answer";
+  try {
+    replyType = await classifyClarificationReply({
+      question: latestQuestion,
+      answer,
+      context: clarificationInput(session, previousAnswers),
+    });
+  } catch (error) {
+    console.warn(
+      "Could not classify clarification reply; treating it as an answer",
+      error,
+    );
+  }
+
+  if (replyType === "new_question") {
+    await postMarker({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      id: `help_clarification_new_question_${Date.now()}`,
+      text: "This sounds like a new question. Please start a new message so I can keep its context separate.",
+    });
+    return true;
+  }
+
+  if (replyType === "clarification_request" || replyType === "unrelated") {
+    const prompt =
+      replyType === "clarification_request"
+        ? `No problem — please answer this in your own words:\n${latestQuestion}`
+        : `That does not seem to answer the current question. Please answer this one, or reply skip:\n${latestQuestion}`;
+    await postMarker({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      id: `${CLARIFICATION_QUESTION_PREFIX}${previousAnswers.length + 1}`,
+      text: prompt,
+      metadata: {
+        event_type: "help_clarification_question",
+        event_payload: {
+          number: previousAnswers.length + 1,
+          question: latestQuestion,
+        },
+      },
+    });
+    return true;
+  }
+
   const answers = [
     ...previousAnswers,
-    { question: latestQuestion, answer },
+    {
+      question: latestQuestion,
+      answer: replyType === "skip" ? "Skipped" : answer,
+    },
   ].slice(0, MAX_CLARIFICATION_QUESTIONS);
   await askNextQuestion({
     client,

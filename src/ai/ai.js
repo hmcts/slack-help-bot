@@ -19,6 +19,7 @@ const {
   knowledgeAnswerPrompt,
   knowledgeSearchQueryRewritePrompt,
   conversationIntentPrompt,
+  clarificationReplyPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -386,6 +387,30 @@ async function classifyConversationIntent(input) {
     : "platform_related";
 }
 
+async function classifyClarificationReply({ question, answer, context = "" }) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: clarificationReplyPrompt() },
+      {
+        role: "user",
+        content: `Question: ${truncateText(question, 1000)}\nReply: ${truncateText(answer, 2000)}\nContext: ${truncateText(context, 2000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  const content = result.choices?.[0]?.message?.content;
+  const parsed = JSON.parse(content);
+  const allowed = new Set([
+    "answer",
+    "clarification_request",
+    "new_question",
+    "unrelated",
+    "skip",
+  ]);
+  return allowed.has(parsed.type) ? parsed.type : "answer";
+}
+
 async function generateTicketSummary(input) {
   const result = await client.chat.completions.create({
     messages: [
@@ -479,6 +504,7 @@ module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
 module.exports.classifyConversationIntent = classifyConversationIntent;
+module.exports.classifyClarificationReply = classifyClarificationReply;
 module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
 module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;

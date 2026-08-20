@@ -1,5 +1,6 @@
 jest.mock("../ai/ai", () => ({
   followUpQuestions: jest.fn(),
+  classifyClarificationReply: jest.fn(),
   generateTicketSummary: jest.fn(),
   analyticsRecommendations: jest.fn(),
 }));
@@ -15,6 +16,7 @@ jest.mock("./conversationalHelpRequest", () => ({
 
 const {
   followUpQuestions,
+  classifyClarificationReply,
   generateTicketSummary,
   analyticsRecommendations,
 } = require("../ai/ai");
@@ -55,6 +57,7 @@ function client() {
 describe("conversation escalation funnel", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    classifyClarificationReply.mockResolvedValue("answer");
     generateTicketSummary.mockResolvedValue(
       "Preview deployment returns HTTP 503",
     );
@@ -216,6 +219,90 @@ describe("conversation escalation funnel", () => {
             block_id: "help_clarification_question_2",
           }),
         ],
+      }),
+    );
+  });
+
+  it("repeats the question when the user asks for clarification", async () => {
+    classifyClarificationReply.mockResolvedValue("clarification_request");
+    const messages = [
+      bot("2", "help_clarification_start_other", {
+        question: "Preview is broken",
+        area: "other",
+      }),
+      bot("3", "help_clarification_question_1", {
+        question: "What exact error message do you see?",
+      }),
+      user("4", "What do you mean?"),
+    ];
+    const slack = client();
+
+    await handleClarificationReply({
+      message: { ...messages.at(-1), channel: "D1", thread_ts: "1" },
+      client: slack,
+      messages,
+    });
+
+    expect(followUpQuestions).not.toHaveBeenCalled();
+    expect(slack.chat.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("What exact error message do you see?"),
+      }),
+    );
+  });
+
+  it("redirects a new issue to a separate message without consuming a question", async () => {
+    classifyClarificationReply.mockResolvedValue("new_question");
+    const messages = [
+      bot("2", "help_clarification_start_other", {
+        question: "Preview is broken",
+        area: "other",
+      }),
+      bot("3", "help_clarification_question_1", {
+        question: "What exact error message do you see?",
+      }),
+      user("4", "How do I request GitHub access?"),
+    ];
+    const slack = client();
+
+    await handleClarificationReply({
+      message: { ...messages.at(-1), channel: "D1", thread_ts: "1" },
+      client: slack,
+      messages,
+    });
+
+    expect(followUpQuestions).not.toHaveBeenCalled();
+    expect(slack.chat.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("new question"),
+      }),
+    );
+  });
+
+  it("rejects unrelated replies without consuming a question", async () => {
+    classifyClarificationReply.mockResolvedValue("unrelated");
+    const messages = [
+      bot("2", "help_clarification_start_other", {
+        question: "Preview is broken",
+        area: "other",
+      }),
+      bot("3", "help_clarification_question_1", {
+        question: "What exact error message do you see?",
+      }),
+      user("4", "Thanks for the help"),
+    ];
+    const slack = client();
+
+    await handleClarificationReply({
+      message: { ...messages.at(-1), channel: "D1", thread_ts: "1" },
+      client: slack,
+      messages,
+    });
+
+    expect(followUpQuestions).not.toHaveBeenCalled();
+    expect(slack.chat.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("does not seem to answer"),
       }),
     );
   });
