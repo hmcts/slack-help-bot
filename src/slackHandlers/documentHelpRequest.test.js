@@ -6,7 +6,7 @@ jest.mock("../service/persistence", () => ({
 }));
 
 jest.mock("../service/cosmos", () => ({
-  updateCosmosWhenHelpRequestResolved: jest.fn(),
+  updateHelpRequestInCosmos: jest.fn(),
 }));
 
 const {
