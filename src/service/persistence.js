@@ -10,6 +10,9 @@ const systemUser = config.get("jira.username");
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
+const supportIssueTypeId =
+  config.get("jira.support_issue_type_id") || issueTypeId;
+const taskIssueTypeId = config.get("jira.task_issue_type_id");
 
 /** @type {string} */
 const jiraProject = config.get("jira.project");
@@ -113,6 +116,31 @@ async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
   }
 }
 
+async function updateHelpRequestType(jiraId, ticketType) {
+  const issueTypeId =
+    ticketType === "task" ? taskIssueTypeId : supportIssueTypeId;
+  const ticketTypeLabel = `ticket-type-${ticketType}`;
+
+  if (!issueTypeId) {
+    throw new Error(`No Jira issue type configured for ${ticketType}`);
+  }
+
+  await jira.updateIssue(jiraId, {
+    fields: {
+      issuetype: {
+        id: issueTypeId,
+      },
+    },
+    update: {
+      labels: [
+        { remove: "ticket-type-support" },
+        { remove: "ticket-type-task" },
+        { add: ticketTypeLabel },
+      ],
+    },
+  });
+}
+
 async function startHelpRequest(jiraId) {
   try {
     await jira.transitionIssue(jiraId, {
@@ -123,23 +151,6 @@ async function startHelpRequest(jiraId) {
   } catch (err) {
     console.log("Error starting help request in jira", err);
   }
-}
-
-async function updateIssueStatus(issueId, status) {
-  const transitions = await jira.listTransitions(issueId);
-  const transition = transitions.transitions.find(
-    (item) => item.to?.name === status || item.name === status,
-  );
-
-  if (!transition) {
-    throw new Error(`No Jira transition found for status ${status}`);
-  }
-
-  await jira.transitionIssue(issueId, {
-    transition: {
-      id: transition.id,
-    },
-  });
 }
 
 async function getIssueDescription(issueId) {
@@ -271,13 +282,26 @@ async function assignHelpRequest(issueId, email) {
   }
 }
 
-async function createHelpRequestInJira(summary, project, user, labels) {
+async function createHelpRequestInJira(
+  summary,
+  project,
+  user,
+  labels,
+  issueType = "support",
+) {
+  const selectedIssueTypeId =
+    issueType === "task" ? taskIssueTypeId : supportIssueTypeId;
+
+  if (!selectedIssueTypeId) {
+    throw new Error(`No Jira issue type configured for ${issueType}`);
+  }
+
   console.log(`Creating help request in Jira for user: ${user}`);
   return await jira.addNewIssue({
     fields: {
       summary: summary,
       issuetype: {
-        id: issueTypeId,
+        id: selectedIssueTypeId,
       },
       project: {
         id: project.id,
@@ -291,7 +315,12 @@ async function createHelpRequestInJira(summary, project, user, labels) {
   });
 }
 
-async function createHelpRequest({ summary, userEmail, labels }) {
+async function createHelpRequest({
+  summary,
+  userEmail,
+  labels,
+  issueType = "support",
+}) {
   const user = await convertEmail(userEmail);
 
   const project = await jira.getProject(jiraProject);
@@ -301,7 +330,13 @@ async function createHelpRequest({ summary, userEmail, labels }) {
 
   let result;
   try {
-    result = await createHelpRequestInJira(summary, project, user, labels);
+    result = await createHelpRequestInJira(
+      summary,
+      project,
+      user,
+      labels,
+      issueType,
+    );
   } catch (err) {
     // in case the user doesn't exist in Jira use the system user
     result = await createHelpRequestInJira(
@@ -309,6 +344,7 @@ async function createHelpRequest({ summary, userEmail, labels }) {
       project,
       systemUser,
       labels,
+      issueType,
     );
 
     if (!result.key) {
@@ -473,7 +509,6 @@ async function getUserByKey(key) {
 
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
-module.exports.updateIssueStatus = updateIssueStatus;
 module.exports.assignHelpRequest = assignHelpRequest;
 module.exports.createHelpRequest = createHelpRequest;
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription;
@@ -489,6 +524,7 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
