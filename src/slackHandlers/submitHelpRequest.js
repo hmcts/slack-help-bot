@@ -292,6 +292,7 @@ async function submitHelpRequest(body, client, area) {
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
         cleanLabel(`priority-${helpRequest.priority.value}`),
+        "ticket-type-support",
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
       priority: helpRequest.priority.value,
@@ -359,6 +360,7 @@ async function submitHelpRequest(body, client, area) {
       title: helpRequest.summary,
       description: helpRequest.description,
       analysis: helpRequest.analysis,
+      ticket_type: "support",
       url: permaLink,
     });
 

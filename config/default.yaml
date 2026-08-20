@@ -17,6 +17,8 @@ jira:
   priority_normal_id: "4"
   priority_high_id: "3"
   priority_critical_id: "1"
+  support_issue_type_id: 18400
+  task_issue_type_id: 3
   #username: no default
   #api_token: no default
 

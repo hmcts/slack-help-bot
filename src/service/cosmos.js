@@ -129,7 +129,7 @@ async function createHelpRequestInCosmos(item) {
   await container.items.create(truncateSearchableFields(item));
 }
 
-async function updateCosmosWhenHelpRequestResolved(item) {
+async function updateHelpRequestInCosmos(item) {
   const container = getContainer();
 
   const result = await container.items
@@ -171,6 +171,14 @@ async function updateCosmosWhenHelpRequestResolved(item) {
     });
   }
 
+  if (item.ticket_type) {
+    updateObj.push({
+      op: "add",
+      path: "/ticket_type",
+      value: item.ticket_type,
+    });
+  }
+
   await container.item(id, id).patch(updateObj);
 }
 
@@ -201,8 +209,7 @@ async function updateHelpRequestPriorityInCosmos(key, priority, reasons = []) {
 }
 
 module.exports.load = load;
-module.exports.updateCosmosWhenHelpRequestResolved =
-  updateCosmosWhenHelpRequestResolved;
+module.exports.updateHelpRequestInCosmos = updateHelpRequestInCosmos;
 module.exports.createHelpRequestInCosmos = createHelpRequestInCosmos;
 module.exports.truncateUtf8Bytes = truncateUtf8Bytes;
 module.exports.updateHelpRequestPriorityInCosmos =

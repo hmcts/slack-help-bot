@@ -12,6 +12,8 @@ jira:
   project: JIRA_PROJECT
   issue_type_id: JIRA_ISSUE_TYPE_ID
   issue_type_name: JIRA_ISSUE_TYPE_NAME
+  support_issue_type_id: JIRA_SUPPORT_ISSUE_TYPE_ID
+  task_issue_type_id: JIRA_TASK_ISSUE_TYPE_ID
   username: JIRA_USERNAME
   api_token: JIRA_API_TOKEN
   priority_normal_id: JIRA_PRIORITY_NORMAL_ID

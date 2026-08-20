@@ -16,6 +16,10 @@ const jiraPriorities = {
   critical: config.get("jira.priority_critical_id"),
 };
 
+const supportIssueTypeId =
+  config.get("jira.support_issue_type_id") || issueTypeId;
+const taskIssueTypeId = config.get("jira.task_issue_type_id");
+
 /** @type {string} */
 const jiraProject = config.get("jira.project");
 
@@ -116,6 +120,31 @@ async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
   } catch (err) {
     console.log("Error marking help request as duplicate in jira", err);
   }
+}
+
+async function updateHelpRequestType(jiraId, ticketType) {
+  const issueTypeId =
+    ticketType === "task" ? taskIssueTypeId : supportIssueTypeId;
+  const ticketTypeLabel = `ticket-type-${ticketType}`;
+
+  if (!issueTypeId) {
+    throw new Error(`No Jira issue type configured for ${ticketType}`);
+  }
+
+  await jira.updateIssue(jiraId, {
+    fields: {
+      issuetype: {
+        id: issueTypeId,
+      },
+    },
+    update: {
+      labels: [
+        { remove: "ticket-type-support" },
+        { remove: "ticket-type-task" },
+        { add: ticketTypeLabel },
+      ],
+    },
+  });
 }
 
 async function startHelpRequest(jiraId) {
@@ -279,12 +308,26 @@ async function updateHelpRequestPriority(issueId, priority) {
 }
 
 async function createHelpRequestInJira(summary, project, user, labels) {
+async function createHelpRequestInJira(
+  summary,
+  project,
+  user,
+  labels,
+  issueType = "support",
+) {
+  const selectedIssueTypeId =
+    issueType === "task" ? taskIssueTypeId : supportIssueTypeId;
+
+  if (!selectedIssueTypeId) {
+    throw new Error(`No Jira issue type configured for ${issueType}`);
+  }
+
   console.log(`Creating help request in Jira for user: ${user}`);
   return await jira.addNewIssue({
     fields: {
       summary: summary,
       issuetype: {
-        id: issueTypeId,
+        id: selectedIssueTypeId,
       },
       project: {
         id: project.id,
@@ -303,6 +346,7 @@ async function createHelpRequest({
   userEmail,
   labels,
   priority = "normal",
+  issueType = "support",
 }) {
   const user = await convertEmail(userEmail);
 
@@ -313,7 +357,13 @@ async function createHelpRequest({
 
   let result;
   try {
-    result = await createHelpRequestInJira(summary, project, user, labels);
+    result = await createHelpRequestInJira(
+      summary,
+      project,
+      user,
+      labels,
+      issueType,
+    );
   } catch (err) {
     // in case the user doesn't exist in Jira use the system user
     result = await createHelpRequestInJira(
@@ -321,6 +371,7 @@ async function createHelpRequest({
       project,
       systemUser,
       labels,
+      issueType,
     );
 
     if (!result.key) {
@@ -507,6 +558,7 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
