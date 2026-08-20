@@ -84,9 +84,7 @@ function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
 // LLMs sometimes wrap Slack mrkdwn answers in a ``` code fence, which Slack then
 // renders as a literal, unformatted code block instead of rich text.
 function stripMarkdownCodeFence(text) {
-  const match = text
-    .trim()
-    .match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+  const match = text.trim().match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
 
   return match ? match[1] : text;
 }
@@ -394,7 +392,10 @@ Instructions:
   const sourceIndexes =
     answer === "I couldn't find an answer in the documentation."
       ? []
-      : sanitizeSourceIndexes(parsed.sourceIndexes, knowledgeStoreResults.length);
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   console.log("LLM Knowledge Store Answer:", parsed);
 
@@ -465,7 +466,10 @@ async function answerFromRunbookKnowledgeStore(
   const sourceIndexes =
     answer === "I couldn't find an answer in the documentation."
       ? []
-      : sanitizeSourceIndexes(parsed.sourceIndexes, knowledgeStoreResults.length);
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   return { answer, sourceIndexes };
 
