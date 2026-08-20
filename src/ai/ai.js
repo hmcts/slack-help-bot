@@ -24,6 +24,7 @@ const azureADTokenProvider = getBearerTokenProvider(
   scope,
 );
 const deployment = config.get("openai.deployment_name");
+const embeddingDeployment = config.get("openai.embedding_deployment_name");
 const apiVersion = "2024-04-01-preview";
 const client = new AzureOpenAI({
   azureADTokenProvider,
@@ -31,6 +32,38 @@ const client = new AzureOpenAI({
   endpoint: config.get("openai.endpoint"),
   apiVersion,
 });
+
+// Azure OpenAI routes by the deployment baked into the client URL, so embeddings
+// need their own client rather than passing a different model to the chat client
+const embeddingClient = new AzureOpenAI({
+  azureADTokenProvider,
+  deployment: embeddingDeployment,
+  endpoint: config.get("openai.endpoint"),
+  apiVersion,
+});
+
+async function getEmbedding(text) {
+  const result = await embeddingClient.embeddings.create({
+    input: text,
+    model: embeddingDeployment,
+  });
+
+  return result.data[0].embedding;
+}
+
+function cosineSimilarity(a, b) {
+  let dotProduct = 0;
+  let aMagnitude = 0;
+  let bMagnitude = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    aMagnitude += a[i] * a[i];
+    bMagnitude += b[i] * b[i];
+  }
+
+  return dotProduct / (Math.sqrt(aMagnitude) * Math.sqrt(bMagnitude));
+}
 
 function truncateText(text, maxLength) {
   if (!text) {
@@ -392,3 +425,5 @@ module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
 module.exports.sanitizeResolutionSummary = sanitizeResolutionSummary;
+module.exports.getEmbedding = getEmbedding;
+module.exports.cosineSimilarity = cosineSimilarity;

@@ -27,6 +27,7 @@ cosmos:
 openai:
   endpoint: "https://platops-slack-help-bot-ptl.openai.azure.com/"
   deployment_name: "gpt-4"
+  embedding_deployment_name: "text-embedding-3-small"
 
 search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
