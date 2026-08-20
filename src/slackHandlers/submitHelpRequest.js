@@ -98,6 +98,11 @@ function getFollowUpQuestions(blocks) {
   }));
 }
 
+function getInitialSelectedOption(blocks, actionId) {
+  return blocks.find((block) => block.element?.action_id === actionId)?.element
+    ?.initial_option;
+}
+
 /**
  * Determines which if-any blocks should be reinserted in related issues section
  */
@@ -177,6 +182,12 @@ async function submitHelpRequest(body, client, area) {
       area: values.area
         ? values.area.selected_option
         : inputBlocks[6].element.initial_option,
+      priority: values.priority
+        ? values.priority.selected_option
+        : getInitialSelectedOption(blocks, "priority") || {
+            text: { type: "plain_text", text: "Normal", emoji: true },
+            value: "normal",
+          },
       followUpAnswers: getFollowUpAnswers(values, blocks),
     };
 
@@ -280,8 +291,10 @@ async function submitHelpRequest(body, client, area) {
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
+        cleanLabel(`priority-${helpRequest.priority.value}`),
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
+      priority: helpRequest.priority.value,
     });
 
     const mainRes = await client.chat.postMessage({
@@ -341,6 +354,7 @@ async function submitHelpRequest(body, client, area) {
       created_at: new Date(),
       key: jiraId,
       status: "Open",
+      priority: helpRequest.priority.value,
       area,
       title: helpRequest.summary,
       description: helpRequest.description,

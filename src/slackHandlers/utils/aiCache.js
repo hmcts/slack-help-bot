@@ -1,7 +1,11 @@
 const cajache = require("cajache");
 const { searchHelpRequests } = require("../../service/searchHelpRequests");
 const { searchKnowledgeStore } = require("../../service/searchKnowledgeStore");
-const { analyticsRecommendations, followUpQuestions } = require("../../ai/ai");
+const {
+  analyticsRecommendations,
+  followUpQuestions,
+  assessPriority,
+} = require("../../ai/ai");
 const { hashString } = require("./hashString");
 
 function createQuery(helpRequest) {
@@ -42,11 +46,18 @@ async function handler(query, analyticsQuery, area, options = {}) {
       return [];
     },
   );
+  const priorityAssessmentPromise = assessPriority(analyticsQuery).catch(
+    (error) => {
+      console.log("An error occurred when assessing request priority", error);
+      return { priority: "normal", confidence: "low", reasons: [] };
+    },
+  );
 
   const relatedIssues = await relatedIssuesPromise;
   const aiRecommendation = await aiRecommendationPromise;
   const followUpQuestionsResult = await followUpQuestionsPromise;
   const knowledgeStoreResults = await knowledgeStorePromise;
+  const priorityAssessment = await priorityAssessmentPromise;
 
   console.log(relatedIssues);
 
@@ -55,6 +66,7 @@ async function handler(query, analyticsQuery, area, options = {}) {
     knowledgeStoreResults,
     aiRecommendation,
     followUpQuestions: followUpQuestionsResult,
+    priorityAssessment,
   };
 }
 

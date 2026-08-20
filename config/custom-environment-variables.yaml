@@ -3,6 +3,7 @@ slack:
   app_token: SLACK_APP_TOKEN
   report_channel_id: SLACK_REPORT_CHANNEL_ID
   report_channel_crime_id: SLACK_REPORT_CHANNEL_CRIME_ID
+  bau_user_group_id: SLACK_BAU_USER_GROUP_ID
 
 jira:
   start_transition_id: JIRA_START_TRANSITION_ID
@@ -13,6 +14,9 @@ jira:
   issue_type_name: JIRA_ISSUE_TYPE_NAME
   username: JIRA_USERNAME
   api_token: JIRA_API_TOKEN
+  priority_normal_id: JIRA_PRIORITY_NORMAL_ID
+  priority_high_id: JIRA_PRIORITY_HIGH_ID
+  priority_critical_id: JIRA_PRIORITY_CRITICAL_ID
 
 app_insights:
   connection_string: APP_INSIGHTS_CONNECTION_STRING
@@ -28,3 +32,8 @@ search:
   endpoint: AZURE_SEARCH_ENDPOINT
   help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME
   knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME
+
+confluence:
+  base_url: CONFLUENCE_BASE_URL
+  functional_releases_parent_id: CONFLUENCE_FUNCTIONAL_RELEASES_PARENT_ID
+  api_token: CONFLUENCE_API_TOKEN

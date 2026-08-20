@@ -80,6 +80,9 @@ const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
   watchHelpRequestThread,
 } = require("./src/slackHandlers/watchHelpRequestThread");
+const {
+  changeHelpRequestPriority,
+} = require("./src/slackHandlers/helpRequestPriority");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -314,6 +317,14 @@ async function updateThreadWatch({ body, ack, client }) {
 
 app.action("manage_help_request_thread_watch", updateThreadWatch);
 app.action("watch_help_request_thread", updateThreadWatch);
+
+app.action(
+  "change_help_request_priority",
+  async ({ body, action, ack, client }) => {
+    await ack();
+    await changeHelpRequestPriority(action, body, client);
+  },
+);
 
 app.action(
   "resolve_help_request",

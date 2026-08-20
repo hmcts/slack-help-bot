@@ -174,8 +174,36 @@ async function updateCosmosWhenHelpRequestResolved(item) {
   await container.item(id, id).patch(updateObj);
 }
 
+async function updateHelpRequestPriorityInCosmos(key, priority, reasons = []) {
+  const container = getContainer();
+  const result = await container.items
+    .query({
+      query: "SELECT * FROM c WHERE c.key = @key",
+      parameters: [{ name: "@key", value: key }],
+    })
+    .fetchNext();
+
+  if (result.resources.length === 0) {
+    console.log("No help request found in Cosmos for key", key);
+    return;
+  }
+
+  const { id } = result.resources[0];
+  await container.item(id, id).patch([
+    { op: "add", path: "/priority", value: priority },
+    { op: "add", path: "/priority_reasons", value: reasons },
+    {
+      op: "add",
+      path: "/priority_updated_at",
+      value: new Date().toISOString(),
+    },
+  ]);
+}
+
 module.exports.load = load;
 module.exports.updateCosmosWhenHelpRequestResolved =
   updateCosmosWhenHelpRequestResolved;
 module.exports.createHelpRequestInCosmos = createHelpRequestInCosmos;
 module.exports.truncateUtf8Bytes = truncateUtf8Bytes;
+module.exports.updateHelpRequestPriorityInCosmos =
+  updateHelpRequestPriorityInCosmos;
