@@ -205,6 +205,14 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
   const searchQuery = `${summary}\n${description}`;
 
   const knowledgeStoreResults = await searchOpsRunbook(searchQuery);
+  console.log(
+    "ops-runbook search results:",
+    searchQuery,
+    knowledgeStoreResults.map((result) => ({
+      title: result.document?.title,
+      rerankerScore: result.rerankerScore,
+    })),
+  );
   const runbookAnswer = await answerFromRunbookKnowledgeStore(
     runbookPrompt,
     knowledgeStoreResults,
