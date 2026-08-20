@@ -60,7 +60,7 @@ Respond using JSON, example:
 {
   "area": "AKS",
   "environment": "Production",
-   "team": "Expert UI"
+  "team": "Expert UI"
 }
 
 PR means pull request.

@@ -280,6 +280,7 @@ async function submitHelpRequest(body, client, area) {
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
+         "ticket-type-support",
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
     });
@@ -345,6 +346,7 @@ async function submitHelpRequest(body, client, area) {
       title: helpRequest.summary,
       description: helpRequest.description,
       analysis: helpRequest.analysis,
+      ticket_type: "support",
       url: permaLink,
     });
 

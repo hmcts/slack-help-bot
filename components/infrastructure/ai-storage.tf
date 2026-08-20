@@ -23,6 +23,11 @@ resource "azurerm_storage_container" "hmcts_way" {
   storage_account_name = azurerm_storage_account.default.name
 }
 
+resource "azurerm_storage_container" "ops_runbook" {
+  name                 = "ops-runbook"
+  storage_account_name = azurerm_storage_account.default.name
+}
+
 resource "azurerm_role_assignment" "storage_blob_data_reader_search_service" {
   principal_id = data.azurerm_search_service.this.identity[0].principal_id
   scope        = azurerm_storage_account.default.id
@@ -43,6 +48,17 @@ data "azuread_service_principal" "hmcts_way_repo" {
 
 resource "azurerm_role_assignment" "storage_blob_data_contributor_hmcts_way" {
   principal_id = data.azuread_service_principal.hmcts_way_repo.object_id
+  scope        = azurerm_storage_account.default.id
+
+  role_definition_name = "Storage Blob Data Contributor"
+}
+
+data "azuread_service_principal" "ops_runbook_repo" {
+  display_name = "DTS Ops runbook indexer"
+}
+
+resource "azurerm_role_assignment" "storage_blob_data_contributor_ops_runbook" {
+  principal_id = data.azuread_service_principal.ops_runbook_repo.object_id
   scope        = azurerm_storage_account.default.id
 
   role_definition_name = "Storage Blob Data Contributor"
