@@ -97,12 +97,11 @@ function convertStoragePathToOpsRunbookUrl(storagePath) {
 }
 
 function getRunbookSourceLines(knowledgeStoreResults, sourceIndexes) {
-  const indexes =
-    Array.isArray(sourceIndexes) && sourceIndexes.length > 0
-      ? sourceIndexes
-      : knowledgeStoreResults.map((_, idx) => idx + 1);
+  if (!Array.isArray(sourceIndexes) || sourceIndexes.length === 0) {
+    return "";
+  }
 
-  const sourceLines = indexes
+  const sourceLines = sourceIndexes
     .map((sourceIndex) => {
       const item = knowledgeStoreResults[sourceIndex - 1];
       if (!item) {
