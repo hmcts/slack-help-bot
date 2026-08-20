@@ -20,6 +20,7 @@ const {
   knowledgeSearchQueryRewritePrompt,
   conversationIntentPrompt,
   clarificationReplyPrompt,
+  conversationTurnPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -387,6 +388,30 @@ async function classifyConversationIntent(input) {
     : "platform_related";
 }
 
+async function understandConversationTurn({ question, greetingShown = false }) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: conversationTurnPrompt() },
+      {
+        role: "user",
+        content: `Greeting already shown: ${greetingShown}\nLatest message: ${truncateText(question, 1000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  const parsed = JSON.parse(result.choices?.[0]?.message?.content ?? "{}");
+  const intent = new Set(["greeting", "platform_related", "off_topic"]).has(
+    parsed.intent,
+  )
+    ? parsed.intent
+    : "platform_related";
+  return {
+    intent,
+    response: typeof parsed.response === "string" ? parsed.response.trim() : "",
+  };
+}
+
 async function classifyClarificationReply({ question, answer, context = "" }) {
   const result = await client.chat.completions.create({
     messages: [
@@ -505,6 +530,7 @@ module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
 module.exports.classifyConversationIntent = classifyConversationIntent;
 module.exports.classifyClarificationReply = classifyClarificationReply;
+module.exports.understandConversationTurn = understandConversationTurn;
 module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
 module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;

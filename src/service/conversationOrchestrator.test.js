@@ -1,19 +1,25 @@
 jest.mock("./conversationIntent", () => ({
-  classifyConversationIntent: jest.fn(),
+  understandConversationTurn: jest.fn(),
 }));
 
-const { classifyConversationIntent } = require("./conversationIntent");
+const { understandConversationTurn } = require("./conversationIntent");
 const { orchestrateConversation } = require("./conversationOrchestrator");
 
 describe("conversation orchestrator", () => {
   beforeEach(() => jest.resetAllMocks());
 
   it("returns polite replies for greeting and off-topic intent", async () => {
-    classifyConversationIntent.mockResolvedValueOnce("greeting");
+    understandConversationTurn.mockResolvedValueOnce({
+      intent: "greeting",
+      response: "Hello — which platform do you need help with?",
+    });
     await expect(
       orchestrateConversation({ question: "hello" }),
     ).resolves.toEqual(expect.objectContaining({ action: "reply" }));
-    classifyConversationIntent.mockResolvedValueOnce("off_topic");
+    understandConversationTurn.mockResolvedValueOnce({
+      intent: "off_topic",
+      response: "I can help with HMCTS Platform Operations queries.",
+    });
     await expect(
       orchestrateConversation({ question: "tell me a joke" }),
     ).resolves.toEqual(expect.objectContaining({ action: "reply" }));
@@ -23,6 +29,13 @@ describe("conversation orchestrator", () => {
     await expect(
       orchestrateConversation({ question: "Crime / CPP", pendingPlatform: {} }),
     ).resolves.toEqual({ action: "platform_answer" });
-    expect(classifyConversationIntent).not.toHaveBeenCalled();
+    expect(understandConversationTurn).not.toHaveBeenCalled();
+  });
+
+  it("does not repeat a greeting already shown in the thread", async () => {
+    understandConversationTurn.mockResolvedValue({ intent: "greeting" });
+    await expect(
+      orchestrateConversation({ question: "hi", greetingShown: true }),
+    ).resolves.toEqual({ action: "platform_related" });
   });
 });

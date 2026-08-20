@@ -1,20 +1,35 @@
-const { classifyConversationIntent } = require("./conversationIntent");
+const { understandConversationTurn } = require("./conversationIntent");
 
 const GREETING_REPLY =
-  "Hi! I’m here to help with HMCTS Platform Operations issues, errors, deployments, access requests and related support questions. I’ll do my best to find an answer or help you raise a request. What can I help with?";
+  "Hi! I’m here to help with HMCTS Platform Operations queries. Which platform do you need support with?";
 const OFF_TOPIC_REPLY =
   "I’m here to help with HMCTS Platform Operations work. Please send a platform issue, error, deployment, access request or support question, and I’ll do my best to help.";
 
-async function orchestrateConversation({ question, pendingPlatform }) {
+async function orchestrateConversation({
+  question,
+  pendingPlatform,
+  greetingShown = false,
+}) {
   if (pendingPlatform) return { action: "platform_answer" };
   let intent = "platform_related";
+  let response = "";
   try {
-    intent = await classifyConversationIntent(question);
+    const turn = await understandConversationTurn({ question, greetingShown });
+    intent = turn.intent;
+    response = turn.response;
   } catch (error) {
-    console.warn("Could not classify conversation intent", error);
+    console.warn("Could not understand conversation turn", error);
   }
-  if (intent === "greeting") return { action: "reply", text: GREETING_REPLY };
-  if (intent === "off_topic") return { action: "reply", text: OFF_TOPIC_REPLY };
+  if (intent === "greeting" && !greetingShown) {
+    return {
+      action: "reply",
+      text: response || GREETING_REPLY,
+      promptPlatform: true,
+    };
+  }
+  if (intent === "off_topic") {
+    return { action: "reply", text: response || OFF_TOPIC_REPLY };
+  }
   return { action: "platform_related" };
 }
 

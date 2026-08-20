@@ -181,6 +181,30 @@ async function repeatFeedbackQuestion({ client, message, stage, kind }) {
   const text = documentation
     ? "Did the documentation solve the problem? Reply `yes` or `no`, or use a button."
     : "Are any of the JIRA tickets useful? Reply `yes` or `no`, or use a button.";
+  const existingBlocks = stage.message.blocks;
+  if (client.chat.update && existingBlocks?.length) {
+    const blocks = existingBlocks.map((block) => {
+      if (
+        !block.block_id?.startsWith(
+          documentation ? DOCUMENTATION_FEEDBACK_PREFIX : JIRA_FEEDBACK_PREFIX,
+        )
+      ) {
+        return block;
+      }
+      return {
+        ...block,
+        type: "section",
+        text: { type: "mrkdwn", text },
+      };
+    });
+    await client.chat.update({
+      channel: message.channel,
+      ts: stage.message.ts,
+      text,
+      blocks,
+    });
+    return;
+  }
   await client.chat.postMessage({
     channel: message.channel,
     thread_ts: message.thread_ts ?? message.ts,

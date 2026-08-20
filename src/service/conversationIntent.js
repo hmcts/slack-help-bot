@@ -1,3 +1,7 @@
-const { classifyConversationIntent } = require("../ai/ai");
+const {
+  classifyConversationIntent,
+  understandConversationTurn,
+} = require("../ai/ai");
 
 module.exports.classifyConversationIntent = classifyConversationIntent;
+module.exports.understandConversationTurn = understandConversationTurn;

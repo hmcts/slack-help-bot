@@ -47,6 +47,7 @@ describe("Slack assistant", () => {
     orchestrateConversation.mockResolvedValueOnce({
       action: "reply",
       text: "Hi! I’m here to help with HMCTS Platform Operations",
+      promptPlatform: true,
     });
     const say = jest.fn();
     const client = {
@@ -105,7 +106,9 @@ describe("Slack assistant", () => {
 
     expect(say).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: "Which platform do you need support with?",
+        text: expect.stringContaining(
+          "Which platform do you need support with?",
+        ),
       }),
     );
     expect(answerConversation).not.toHaveBeenCalled();
@@ -152,7 +155,9 @@ describe("Slack assistant", () => {
       expect.objectContaining({
         channel: "D1",
         thread_ts: "100.000",
-        text: "Which platform do you need support with?",
+        text: expect.stringContaining(
+          "Which platform do you need support with?",
+        ),
       }),
     );
   });

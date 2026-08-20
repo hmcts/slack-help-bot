@@ -1,11 +1,13 @@
-function knowledgeSearchPromptBlocks() {
+function knowledgeSearchPromptBlocks(
+  promptText = "Which platform do you need support with?",
+) {
   return [
     {
       type: "section",
       block_id: "knowledge_search_conversation_platform_prompt",
       text: {
         type: "mrkdwn",
-        text: "Which platform do you need support with?",
+        text: promptText,
       },
     },
     {

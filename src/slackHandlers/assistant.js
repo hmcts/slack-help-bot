@@ -27,6 +27,8 @@ const CLOSED_THREAD_BLOCK_IDS = new Set([
   "help_request_conversation_cancelled",
   "help_request_conversation_complete",
 ]);
+const PLATFORM_PROMPT_TEXT =
+  "Hi! I’m here to help with HMCTS Platform Operations queries. Which platform do you need support with?";
 
 function messageTimestampMs(message) {
   const seconds = Number.parseFloat(message.ts);
@@ -41,6 +43,30 @@ function messageText(message) {
   return (
     message.blocks?.find((block) => block.type === "section")?.text?.text ?? ""
   ).trim();
+}
+
+function isBotMessage(message) {
+  return Boolean(message.bot_id || message.app_id);
+}
+
+function isGreetingMessage(text) {
+  return /^(hi|hello|hey|hiya|good morning|good afternoon|good evening)[!.\s]*$/i.test(
+    text?.trim() ?? "",
+  );
+}
+
+function greetingAlreadyShown(messages) {
+  return messages.some(
+    (message) =>
+      isBotMessage(message) &&
+      (message.metadata?.event_type === "conversation_greeting" ||
+        (/^(hello|hi|hey)[!.\s]/i.test(messageText(message)) &&
+          message.blocks?.some(
+            (block) =>
+              block.block_id ===
+              "knowledge_search_conversation_platform_prompt",
+          ))),
+  );
 }
 
 function isRecentMessage(message, now) {
@@ -61,6 +87,48 @@ function isClosedConversation(messages) {
 
 function extractAreaFromHistory(messages) {
   for (const message of [...messages].reverse()) {
+    const selectedArea = message.metadata?.event_payload?.area;
+    if (
+      message.metadata?.event_type === "platform_selected" &&
+      (selectedArea === "crime" || selectedArea === "other")
+    ) {
+      return selectedArea;
+    }
+    const platformMarker = message.blocks?.find((block) =>
+      block.block_id?.startsWith("knowledge_search_platform_selected_"),
+    );
+    if (platformMarker) {
+      return platformMarker.block_id.endsWith("_crime") ? "crime" : "other";
+    }
+    const platformMarkerText = message.blocks
+      ?.find((block) => {
+        const text = block.elements?.map((element) => element.text).join(" ");
+        return (
+          block.block_id?.startsWith("knowledge_search_platform_selected_") ||
+          /platform selected:/i.test(text ?? "")
+        );
+      })
+      ?.elements?.map((element) => element.text)
+      .join(" ");
+    if (platformMarkerText) {
+      if (/cloud native \/ other/i.test(platformMarkerText)) return "other";
+      if (/crime \/ cpp/i.test(platformMarkerText)) return "crime";
+    }
+    const confirmationText = messageText(message);
+    if (
+      /platform selected:\s*\**cloud native \/ other/i.test(confirmationText)
+    ) {
+      return "other";
+    }
+    if (/platform selected:\s*\**crime \/ cpp/i.test(confirmationText)) {
+      return "crime";
+    }
+    if (/i['’]ll search cloud native \/ other/i.test(confirmationText)) {
+      return "other";
+    }
+    if (/i['’]ll search crime \/ cpp/i.test(confirmationText)) {
+      return "crime";
+    }
     const contextBlock = message.blocks?.find((block) =>
       block.block_id?.startsWith("knowledge_search_context_"),
     );
@@ -121,6 +189,23 @@ function pendingPlatformSelection(messages, currentMessageTs) {
     );
   if (resolvedByKnowledgeAnswer) return null;
 
+  const resolvedByPlatformSelection = messages
+    .slice(promptIndex + 1)
+    .some((item) => {
+      const marker = item.blocks?.some((block) =>
+        block.block_id?.startsWith("knowledge_search_platform_selected_"),
+      );
+      const text = messageText(item);
+      return (
+        marker ||
+        /platform selected:\s*\**(?:cloud native \/ other|crime \/ cpp)/i.test(
+          text,
+        ) ||
+        /i['’]ll search (?:cloud native \/ other|crime \/ cpp)/i.test(text)
+      );
+    });
+  if (resolvedByPlatformSelection) return null;
+
   const alreadyAnswered = messages
     .slice(promptIndex + 1)
     .some(
@@ -153,10 +238,14 @@ function pendingPlatformSelection(messages, currentMessageTs) {
 
   const questionMessage = [...messages.slice(0, firstPromptIndex)]
     .reverse()
-    .find((item) => !item.bot_id && !item.app_id && item.text?.trim());
-  return questionMessage?.text?.trim()
-    ? { question: questionMessage.text.trim() }
-    : null;
+    .find(
+      (item) =>
+        !item.bot_id &&
+        !item.app_id &&
+        item.text?.trim() &&
+        !isGreetingMessage(item.text),
+    );
+  return { question: questionMessage?.text?.trim() ?? "" };
 }
 
 function parsePlatformArea(answer) {
@@ -206,6 +295,15 @@ async function handleConversationMessage({
     if (isClosedConversation(threadMessages)) {
       return;
     }
+    const currentIndex = threadMessages.findIndex(
+      (item) => item.ts === message.ts,
+    );
+    if (
+      currentIndex >= 0 &&
+      threadMessages.slice(currentIndex + 1).some(isBotMessage)
+    ) {
+      return;
+    }
     if (
       await handleConversationalHelpReply({
         message,
@@ -246,12 +344,27 @@ async function handleConversationMessage({
       threadMessages,
       message.ts,
     );
+    const greetingShown = greetingAlreadyShown(threadMessages);
     const orchestration = await orchestrateConversation({
       question,
       pendingPlatform,
+      greetingShown,
     });
     if (orchestration.action === "reply") {
-      await say({ text: orchestration.text });
+      const responseText = orchestration.promptPlatform
+        ? /platform/i.test(orchestration.text)
+          ? orchestration.text
+          : `${orchestration.text.replace(/[.!?\s]+$/, "")}. Which platform do you need support with?`
+        : orchestration.text;
+      await say({
+        text: responseText,
+        ...(orchestration.promptPlatform
+          ? {
+              blocks: knowledgeSearchPromptBlocks(responseText),
+              metadata: { event_type: "conversation_greeting" },
+            }
+          : {}),
+      });
       return;
     }
 
@@ -262,6 +375,36 @@ async function handleConversationMessage({
       await say({
         text: "Please reply with Crime / CPP or Cloud Native / Other.",
         blocks: knowledgeSearchPromptBlocks(),
+      });
+      return;
+    }
+
+    if (pendingPlatform && selectedPlatformArea && !pendingPlatform.question) {
+      await say({
+        text: `Thanks — I’ll search ${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}. What issue or question can I help with?`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `Thanks — I’ll search ${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}. What issue or question can I help with?`,
+            },
+          },
+          {
+            type: "context",
+            block_id: `knowledge_search_platform_selected_${selectedPlatformArea}`,
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `Platform selected: *${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}*`,
+              },
+            ],
+          },
+        ],
+        metadata: {
+          event_type: "platform_selected",
+          event_payload: { area: selectedPlatformArea },
+        },
       });
       return;
     }
@@ -291,11 +434,20 @@ async function handleConversationMessage({
     const messages = recentMessages(threadMessages);
     const area = selectedPlatformArea ?? extractAreaFromHistory(messages);
     const searchQuestion = pendingPlatform?.question ?? question;
+    if (greetingShown && isGreetingMessage(question)) {
+      await say({
+        text: "What issue or question can I help with?",
+      });
+      return;
+    }
     if (!area) {
       await setTitle(question.slice(0, 80));
+      const platformPromptText = greetingShown
+        ? "Which platform do you need support with?"
+        : PLATFORM_PROMPT_TEXT;
       await say({
-        text: "Which platform do you need support with?",
-        blocks: knowledgeSearchPromptBlocks(),
+        text: platformPromptText,
+        blocks: knowledgeSearchPromptBlocks(platformPromptText),
       });
       return;
     }
