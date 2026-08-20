@@ -17,6 +17,7 @@ const {
 const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
+const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -122,6 +123,9 @@ function updateTicketTypeDisplay(blocks, ticketType) {
 }
 
 async function handleTicketType({ event, client, helpRequestMessages, say }) {
+  const blocks = helpRequestMessages[0].blocks;
+  const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
+
   const result = event.text.match(/ticket-type\s+(support|task)\b/i);
   if (!result) {
     await say({
@@ -132,11 +136,14 @@ async function handleTicketType({ event, client, helpRequestMessages, say }) {
   }
 
   const ticketType = result[1].toLowerCase();
-  const blocks = helpRequestMessages[0].blocks;
-  const currentIssueJiraId = extractJiraIdFromBlocks(blocks);
 
   try {
     await updateHelpRequestType(currentIssueJiraId, ticketType);
+
+    await updateCosmosWhenHelpRequestResolved({
+      key: currentIssueJiraId,
+      ticket_type: ticketType,
+    });
 
     await client.chat.update({
       channel: event.channel,
@@ -191,7 +198,7 @@ async function appMention(event, client, say) {
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (event.text.includes("ticket-type")) {
+        if (/ticket-type/i.test(event.text)) {
           await handleTicketType({
             event,
             client,
