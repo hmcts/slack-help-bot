@@ -18,7 +18,7 @@ const {
 } = require("../messages/helpRequestResolve");
 
 const config = require("config");
-const { updateCosmosWhenHelpRequestResolved } = require("../service/cosmos");
+const { updateHelpRequestInCosmos } = require("../service/cosmos");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -141,7 +141,7 @@ async function documentHelpRequest(client, body, area) {
       blocks: helpRequestDocumentationBlocks(documentation),
     });
 
-    await updateCosmosWhenHelpRequestResolved({
+    await updateHelpRequestInCosmos({
       key: jiraId,
       status: "Done",
       resolution: documentation.how,

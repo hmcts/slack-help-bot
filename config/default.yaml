@@ -12,6 +12,8 @@ jira:
   project: SBOX
   issue_type_name: Bug
   issue_type_id: 10900
+  support_issue_type_id: 18400
+  task_issue_type_id: 3
   #username: no default
   #api_token: no default
 
