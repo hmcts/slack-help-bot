@@ -75,6 +75,7 @@ const {
 } = require("./src/slackHandlers/documentHelpRequest");
 const {
   withdrawInactiveIssues,
+  notifyInactiveIssues,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
@@ -399,5 +400,7 @@ app.action(
 );
 
 cron.schedule("0 8 * * 1-5", async () => {
+  await notifyInactiveIssues(app, 10);
+  await notifyInactiveIssues(app, 20);
   await withdrawInactiveIssues(app);
 });

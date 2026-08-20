@@ -417,8 +417,11 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
-async function searchForInactiveIssues() {
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -30d`;
+async function searchForInactiveIssues(days = 30, notificationLabel) {
+  const labelFilter = notificationLabel
+    ? ` AND (labels IS EMPTY OR labels NOT IN ("${notificationLabel}") )`
+    : "";
+  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -${days}d${labelFilter}`;
   try {
     return await jira.searchJira(jqlQuery, {
       fields: [
@@ -428,6 +431,7 @@ async function searchForInactiveIssues() {
         "updated",
         "status",
         "reporter",
+        "labels",
       ],
     });
   } catch (err) {
@@ -435,6 +439,24 @@ async function searchForInactiveIssues() {
     return {
       issues: [],
     };
+  }
+}
+
+async function addInactivityNotificationLabel(issueId, label) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: label,
+          },
+        ],
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log(`Error adding label to issue ${issueId} in jira`, err);
+    return false;
   }
 }
 
@@ -527,6 +549,7 @@ module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;

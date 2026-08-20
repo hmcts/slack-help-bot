@@ -1,5 +1,6 @@
 const {
   searchForInactiveIssues,
+  addInactivityNotificationLabel,
   addWithdrawnLabel,
   withdrawIssue,
   getUserByKey,
@@ -17,9 +18,17 @@ const getSlackUserInfo = async (app, userEmail) => {
   }
 };
 
-const sendSlackMessage = async (app, channel, jiraIssue, thread) => {
+const sendSlackMessage = async (
+  app,
+  channel,
+  jiraIssue,
+  thread,
+  reminderDays,
+) => {
   let message;
-  if (thread === undefined) {
+  if (reminderDays !== undefined) {
+    message = `Hi there! Issue ${jiraIssue} has been inactive for ${reminderDays} days. Please add an update if you still require help. If there is no activity, this issue will be withdrawn after 30 days.`;
+  } else if (thread === undefined) {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact Platform Operations.`;
   } else {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, you can do so from this thread - ${thread}.`;
@@ -35,12 +44,65 @@ const sendSlackMessage = async (app, channel, jiraIssue, thread) => {
   }
 };
 
-const commentOnSlackThread = async (app, channel, timestamp) => {
+const notifyInactiveIssue = async (app, issue, reminderDays) => {
+  const reporter = await getUserByKey(issue.fields.reporter.key);
+  const slackUserInfo = await getSlackUserInfo(app, reporter.emailAddress);
+  const description = issue.fields.description;
+  const urlMatch = description.match(
+    /https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+\/[\w.-]+\?[\w=&.-]+/,
+  );
+
+  if (urlMatch) {
+    const urlString = urlMatch[0];
+    const url = new URL(urlString);
+    await sendSlackMessage(
+      app,
+      slackUserInfo.user.id,
+      issue.key,
+      urlString,
+      reminderDays,
+    );
+    await commentOnSlackThread(
+      app,
+      url.searchParams.get("cid"),
+      url.searchParams.get("thread_ts"),
+      reminderDays,
+    );
+  } else {
+    await sendSlackMessage(
+      app,
+      slackUserInfo.user.id,
+      issue.key,
+      undefined,
+      reminderDays,
+    );
+  }
+};
+
+const notifyInactiveIssues = async (app, days) => {
+  const notificationLabel = `inactivity-notified-${days}-days`;
+  const results = await searchForInactiveIssues(days, notificationLabel);
+
+  for (const issue of results.issues) {
+    try {
+      if (await addInactivityNotificationLabel(issue.key, notificationLabel)) {
+        await notifyInactiveIssue(app, issue, days);
+      }
+    } catch (err) {
+      console.error(`Error notifying issue ${issue.key}`, err);
+    }
+  }
+};
+
+const commentOnSlackThread = async (app, channel, timestamp, reminderDays) => {
   try {
     await app.client.chat.postMessage({
       channel: channel,
       thread_ts: timestamp,
-      text: "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread.",
+      text:
+        reminderDays === undefined
+          ? "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread."
+          : `This issue has been inactive for ${reminderDays} days. Please add an update if you still require help.`,
     });
   } catch (error) {
     console.error(`Error replying to Slack thread ${channel}`, error);
@@ -136,3 +198,4 @@ const withdrawInactiveIssues = async (app) => {
 };
 
 module.exports.withdrawInactiveIssues = withdrawInactiveIssues;
+module.exports.notifyInactiveIssues = notifyInactiveIssues;
