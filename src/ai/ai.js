@@ -91,6 +91,12 @@ function stripMarkdownCodeFence(text) {
   return match ? match[1] : text;
 }
 
+// On thin/duplicate ticket input the LLM occasionally echoes the JSON schema's
+// example value instead of following the fallback-text instruction.
+function isPlaceholderAnswer(answer) {
+  return answer.trim().toLowerCase() === "your slack mrkdwn answer";
+}
+
 function sanitizeResolutionSummary(resolutionSummary) {
   const fallback = "Resolution not clear from the thread.";
 
@@ -381,13 +387,14 @@ Instructions:
 
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
-  const answer = parsed.answer
-    ? stripMarkdownCodeFence(parsed.answer)
-    : "I couldn't find an answer in the documentation.";
-  const sourceIndexes = sanitizeSourceIndexes(
-    parsed.sourceIndexes,
-    knowledgeStoreResults.length,
-  );
+  const answer =
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(parsed.sourceIndexes, knowledgeStoreResults.length);
 
   console.log("LLM Knowledge Store Answer:", parsed);
 
@@ -440,13 +447,14 @@ Instructions:
 
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
-  const answer = parsed.answer
-    ? stripMarkdownCodeFence(parsed.answer)
-    : "I couldn't find an answer in the documentation.";
-  const sourceIndexes = sanitizeSourceIndexes(
-    parsed.sourceIndexes,
-    knowledgeStoreResults.length,
-  );
+  const answer =
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(parsed.sourceIndexes, knowledgeStoreResults.length);
 
   console.log("LLM Runbook Answer:", parsed);
 
