@@ -17,6 +17,9 @@ const jiraProject = config.get("jira.project");
 const jiraStartTransitionId = config.get("jira.start_transition_id");
 const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
+const firstReminderMs = Number(config.get("inactivity.first_reminder_ms"));
+const secondReminderMs = Number(config.get("inactivity.second_reminder_ms"));
+const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
 const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
 const jira = new JiraApi({
@@ -393,14 +396,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
       ],
     });
 
-    // Keep the local test override focused on the selected issue. In test mode
-    // we intentionally skip production age/label filtering.
-    if (testIssueKey) return results;
 
     const now = Date.now();
-    const tenDays = 10 * 24 * 60 * 60 * 1000;
-    const twentyDays = 20 * 24 * 60 * 60 * 1000;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const firstToSecondMs = secondReminderMs - firstReminderMs;
+    const secondToWithdrawalMs = withdrawalMs - secondReminderMs;
     const prefix = notificationLabel;
     results.issues = results.issues.filter((issue) => {
       const labels = issue.fields.labels || [];
@@ -409,7 +408,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
       const updatedAt = new Date(issue.fields.updated).getTime();
       const age = now - updatedAt;
       const hasLabel = (labelPrefix) =>
-        labels.some((label) => label.startsWith(`${labelPrefix}-`));
+        labels.some(
+          (label) =>
+            label === labelPrefix || label.startsWith(`${labelPrefix}-`),
+        );
       const getLabelTime = (labelPrefix) => {
         const label = labels.find((item) =>
           item.startsWith(`${labelPrefix}-`),
@@ -420,14 +422,15 @@ async function searchForInactiveIssues(days, notificationLabel) {
       };
       const currentNotifiedAt = prefix ? getLabelTime(prefix) : undefined;
       const currentLabelActive =
-        currentNotifiedAt !== undefined &&
-        updatedAt <= currentNotifiedAt + 5 * 60 * 1000;
+        (prefix && labels.includes(prefix)) ||
+        (currentNotifiedAt !== undefined &&
+          updatedAt <= currentNotifiedAt + 5 * 60 * 1000);
 
       if (days === 10) {
         return (
           !currentLabelActive &&
-          age >= tenDays &&
-          age < twentyDays
+          age >= firstReminderMs &&
+          age < secondReminderMs
         );
       }
 
@@ -447,16 +450,20 @@ async function searchForInactiveIssues(days, notificationLabel) {
         return (
           !currentLabelActive &&
           unchangedSinceNotification &&
-          ((notifiedAt !== undefined && baselineAge >= tenDays && baselineAge < twentyDays) ||
-            (notifiedAt === undefined && age >= twentyDays && age < thirtyDays))
+          ((notifiedAt !== undefined &&
+            baselineAge >= firstToSecondMs &&
+            baselineAge < withdrawalMs - firstReminderMs) ||
+            (notifiedAt === undefined &&
+              age >= secondReminderMs &&
+              age < withdrawalMs))
         );
       }
 
       return (
         !hasLabel("inactivity-notified-20-days") &&
         unchangedSinceNotification &&
-        ((notifiedAt !== undefined && baselineAge >= tenDays) ||
-          (notifiedAt === undefined && age >= thirtyDays))
+        ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
+          (notifiedAt === undefined && age >= withdrawalMs))
       );
     });
     return results;
@@ -497,7 +504,6 @@ async function addWithdrawnLabel(issueId) {
         ],
       },
     });
-    return results;
   } catch (err) {
     console.log(`Error adding label to issue ${issueId} in jira`, err);
   }

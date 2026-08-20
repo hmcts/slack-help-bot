@@ -5,6 +5,7 @@ const {
   withdrawIssue,
   getUserByKey,
 } = require("../service/persistence");
+const config = require("config");
 const getSlackUserInfo = async (app, userEmail) => {
   try {
     return await app.client.users.lookupByEmail({
@@ -18,19 +19,28 @@ const getSlackUserInfo = async (app, userEmail) => {
   }
 };
 
-const WITHDRAW_AFTER_DAYS = 30;
+const firstReminderMs = Number(config.get("inactivity.first_reminder_ms"));
+const secondReminderMs = Number(config.get("inactivity.second_reminder_ms"));
+const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
+
+const formatDuration = (durationMs) => {
+  const minutes = Math.round(durationMs / 60000);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const days = Math.round(minutes / 1440);
+  return `${days} day${days === 1 ? "" : "s"}`;
+};
 
 const sendSlackMessage = async (
   app,
   channel,
   jiraIssue,
   thread,
-  reminderDays,
+  reminderMs,
 ) => {
   let message;
-  if (reminderDays !== undefined) {
-    const daysRemaining = WITHDRAW_AFTER_DAYS - reminderDays;
-    message = `Hi there! Issue ${jiraIssue} has been inactive for ${reminderDays} days. Please add an update if you still require help. If there is no activity, this issue will be withdrawn in ${daysRemaining} days.`;
+  if (reminderMs !== undefined) {
+    const remainingMs = withdrawalMs - reminderMs;
+    message = `Hi there! Issue ${jiraIssue} has been inactive for ${formatDuration(reminderMs)}. Please add an update if you still require help. If there is no activity, this issue will be withdrawn in ${formatDuration(remainingMs)}.`;
   } else if (thread === undefined) {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact Platform Operations.`;
   } else {
@@ -49,7 +59,7 @@ const sendSlackMessage = async (
   return true;
 };
 
-const notifyInactiveIssue = async (app, issue, reminderDays) => {
+const notifyInactiveIssue = async (app, issue, reminderMs) => {
   const reporter = await getUserByKey(issue.fields.reporter.key);
   const slackUserInfo = await getSlackUserInfo(app, reporter.emailAddress);
   const description = issue.fields.description;
@@ -65,13 +75,13 @@ const notifyInactiveIssue = async (app, issue, reminderDays) => {
       slackUserInfo.user.id,
       issue.key,
       urlString,
-      reminderDays,
+      reminderMs,
     );
     const threadSent = await commentOnSlackThread(
       app,
       url.searchParams.get("cid"),
       url.searchParams.get("thread_ts"),
-      reminderDays,
+      reminderMs,
     );
     return dmSent && threadSent;
   } else {
@@ -80,19 +90,20 @@ const notifyInactiveIssue = async (app, issue, reminderDays) => {
       slackUserInfo.user.id,
       issue.key,
       undefined,
-      reminderDays,
+      reminderMs,
     );
   }
 };
 
 const notifyInactiveIssues = async (app, days) => {
   const notificationLabel = `inactivity-notified-${days}-days`;
+  const reminderMs = days === 10 ? firstReminderMs : secondReminderMs;
   const results = await searchForInactiveIssues(days, notificationLabel);
 
   for (const issue of results.issues) {
     try {
       if (!issue.fields.description) continue;
-      if (await notifyInactiveIssue(app, issue, days)) {
+      if (await notifyInactiveIssue(app, issue, reminderMs)) {
         await addInactivityNotificationLabel(
           issue.key,
           `${notificationLabel}-${Date.now()}`,
@@ -104,15 +115,15 @@ const notifyInactiveIssues = async (app, days) => {
   }
 };
 
-const commentOnSlackThread = async (app, channel, timestamp, reminderDays) => {
+const commentOnSlackThread = async (app, channel, timestamp, reminderMs) => {
   try {
     await app.client.chat.postMessage({
       channel: channel,
       thread_ts: timestamp,
       text:
-        reminderDays === undefined
+        reminderMs === undefined
           ? "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread."
-          : `This issue has been inactive for ${reminderDays} days. Please add an update if you still require help.`,
+          : `This issue has been inactive for ${formatDuration(reminderMs)}. Please add an update if you still require help.`,
     });
   } catch (error) {
     console.error(`Error replying to Slack thread ${channel}`, error);
