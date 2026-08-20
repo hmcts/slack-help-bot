@@ -30,7 +30,8 @@ async function searchOpsRunbook(query) {
   const filteredResults = [];
   const highlights = new Set();
   for await (const result of searchResults.results) {
-    if (result.rerankerScore && result.rerankerScore > 2) {
+    // ops-runbook content pages commonly score 1.5-2.0, so 2.0 was excluding relevant results
+    if (result.rerankerScore && result.rerankerScore > 1.5) {
       const highlight = extractKnowledgeStoreHighlight(result);
       if (highlights.has(highlight)) {
         continue;
