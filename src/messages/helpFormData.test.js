@@ -1,6 +1,15 @@
 const { lookupEnvironment, lookupTeam, lookupArea } = require("./helpFormData");
 
 describe("lookupEnvironment", () => {
+  it("includes an N/A environment for either platform", () => {
+    expect(lookupEnvironment("N/A", "other")).toEqual(
+      expect.objectContaining({ value: "not-applicable" }),
+    );
+    expect(lookupEnvironment("N/A", "crime")).toEqual(
+      expect.objectContaining({ value: "not-applicable" }),
+    );
+  });
+
   it("finds environment by display name", () => {
     expect(lookupEnvironment("Production", "other")).toStrictEqual({
       text: {

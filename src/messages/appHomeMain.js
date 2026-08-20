@@ -33,7 +33,7 @@ function appHomeMainBlocks() {
           type: "button",
           text: {
             type: "plain_text",
-            text: "Assigned to me",
+            text: "Assignedss to me",
             emoji: true,
           },
           value: "view_requests_assigned_to_me",

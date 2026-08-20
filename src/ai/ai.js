@@ -15,7 +15,9 @@ const {
   resolutionClassificationPrompt,
   resolutionDocumentationPrompt,
   followUpQuestionsPrompt,
+  ticketSummaryPrompt,
   knowledgeAnswerPrompt,
+  knowledgeSearchQueryRewritePrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -116,6 +118,48 @@ Content excerpt:
 ${content}`;
     })
     .join("\n\n");
+}
+
+function formatConversation(conversation) {
+  return conversation
+    .slice(-8)
+    .map(({ role, content }) => {
+      const speaker = role === "assistant" ? "Assistant" : "User";
+      return `${speaker}: ${truncateText(content, 1500)}`;
+    })
+    .join("\n");
+}
+
+async function rewriteKnowledgeSearchQuery(question, conversation = []) {
+  if (conversation.length === 0) {
+    return question;
+  }
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: knowledgeSearchQueryRewritePrompt(),
+      },
+      {
+        role: "user",
+        content: `Recent conversation:\n${formatConversation(
+          conversation,
+        )}\n\nLatest message:\n${truncateText(question, 2000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  const rewrittenQuery = parsed.query?.trim();
+
+  return rewrittenQuery ? truncateText(rewrittenQuery, 2000) : question;
 }
 
 async function analyticsRecommendations(input, area) {
@@ -321,10 +365,31 @@ async function followUpQuestions(input) {
   return questions;
 }
 
+async function generateTicketSummary(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: ticketSummaryPrompt() },
+      { role: "user", content: truncateText(input, 6000) },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  return typeof parsed.summary === "string"
+    ? parsed.summary.trim().slice(0, 255)
+    : "";
+}
+
 async function answerFromKnowledgeStore(
   question,
   knowledgeStoreResults,
   area = "other",
+  conversation = [],
 ) {
   if (knowledgeStoreResults.length === 0) {
     return {
@@ -335,6 +400,7 @@ async function answerFromKnowledgeStore(
 
   const context = formatKnowledgeStoreContext(knowledgeStoreResults, area);
 
+  const conversationContext = formatConversation(conversation);
   const result = await client.chat.completions.create({
     messages: [
       {
@@ -344,7 +410,11 @@ async function answerFromKnowledgeStore(
       {
         role: "user",
         content: `Selected platform: ${getKnowledgeStoreScope(area)}
-Question:
+${
+  conversationContext
+    ? `Recent conversation (use only to interpret the current question):\n${conversationContext}\n\n`
+    : ""
+}Current question:
 ${question}
 
 Search results:
@@ -387,7 +457,9 @@ module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
+module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
+module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
