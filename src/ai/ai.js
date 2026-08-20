@@ -18,6 +18,7 @@ const {
   ticketSummaryPrompt,
   knowledgeAnswerPrompt,
   knowledgeSearchQueryRewritePrompt,
+  conversationIntentPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -365,6 +366,26 @@ async function followUpQuestions(input) {
   return questions;
 }
 
+async function classifyConversationIntent(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: conversationIntentPrompt() },
+      { role: "user", content: truncateText(input, 1000) },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+  const parsed = JSON.parse(result.choices[0].message.content);
+  return new Set(["greeting", "platform_related", "off_topic"]).has(
+    parsed.intent,
+  )
+    ? parsed.intent
+    : "platform_related";
+}
+
 async function generateTicketSummary(input) {
   const result = await client.chat.completions.create({
     messages: [
@@ -457,6 +478,7 @@ module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
+module.exports.classifyConversationIntent = classifyConversationIntent;
 module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
 module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;

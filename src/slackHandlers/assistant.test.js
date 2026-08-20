@@ -2,6 +2,10 @@ jest.mock("../service/conversationKnowledge", () => ({
   answerConversation: jest.fn(),
 }));
 
+jest.mock("../service/conversationIntent", () => ({
+  classifyConversationIntent: jest.fn().mockResolvedValue("work_question"),
+}));
+
 jest.mock("./conversationalHelpRequest", () => ({
   handleConversationalHelpReply: jest.fn().mockResolvedValue(false),
   startConversationalHelpRequest: jest.fn(),
@@ -15,6 +19,7 @@ jest.mock("./conversationEscalation", () => ({
 }));
 
 const { answerConversation } = require("../service/conversationKnowledge");
+const { classifyConversationIntent } = require("../service/conversationIntent");
 const { continueAfterDocumentation } = require("./conversationEscalation");
 const {
   conversationFromHistory,
@@ -31,6 +36,40 @@ const {
 describe("Slack assistant", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  it("greets without searching when the user only says hello", async () => {
+    classifyConversationIntent.mockResolvedValueOnce("greeting");
+    const say = jest.fn();
+    const client = {
+      conversations: {
+        replies: jest.fn().mockResolvedValue({
+          messages: [{ ts: "100.000", user: "U1", text: "hi" }],
+        }),
+      },
+    };
+
+    await handleConversationMessage({
+      message: {
+        channel: "D1",
+        thread_ts: "100.000",
+        ts: "100.000",
+        text: "hi",
+      },
+      client,
+      say,
+      setStatus: jest.fn(),
+      setTitle: jest.fn(),
+    });
+
+    expect(say).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          "I’m here to help with HMCTS Platform Operations",
+        ),
+      }),
+    );
+    expect(answerConversation).not.toHaveBeenCalled();
   });
 
   it("asks for a platform on the first question", async () => {

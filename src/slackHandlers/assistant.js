@@ -1,4 +1,5 @@
 const { answerConversation } = require("../service/conversationKnowledge");
+const { classifyConversationIntent } = require("../service/conversationIntent");
 const {
   knowledgeSearchPromptBlocks,
 } = require("../messages/knowledgeSearchPrompt");
@@ -243,6 +244,24 @@ async function handleConversationMessage({
       threadMessages,
       message.ts,
     );
+    let intent = "platform_related";
+    if (!pendingPlatform) {
+      try {
+        intent = await classifyConversationIntent(question);
+      } catch (error) {
+        console.warn("Could not classify conversation intent", error);
+      }
+    }
+    if (intent === "greeting" || intent === "off_topic") {
+      await say({
+        text:
+          intent === "greeting"
+            ? "Hi! I’m here to help with HMCTS Platform Operations issues, errors, deployments, access requests and related support questions. I’ll do my best to find an answer or help you raise a request. What can I help with?"
+            : "I’m here to help with HMCTS Platform Operations work. Please send a platform issue, error, deployment, access request or support question, and I’ll do my best to help.",
+      });
+      return;
+    }
+
     const selectedPlatformArea = pendingPlatform
       ? parsePlatformArea(question)
       : undefined;
