@@ -2,7 +2,7 @@ const { helpFormMainBlocks } = require("./messages/helpFormMain");
 const { helpFormGoodbyeBlocks } = require("./messages/helpFormGoodbye");
 const {
   knowledgeSearchAnswerBlocks,
-} = require("./messages/knowledgeSearchAnswer");
+} = require("./messages/knowledgeAnswer");
 
 const { helpRequestMainBlocks } = require("./messages/helpRequeshhtMain");
 const { helpRequestDetailBlocks } = require("./messages/helpRequestDetails");
