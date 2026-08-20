@@ -368,6 +368,11 @@ async function addLabel(externalSystemId, { category }) {
 }
 
 const withdrawFailedLabel = "auto-withdraw-failed";
+const INACTIVITY_STAGES = Object.freeze({
+  FIRST_WARNING: "first-warning",
+  SECOND_WARNING: "second-warning",
+  WITHDRAWAL: "withdrawal",
+});
 // Local-only override for testing the notify/withdraw process end-to-end against
 // one known issue instead of whatever currently matches the real inactivity criteria
 const testIssueKey = process.env.JIRA_TEST_ISSUE_KEY;
@@ -426,7 +431,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
         (currentNotifiedAt !== undefined &&
           updatedAt <= currentNotifiedAt + 5 * 60 * 1000);
 
-      if (days === 10) {
+      if (days === INACTIVITY_STAGES.FIRST_WARNING) {
         return (
           !currentLabelActive &&
           age >= firstReminderMs &&
@@ -434,9 +439,9 @@ async function searchForInactiveIssues(days, notificationLabel) {
         );
       }
 
-      const previousPrefix = days === 20
-        ? "inactivity-notified-10-days-"
-        : "inactivity-notified-20-days-";
+      const previousPrefix = days === INACTIVITY_STAGES.SECOND_WARNING
+        ? "inactivity-notified-first-warning-"
+        : "inactivity-notified-second-warning-";
       const previousLabelTime = getLabelTime(previousPrefix);
       const previousLabelActive =
         previousLabelTime !== undefined &&
@@ -446,7 +451,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
       const unchangedSinceNotification =
         notifiedAt === undefined || updatedAt <= notifiedAt + 5 * 60 * 1000;
 
-      if (days === 20) {
+      if (days === INACTIVITY_STAGES.SECOND_WARNING) {
         return (
           !currentLabelActive &&
           unchangedSinceNotification &&
@@ -460,7 +465,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
       }
 
       return (
-        !hasLabel("inactivity-notified-20-days") &&
+        !hasLabel("inactivity-notified-second-warning") &&
         unchangedSinceNotification &&
         ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
           (notifiedAt === undefined && age >= withdrawalMs))
@@ -602,6 +607,7 @@ module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;
 module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;

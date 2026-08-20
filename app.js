@@ -76,6 +76,7 @@ const {
 const {
   withdrawInactiveIssues,
   notifyInactiveIssues,
+  INACTIVITY_STAGES,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
@@ -400,7 +401,7 @@ app.action(
 );
 
 cron.schedule("0 8 * * 1-5", async () => {
-  await notifyInactiveIssues(app, 10);
-  await notifyInactiveIssues(app, 20);
+  await notifyInactiveIssues(app, INACTIVITY_STAGES.FIRST_WARNING);
+  await notifyInactiveIssues(app, INACTIVITY_STAGES.SECOND_WARNING);
   await withdrawInactiveIssues(app);
 });

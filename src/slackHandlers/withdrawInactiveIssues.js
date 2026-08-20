@@ -4,6 +4,7 @@ const {
   addWithdrawnLabel,
   withdrawIssue,
   getUserByKey,
+  INACTIVITY_STAGES,
 } = require("../service/persistence");
 const config = require("config");
 const getSlackUserInfo = async (app, userEmail) => {
@@ -96,8 +97,11 @@ const notifyInactiveIssue = async (app, issue, reminderMs) => {
 };
 
 const notifyInactiveIssues = async (app, days) => {
-  const notificationLabel = `inactivity-notified-${days}-days`;
-  const reminderMs = days === 10 ? firstReminderMs : secondReminderMs;
+  const isFirstWarning = days === INACTIVITY_STAGES.FIRST_WARNING;
+  const notificationLabel = `inactivity-notified-${
+    isFirstWarning ? "first-warning" : "second-warning"
+  }`;
+  const reminderMs = isFirstWarning ? firstReminderMs : secondReminderMs;
   const results = await searchForInactiveIssues(days, notificationLabel);
 
   for (const issue of results.issues) {
@@ -170,7 +174,7 @@ const setRequestStatusSlack = async (app, channel, timestamp) => {
 };
 
 const withdrawInactiveIssues = async (app) => {
-  const results = await searchForInactiveIssues();
+  const results = await searchForInactiveIssues(INACTIVITY_STAGES.WITHDRAWAL);
 
   // Loop through inactive issues
   if (results.issues.length > 0) {
@@ -234,3 +238,4 @@ const withdrawInactiveIssues = async (app) => {
 
 module.exports.withdrawInactiveIssues = withdrawInactiveIssues;
 module.exports.notifyInactiveIssues = notifyInactiveIssues;
+module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;
