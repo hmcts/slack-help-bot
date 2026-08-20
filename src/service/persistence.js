@@ -307,7 +307,6 @@ async function updateHelpRequestPriority(issueId, priority) {
   }
 }
 
-async function createHelpRequestInJira(summary, project, user, labels) {
 async function createHelpRequestInJira(
   summary,
   project,
