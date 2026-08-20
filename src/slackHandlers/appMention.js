@@ -89,9 +89,8 @@ function convertStoragePathToOpsRunbookUrl(storagePath) {
 
   try {
     const url = new URL(storagePath);
-    return url.pathname
-      .replace("/ops-runbook/build", "https://hmcts.github.io/ops-runbooks")
-      .replace("/ops-runbook", "https://hmcts.github.io/ops-runbooks");
+    const relativePath = url.pathname.replace(/^\/ops-runbook\/build/, "");
+    return `https://hmcts.github.io/ops-runbooks${relativePath}`;
   } catch {
     return undefined;
   }
