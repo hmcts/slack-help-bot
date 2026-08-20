@@ -86,4 +86,34 @@ describe("queryAi", () => {
     expect(searchKnowledgeStore).not.toHaveBeenCalled();
     expect(result.knowledgeStoreResults).toStrictEqual([]);
   });
+
+  it("returns safe fallbacks when Azure Search and OpenAI are unavailable", async () => {
+    searchHelpRequests.mockRejectedValue(new Error("search auth failed"));
+    searchKnowledgeStore.mockRejectedValue(new Error("knowledge auth failed"));
+    analyticsRecommendations.mockRejectedValue(new Error("AI auth failed"));
+    followUpQuestions.mockRejectedValue(new Error("AI auth failed"));
+    assessPriority.mockRejectedValue(new Error("AI auth failed"));
+
+    const result = await queryAi(
+      {
+        summary: "Unique authentication fallback test",
+        description: "Dependencies are unavailable",
+        analysis: "",
+        prBuildUrl: "",
+      },
+      "crime",
+    );
+
+    expect(result).toStrictEqual({
+      relatedIssues: [],
+      knowledgeStoreResults: [],
+      aiRecommendation: {},
+      followUpQuestions: [],
+      priorityAssessment: {
+        priority: "normal",
+        confidence: "low",
+        reasons: [],
+      },
+    });
+  });
 });

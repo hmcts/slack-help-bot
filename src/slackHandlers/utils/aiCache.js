@@ -28,36 +28,76 @@ function getCacheKey(helpRequest, area) {
   return hashString(cacheInput);
 }
 
+function logDependencyFailure(dependency, error) {
+  console.error(`${dependency} unavailable`, {
+    statusCode: error?.statusCode || error?.status,
+    code: error?.code,
+    message: error?.message || "Unknown error",
+  });
+}
+
+function withFallback(promise, dependency, fallback, onFailure) {
+  return promise.catch((error) => {
+    logDependencyFailure(dependency, error);
+    onFailure();
+    return fallback;
+  });
+}
+
 async function handler(query, analyticsQuery, area, options = {}) {
-  const relatedIssuesPromise = searchHelpRequests(query, area);
+  let dependencyFailed = false;
+  const recordFailure = () => {
+    dependencyFailed = true;
+  };
+  const relatedIssuesPromise = withFallback(
+    searchHelpRequests(query, area),
+    "Related-issue search",
+    [],
+    recordFailure,
+  );
 
   const knowledgeStorePromise = options.skipKnowledgeStore
     ? Promise.resolve([])
-    : searchKnowledgeStore(query, area);
+    : withFallback(
+        searchKnowledgeStore(query, area),
+        "Knowledge-store search",
+        [],
+        recordFailure,
+      );
 
-  const aiRecommendationPromise = analyticsRecommendations(
-    analyticsQuery,
-    area,
+  const aiRecommendationPromise = withFallback(
+    analyticsRecommendations(analyticsQuery, area),
+    "AI recommendations",
+    {},
+    recordFailure,
   );
 
-  const followUpQuestionsPromise = followUpQuestions(analyticsQuery).catch(
-    (error) => {
-      console.log("An error occurred when fetching follow-up questions", error);
-      return [];
-    },
+  const followUpQuestionsPromise = withFallback(
+    followUpQuestions(analyticsQuery),
+    "AI follow-up questions",
+    [],
+    recordFailure,
   );
-  const priorityAssessmentPromise = assessPriority(analyticsQuery).catch(
-    (error) => {
-      console.log("An error occurred when assessing request priority", error);
-      return { priority: "normal", confidence: "low", reasons: [] };
-    },
+  const priorityAssessmentPromise = withFallback(
+    assessPriority(analyticsQuery),
+    "AI priority assessment",
+    { priority: "normal", confidence: "low", reasons: [] },
+    recordFailure,
   );
 
-  const relatedIssues = await relatedIssuesPromise;
-  const aiRecommendation = await aiRecommendationPromise;
-  const followUpQuestionsResult = await followUpQuestionsPromise;
-  const knowledgeStoreResults = await knowledgeStorePromise;
-  const priorityAssessment = await priorityAssessmentPromise;
+  const [
+    relatedIssues,
+    aiRecommendation,
+    followUpQuestionsResult,
+    knowledgeStoreResults,
+    priorityAssessment,
+  ] = await Promise.all([
+    relatedIssuesPromise,
+    aiRecommendationPromise,
+    followUpQuestionsPromise,
+    knowledgeStorePromise,
+    priorityAssessmentPromise,
+  ]);
 
   console.log(relatedIssues);
 
@@ -67,6 +107,7 @@ async function handler(query, analyticsQuery, area, options = {}) {
     aiRecommendation,
     followUpQuestions: followUpQuestionsResult,
     priorityAssessment,
+    dependencyFailed,
   };
 }
 
@@ -75,13 +116,18 @@ async function queryAi(helpRequest, area, options = {}) {
   const analyticsQuery = `${helpRequest.summary} ${helpRequest.description} ${helpRequest.analysis || ""} ${helpRequest.prBuildUrl || ""}`;
   const cacheKey = `${getCacheKey(helpRequest, area)}:${options.skipKnowledgeStore ? "skip-knowledge-store" : "with-knowledge-store"}`;
 
-  return cajache.use(
+  const result = await cajache.use(
     cacheKey,
     () => handler(query, analyticsQuery, area, options),
     {
       ttl: 7200, // 2 hours
     },
   );
+  if (result.dependencyFailed) {
+    cajache.delete(cacheKey);
+  }
+  const { dependencyFailed: ignored, ...safeResult } = result;
+  return safeResult;
 }
 
 function deleteCacheEntry(helpRequest, area) {
@@ -93,3 +139,4 @@ function deleteCacheEntry(helpRequest, area) {
 
 module.exports.queryAi = queryAi;
 module.exports.deleteCacheEntry = deleteCacheEntry;
+module.exports.logDependencyFailure = logDependencyFailure;
