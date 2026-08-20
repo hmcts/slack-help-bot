@@ -134,6 +134,24 @@ function getRunbookSourceLines(knowledgeStoreResults, sourceIndexes) {
   return sourceLines.length > 0 ? `*Runbook sources*\n${sourceLines}` : "";
 }
 
+function getRelatedRunbookPageLines(knowledgeStoreResults) {
+  const pageLines = knowledgeStoreResults
+    .map((item, index) => {
+      const title = item.document?.title || `Source ${index + 1}`;
+      const sourceUrl = convertStoragePathToOpsRunbookUrl(
+        item.document?.metadata_storage_path,
+      );
+
+      return sourceUrl ? `\u2022 <${sourceUrl}|${title}>` : undefined;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return pageLines.length > 0
+    ? `*Related runbook pages you may find useful*\n${pageLines}`
+    : "";
+}
+
 function linkifyInlineCitations(answer, knowledgeStoreResults) {
   return answer.replace(/\[(\d+)\]/g, (match, indexText) => {
     const item = knowledgeStoreResults[Number(indexText) - 1];
@@ -217,18 +235,26 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
   const searchQuery = `${summary}\n${description}`;
 
   const knowledgeStoreResults = await searchOpsRunbook(searchQuery);
-  console.log(
-    "ops-runbook search results:",
-    searchQuery,
-    knowledgeStoreResults.map((result) => ({
-      title: result.document?.title,
-      rerankerScore: result.rerankerScore,
-    })),
-  );
   const runbookAnswer = await answerFromRunbookKnowledgeStore(
     runbookPrompt,
     knowledgeStoreResults,
   );
+
+  const noAnswerFound =
+    runbookAnswer.sourceIndexes.length === 0 &&
+    knowledgeStoreResults.length > 0;
+
+  // when the LLM can't synthesise a confident answer, still surface the retrieved
+  // pages so the user has somewhere to look rather than a dead-end
+  if (noAnswerFound) {
+    const relatedPageLines = getRelatedRunbookPageLines(knowledgeStoreResults);
+    await say({
+      text: `Hi <@${event.user}>, I couldn't find a confident answer in the runbook documentation, but these pages may be relevant:\n\n${relatedPageLines}\n\n_${feedback}_`,
+      thread_ts: event.thread_ts,
+    });
+    return;
+  }
+
   const sourceLines = getRunbookSourceLines(
     knowledgeStoreResults,
     runbookAnswer.sourceIndexes,
