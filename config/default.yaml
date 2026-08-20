@@ -30,3 +30,8 @@ search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
   help_requests_index_name: "help-requests"
   knowledge_store_index_name: "the-hmcts-way"
+
+inactivity:
+  first_reminder_ms: 864000000
+  second_reminder_ms: 1728000000
+  withdrawal_ms: 2592000000
