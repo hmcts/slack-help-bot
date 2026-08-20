@@ -125,6 +125,17 @@ function getRunbookSourceLines(knowledgeStoreResults, sourceIndexes) {
   return sourceLines.length > 0 ? `*Runbook sources*\n${sourceLines}` : "";
 }
 
+function linkifyInlineCitations(answer, knowledgeStoreResults) {
+  return answer.replace(/\[(\d+)\]/g, (match, indexText) => {
+    const item = knowledgeStoreResults[Number(indexText) - 1];
+    const sourceUrl = convertStoragePathToOpsRunbookUrl(
+      item?.document?.metadata_storage_path,
+    );
+
+    return sourceUrl ? `<${sourceUrl}|${match}>` : match;
+  });
+}
+
 async function handleDuplicate({ event, client, helpRequestMessages, say }) {
   // handle pasted text that is a link in the format of <https://tools.hmcts.net/jira/browse/SBOX-494|SBOX-494>
   // or <https://tools.hmcts.net/jira/browse/SBOX-494>
@@ -201,9 +212,13 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
     knowledgeStoreResults,
     runbookAnswer.sourceIndexes,
   );
+  const linkedAnswer = linkifyInlineCitations(
+    runbookAnswer.answer,
+    knowledgeStoreResults,
+  );
 
   await say({
-    text: `Hi <@${event.user}>, suggested runbook summary and relevant solution:\n\n${runbookAnswer.answer}${sourceLines ? `\n\n${sourceLines}` : ""}\n\n_${feedback}_`,
+    text: `Hi <@${event.user}>, suggested runbook summary and relevant solution:\n\n${linkedAnswer}${sourceLines ? `\n\n${sourceLines}` : ""}\n\n_${feedback}_`,
     thread_ts: event.thread_ts,
   });
 }
