@@ -81,6 +81,16 @@ function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
   );
 }
 
+// LLMs sometimes wrap Slack mrkdwn answers in a ``` code fence, which Slack then
+// renders as a literal, unformatted code block instead of rich text.
+function stripMarkdownCodeFence(text) {
+  const match = text
+    .trim()
+    .match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+
+  return match ? match[1] : text;
+}
+
 function sanitizeResolutionSummary(resolutionSummary) {
   const fallback = "Resolution not clear from the thread.";
 
@@ -371,8 +381,9 @@ Instructions:
 
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
-  const answer =
-    parsed.answer || "I couldn't find an answer in the documentation.";
+  const answer = parsed.answer
+    ? stripMarkdownCodeFence(parsed.answer)
+    : "I couldn't find an answer in the documentation.";
   const sourceIndexes = sanitizeSourceIndexes(
     parsed.sourceIndexes,
     knowledgeStoreResults.length,
@@ -429,8 +440,9 @@ Instructions:
 
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
-  const answer =
-    parsed.answer || "I couldn't find an answer in the documentation.";
+  const answer = parsed.answer
+    ? stripMarkdownCodeFence(parsed.answer)
+    : "I couldn't find an answer in the documentation.";
   const sourceIndexes = sanitizeSourceIndexes(
     parsed.sourceIndexes,
     knowledgeStoreResults.length,
