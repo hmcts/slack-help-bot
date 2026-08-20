@@ -383,7 +383,10 @@ Instructions:
   return { answer, sourceIndexes };
 }
 
-async function answerFromRunbookKnowledgeStore(question, knowledgeStoreResults) {
+async function answerFromRunbookKnowledgeStore(
+  question,
+  knowledgeStoreResults,
+) {
   if (knowledgeStoreResults.length === 0) {
     return {
       answer: "I couldn't find an answer in the documentation.",
@@ -444,7 +447,8 @@ module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
-module.exports.answerFromRunbookKnowledgeStore = answerFromRunbookKnowledgeStore;
+module.exports.answerFromRunbookKnowledgeStore =
+  answerFromRunbookKnowledgeStore;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
