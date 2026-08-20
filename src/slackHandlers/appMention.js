@@ -201,8 +201,10 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
     "No ticket description provided.";
 
   const runbookPrompt = `Ticket subject: ${summary}\nTicket description: ${description}\n\nSuggest a concise runbook-ready summary and the most relevant fix or next steps from the runbook documentation.`;
+  // instructional wording in runbookPrompt dilutes semantic search relevance, so search with just the ticket text
+  const searchQuery = `${summary}\n${description}`;
 
-  const knowledgeStoreResults = await searchOpsRunbook(runbookPrompt);
+  const knowledgeStoreResults = await searchOpsRunbook(searchQuery);
   const runbookAnswer = await answerFromRunbookKnowledgeStore(
     runbookPrompt,
     knowledgeStoreResults,
