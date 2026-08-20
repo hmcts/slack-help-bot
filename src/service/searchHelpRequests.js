@@ -4,6 +4,7 @@ const { SearchClient } = require("@azure/search-documents");
 const { DefaultAzureCredential } = require("@azure/identity");
 const config = require("config");
 const { DateTime } = require("luxon");
+const { getEmbedding, cosineSimilarity } = require("../ai/ai");
 
 const credential = new DefaultAzureCredential();
 
@@ -13,20 +14,38 @@ const searchClient = new SearchClient(
   credential,
 );
 
-function optimiseResults(resultsWithHighScore) {
-  if (resultsWithHighScore.length === 0) {
+// ranks candidates by true semantic similarity instead of just recency, so
+// duplicates with different wording surface even if they aren't the newest match
+async function rankByEmbeddingSimilarity(query, candidates) {
+  if (candidates.length === 0) {
     return [];
   }
 
-  // take the 3 newest results
-  return resultsWithHighScore
-    .sort((a, b) => {
-      return (
-        DateTime.fromISO(b.created_at.toISOString()) -
-        DateTime.fromISO(a.created_at.toISOString())
-      );
-    })
-    .slice(0, 3);
+  const queryEmbedding = await getEmbedding(query);
+  const candidateEmbeddings = await Promise.all(
+    candidates.map((candidate) =>
+      // analysis/resolution capture the thread's troubleshooting/outcome, not just the initial report
+      getEmbedding(
+        [
+          candidate.title,
+          candidate.description,
+          candidate.analysis,
+          candidate.resolution,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      ),
+    ),
+  );
+
+  return candidates
+    .map((candidate, index) => ({
+      candidate,
+      similarity: cosineSimilarity(queryEmbedding, candidateEmbeddings[index]),
+    }))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 3)
+    .map(({ candidate }) => candidate);
 }
 
 function areaQuery(area) {
@@ -60,7 +79,7 @@ async function searchHelpRequests(query, area) {
       resultsWithHighScore.push(result.document);
     }
   }
-  return optimiseResults(resultsWithHighScore);
+  return rankByEmbeddingSimilarity(query, resultsWithHighScore);
 }
 
 module.exports.searchHelpRequests = searchHelpRequests;
