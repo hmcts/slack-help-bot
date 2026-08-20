@@ -59,6 +59,16 @@ function cleanSlackMrkdwn(text) {
     .trim();
 }
 
+// getIssueDescription returns the whole Jira field, which wraps the real text in an
+// auto-generated header/footer (see jiraMessages.js mapFieldsToDescription) that
+// otherwise pollutes search relevance and the LLM prompt.
+function extractIssueDescriptionSection(rawDescription) {
+  const match = rawDescription.match(
+    /\*Issue description\*\s*\n*([\s\S]*?)\n*\*Analysis done so far\*/,
+  );
+  return match ? match[1] : rawDescription;
+}
+
 function extractDescriptionFromBlocks(messages) {
   for (const message of messages) {
     if (!Array.isArray(message.blocks)) {
@@ -196,7 +206,9 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
 
   const issueDescription = await getIssueDescription(jiraId);
   const description =
-    cleanSlackMrkdwn(issueDescription || "") ||
+    cleanSlackMrkdwn(
+      issueDescription ? extractIssueDescriptionSection(issueDescription) : "",
+    ) ||
     extractDescriptionFromBlocks(helpRequestMessages) ||
     "No ticket description provided.";
 
@@ -205,14 +217,6 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
   const searchQuery = `${summary}\n${description}`;
 
   const knowledgeStoreResults = await searchOpsRunbook(searchQuery);
-  console.log(
-    "ops-runbook search results:",
-    searchQuery,
-    knowledgeStoreResults.map((result) => ({
-      title: result.document?.title,
-      rerankerScore: result.rerankerScore,
-    })),
-  );
   const runbookAnswer = await answerFromRunbookKnowledgeStore(
     runbookPrompt,
     knowledgeStoreResults,
