@@ -401,19 +401,7 @@ Instructions:
   return { answer, sourceIndexes };
 }
 
-async function answerFromRunbookKnowledgeStore(
-  question,
-  knowledgeStoreResults,
-) {
-  if (knowledgeStoreResults.length === 0) {
-    return {
-      answer: "I couldn't find an answer in the documentation.",
-      sourceIndexes: [],
-    };
-  }
-
-  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
-
+async function requestRunbookAnswer(question, context) {
   const result = await client.chat.completions.create({
     messages: [
       {
@@ -445,8 +433,31 @@ Instructions:
     throw new Error(`No response from LLM, ${result}`);
   }
 
-  const content = result.choices.pop().message.content;
-  const parsed = JSON.parse(content);
+  return JSON.parse(result.choices.pop().message.content);
+}
+
+async function answerFromRunbookKnowledgeStore(
+  question,
+  knowledgeStoreResults,
+) {
+  if (knowledgeStoreResults.length === 0) {
+    return {
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    };
+  }
+
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+
+  let parsed = await requestRunbookAnswer(question, context);
+  console.log("LLM Runbook Answer:", parsed);
+
+  // the model occasionally echoes the JSON schema's example text instead of a real answer; retry once
+  if (parsed.answer && isPlaceholderAnswer(parsed.answer)) {
+    parsed = await requestRunbookAnswer(question, context);
+    console.log("LLM Runbook Answer (retry):", parsed);
+  }
+
   const answer =
     parsed.answer && !isPlaceholderAnswer(parsed.answer)
       ? stripMarkdownCodeFence(parsed.answer)
@@ -456,7 +467,7 @@ Instructions:
       ? []
       : sanitizeSourceIndexes(parsed.sourceIndexes, knowledgeStoreResults.length);
 
-  console.log("LLM Runbook Answer:", parsed);
+  return { answer, sourceIndexes };
 
   return { answer, sourceIndexes };
 }
