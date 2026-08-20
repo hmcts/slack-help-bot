@@ -67,7 +67,7 @@ function helpRequestMainBlocks({
           type: "users_select",
           placeholder: {
             type: "plain_text",
-            text: "Unassigned",§
+            text: "Unassigned",
             emoji: true,
           },
           action_id: "assign_help_request_to_user",
@@ -83,17 +83,6 @@ function helpRequestMainBlocks({
           value: "assign_help_request_to_me",
           action_id: "assign_help_request_to_me",
         },
-        // {
-        //   type: "button",
-        //   text: {
-        //     type: "plain_text",
-        //     text: ":raising_hand: Block",
-        //     emoji: true,
-        //   },
-        //   style: "primary",
-        //   value: "assign_help_request_to_me",
-        //   action_id: "assign_help_request_to_me",
-        // },
         {
           type: "button",
           text: {

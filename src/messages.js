@@ -4,7 +4,7 @@ const {
   knowledgeSearchAnswerBlocks,
 } = require("./messages/knowledgeSearchAnswer");
 
-const { helpRequestMainBlocks } = require("./messages/helpRequestMain");
+const { helpRequestMainBlocks } = require("./messages/helpRequeshhtMain");
 const { helpRequestDetailBlocks } = require("./messages/helpRequestDetails");
 const {
   helpRequestDuplicateBlocks,
