@@ -9,13 +9,13 @@ jest.mock("./helpRequestPriority", () => ({
 const { findReleaseFamily } = require("../service/releaseNotes");
 const { summariseReleasePagesCached } = require("./utils/releaseSummaryCache");
 const { getPriorityFromBlocks } = require("./helpRequestPriority");
+const { buildIncidentContext } = require("./utils/incidentContext");
 const {
   extractReleaseFamily,
   extractReleaseFollowUp,
   findRecentReleaseFamily,
   formatSources,
   formatJiraSources,
-  buildIncidentContext,
   followUpWithReleaseNotes,
 } = require("./releaseFollowUp");
 

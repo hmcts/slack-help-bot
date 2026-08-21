@@ -12,6 +12,7 @@ const config = require("config");
 const { notifyThreadWatchers } = require("./watchHelpRequestThread");
 const { monitorThreadPriority } = require("./helpRequestPriority");
 const { followUpWithReleaseNotes } = require("./releaseFollowUp");
+const { triageCriticalOwnership } = require("./serviceOwnership");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -155,6 +156,15 @@ async function appMessaged(event, context, client, say) {
           rootMessage: helpRequestMessages[0],
           threadMessages: helpRequestMessages,
           client,
+        });
+        await triageCriticalOwnership({
+          event,
+          rootMessage: helpRequestMessages[0],
+          threadMessages: helpRequestMessages,
+          client,
+          jiraId,
+          slackLink,
+          addJiraComment: addCommentToHelpRequest,
         });
         await followUpWithReleaseNotes({
           event,

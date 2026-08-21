@@ -18,6 +18,7 @@ const {
   knowledgeAnswerPrompt,
   priorityAssessmentPrompt,
   releaseSummaryPrompt,
+  serviceOwnershipPrompt,
 } = require("./prompts");
 const { sanitizePriorityAssessment } = require("./priority");
 
@@ -446,6 +447,56 @@ ${truncateText(page.content, 12000)}`,
     : "The matching release pages do not clearly describe what changed.";
 }
 
+function sanitizeShortStrings(values, limit = 5) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value) => typeof value === "string" && value.trim())
+    .slice(0, limit)
+    .map((value) => truncateText(value.trim(), 150));
+}
+
+async function identifyServiceOwnership(incidentContext, catalogue) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: serviceOwnershipPrompt() },
+      {
+        role: "user",
+        content: `Incident context:\n${truncateText(
+          incidentContext,
+          8000,
+        )}\n\nService and Component Catalogue:\n${truncateText(
+          catalogue.content,
+          35000,
+        )}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+    temperature: 0,
+  });
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected service ownership response: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  const confidence = ["low", "medium", "high"].includes(parsed.confidence)
+    ? parsed.confidence
+    : "low";
+  return {
+    owningTeam:
+      typeof parsed.owningTeam === "string"
+        ? truncateText(parsed.owningTeam.trim(), 150)
+        : "",
+    contacts: sanitizeShortStrings(parsed.contacts),
+    matchedServices: sanitizeShortStrings(parsed.matchedServices),
+    reason:
+      typeof parsed.reason === "string"
+        ? truncateText(parsed.reason.trim(), 500)
+        : "",
+    confidence,
+  };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
@@ -458,3 +509,4 @@ module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
 module.exports.sanitizeResolutionSummary = sanitizeResolutionSummary;
 module.exports.assessPriority = assessPriority;
 module.exports.summariseReleasePages = summariseReleasePages;
+module.exports.identifyServiceOwnership = identifyServiceOwnership;

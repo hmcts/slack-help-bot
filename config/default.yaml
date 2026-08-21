@@ -41,4 +41,5 @@ search:
 confluence:
   base_url: "https://tools.hmcts.net/confluence"
   functional_releases_parent_id: "1933865840"
+  service_catalogue_page_id: "1847019495"
   # api_token: no default

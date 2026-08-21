@@ -11,6 +11,7 @@ const {
 const {
   createHelpRequest,
   updateHelpRequestDescription,
+  addCommentToHelpRequest,
 } = require("../service/persistence");
 const { checkSlackResponseError } = require("./errorHandling");
 const { lookupUsersEmail } = require("./utils/lookupUser");
@@ -19,6 +20,7 @@ const { createHelpRequestInCosmos } = require("../service/cosmos");
 const { uuidv7 } = require("uuidv7");
 const { deleteCacheEntry } = require("./utils/aiCache");
 const appInsights = require("../modules/appInsights");
+const { triageCriticalOwnership } = require("./serviceOwnership");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -363,6 +365,26 @@ async function submitHelpRequest(body, client, area) {
       ticket_type: "support",
       url: permaLink,
     });
+
+    if (helpRequest.priority.value === "critical") {
+      await triageCriticalOwnership({
+        event: {
+          channel: mainRes.channel,
+          text: helpRequest.description,
+        },
+        rootMessage: mainRes.message,
+        threadMessages: [
+          {
+            bot_id: "slack-help-bot",
+            blocks: helpRequestDetailBlocks(helpRequest),
+          },
+        ],
+        client,
+        jiraId,
+        slackLink: permaLink,
+        addJiraComment: addCommentToHelpRequest,
+      });
+    }
 
     appInsights.trackEvent("Submitted help request", { key: jiraId });
 
