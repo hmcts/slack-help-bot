@@ -472,14 +472,14 @@ function collectedClarificationAnswers(messages, session, excludedTs) {
 function enrichedQuestion(session, answers) {
   if (answers.length === 0) return session.question;
   return `${session.question}\n\nAdditional information:\n${answers
-    .map(({ question, answer }) => `- ${question} ${answer}`)
+    .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
     .join("\n")}`;
 }
 
 function ticketDescription(session, answers) {
   if (answers.length === 0) return session.question;
   return `${session.question}\n\nAdditional information:\n${answers
-    .map(({ question, answer }) => `- ${question} ${answer}`)
+    .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
     .join("\n")}`;
 }
 

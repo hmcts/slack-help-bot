@@ -381,7 +381,7 @@ async function classifyConversationIntent(input) {
     throw new Error(`Unexpected response from LLM: ${result.choices}`);
   }
   const parsed = JSON.parse(result.choices[0].message.content);
-  return new Set(["greeting", "platform_related", "off_topic"]).has(
+  return new Set(["greeting", "needs_issue", "platform_related", "off_topic"]).has(
     parsed.intent,
   )
     ? parsed.intent
@@ -401,7 +401,7 @@ async function understandConversationTurn({ question, greetingShown = false }) {
     model: "0125-Preview",
   });
   const parsed = JSON.parse(result.choices?.[0]?.message?.content ?? "{}");
-  const intent = new Set(["greeting", "platform_related", "off_topic"]).has(
+  const intent = new Set(["greeting", "needs_issue", "platform_related", "off_topic"]).has(
     parsed.intent,
   )
     ? parsed.intent

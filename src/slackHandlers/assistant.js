@@ -361,7 +361,10 @@ async function handleConversationMessage({
         ...(orchestration.promptPlatform
           ? {
               blocks: knowledgeSearchPromptBlocks(responseText),
-              metadata: { event_type: "conversation_greeting" },
+              metadata: {
+                event_type: "conversation_greeting",
+                event_payload: {},
+              },
             }
           : {}),
       });
@@ -381,13 +384,13 @@ async function handleConversationMessage({
 
     if (pendingPlatform && selectedPlatformArea && !pendingPlatform.question) {
       await say({
-        text: "What issue can I help with? I’ll search the platform docs to help.",
+        text: "What issue can I help with?",
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "What issue can I help with? I’ll search the platform docs to help.",
+              text: "What issue can I help with?",
             },
           },
           {
@@ -406,13 +409,6 @@ async function handleConversationMessage({
           event_payload: { area: selectedPlatformArea },
         },
       });
-      return;
-    }
-
-    if (question.toLowerCase() === "help") {
-      await say(
-        "Send your Platform Operations question here. I’ll search the documentation, remember recent messages in this conversation, and help you raise a request if needed. You can also say `raise a help request` to start one now.",
-      );
       return;
     }
 

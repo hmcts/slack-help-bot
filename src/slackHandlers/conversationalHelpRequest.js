@@ -71,7 +71,7 @@ function draftFromEarlierThread(messages, startIndex) {
   }
   const description = answers.length
     ? `${originalQuestion}\n\nAdditional information:\n${answers
-        .map(({ question, answer }) => `- ${question} ${answer}`)
+        .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
         .join("\n")}`
     : originalQuestion;
   const links = [
