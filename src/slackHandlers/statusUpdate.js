@@ -1,5 +1,10 @@
-// src/slackHandlers/statusUpdate.js
-const { updateJiraIssueStatus } = require("../modules/jira");
+const { updateIssueStatus } = require("../service/persistence");
+
+const STATUS_COMMAND = /^(?:help\s+)?(?:status-update|status)\b/i;
+
+function isStatusCommand(text) {
+  return STATUS_COMMAND.test(text?.trim() ?? "");
+}
 
 /**
  * Extract Jira key from thread messages
@@ -14,7 +19,7 @@ async function extractJiraKeyFromThread(client, channelId, threadTs) {
     const result = await client.conversations.replies({
       channel: channelId,
       ts: threadTs,
-      limit: 10,
+      limit: 100,
     });
 
     if (!result.messages || result.messages.length === 0) {
@@ -23,8 +28,8 @@ async function extractJiraKeyFromThread(client, channelId, threadTs) {
 
     // Look through all messages in the thread
     for (const message of result.messages) {
-      const text = message.text || '';
-      
+      const text = `${message.text || ""} ${JSON.stringify(message.blocks || [])}`;
+
       // Look for Jira key patterns
       const jiraKeyMatch = text.match(/([A-Z]+-\d+)/);
       if (jiraKeyMatch) {
@@ -46,55 +51,45 @@ async function extractJiraKeyFromThread(client, channelId, threadTs) {
  */
 async function handleStatusUpdate(command, client) {
   const { user_id, channel_id, text, thread_ts } = command;
-  
-  console.log("statusUpdate called with text:", text);
-  console.log("Thread timestamp:", thread_ts);
-  
-  // Clean up the text - remove Slack's link formatting
+
   let cleanText = text
-    .replace(/<https?:\/\/[^|]+\|/g, '')  // Remove Slack link format: <https://...| 
+    .replace(/<https?:\/\/[^|]+\|/g, '')  // Remove Slack link format: <https://...|
     .replace(/[<>]/g, '')                  // Remove any remaining < >
     .replace(/\|/g, '')                    // Remove pipe characters
     .replace(/\s+/g, ' ')                  // Normalize spaces
     .trim();
-  
-  // Remove "status-update" or "status" if present
-  if (cleanText.startsWith('status-update')) {
-    cleanText = cleanText.replace('status-update', '').trim();
-  } else if (cleanText.startsWith('status')) {
-    cleanText = cleanText.replace('status', '').trim();
-  }
-  
-  console.log("Clean text after removing command:", cleanText);
-  
+
+  if (!isStatusCommand(cleanText)) return false;
+  cleanText = cleanText.replace(STATUS_COMMAND, '').trim();
+
   let jiraKey = null;
   let newStatus = null;
-  
+
   // Try to extract Jira key from the command text first
   const jiraKeyMatch = cleanText.match(/([A-Z]+-\d+)/);
-  
+
   if (jiraKeyMatch) {
     // Jira key found in the command
     jiraKey = jiraKeyMatch[1];
-    
+
     // Extract the status - everything after the Jira key
     const afterKey = cleanText.substring(cleanText.indexOf(jiraKey) + jiraKey.length).trim();
     newStatus = afterKey.replace(/^["']|["']$/g, "").trim();
-    
+
     console.log(`Found Jira key in command: ${jiraKey}`);
   } else {
     // No Jira key in command - try to extract from thread
     console.log("No Jira key in command, trying to extract from thread...");
-    
+
     jiraKey = await extractJiraKeyFromThread(client, channel_id, thread_ts);
-    
+
     if (jiraKey) {
       // The entire cleanText is the status (since no Jira key was in the command)
       newStatus = cleanText.replace(/^["']|["']$/g, "").trim();
       console.log(`Auto-detected Jira key from thread: ${jiraKey}`);
     }
   }
-  
+
   // Validate we have both Jira key and status
   if (!jiraKey) {
     await client.chat.postEphemeral({
@@ -106,7 +101,7 @@ async function handleStatusUpdate(command, client) {
     });
     return;
   }
-  
+
   if (!newStatus) {
     await client.chat.postEphemeral({
       channel: channel_id,
@@ -116,27 +111,27 @@ async function handleStatusUpdate(command, client) {
     });
     return;
   }
-  
+
   try {
     console.log(`Updating ${jiraKey} to "${newStatus}"`);
-    
+
     // Update Jira
-    await updateJiraIssueStatus(jiraKey, newStatus);
-    
+    await updateIssueStatus(jiraKey, newStatus);
+
     // Post confirmation to Slack thread
     await client.chat.postMessage({
       channel: channel_id,
       thread_ts: thread_ts,
       text: `:white_check_mark: *Status Updated*\nTicket ${jiraKey} status changed to: *${newStatus}*\nUpdated by: <@${user_id}>`,
     });
-    
+
     // DM the user confirmation
     await client.chat.postEphemeral({
       channel: channel_id,
       user: user_id,
       text: `✅ Successfully updated ${jiraKey} to "${newStatus}"`,
     });
-    
+
   } catch (error) {
     console.error(`Error updating status for ${jiraKey}:`, error);
     await client.chat.postEphemeral({
@@ -145,8 +140,11 @@ async function handleStatusUpdate(command, client) {
       text: `❌ Failed to update ticket status: ${error.message}`,
     });
   }
+
+  return true;
 }
 
 module.exports = {
   handleStatusUpdate,
+  isStatusCommand,
 };
