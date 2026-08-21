@@ -80,6 +80,11 @@ const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
   watchHelpRequestThread,
 } = require("./src/slackHandlers/watchHelpRequestThread");
+// ✅ Import the statusUpdate handler (MOVED to after app is created)
+const {
+  handleStatusUpdate,
+} = require("./src/slackHandlers/statusUpdate");
+
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -278,7 +283,21 @@ app.action(
 );
 
 app.event("app_mention", async ({ event, context, client, say }) => {
-  await appMention(event, client, say);
+  // Check if the message contains "status-update" OR "status"
+  if (event.text && (event.text.includes("status-update") || event.text.includes("status "))) {
+    // Extract the command text (remove the bot mention)
+    const text = event.text.replace(/<@[^>]+>/, "").trim();
+    const command = {
+      user_id: event.user,
+      channel_id: event.channel,
+      text: text,
+      thread_ts: event.thread_ts || event.ts,  // This is important for auto-detection
+    };
+    await handleStatusUpdate(command, client);
+  } else {
+    // Original appMention logic
+    await appMention(event, client, say);
+  }
 });
 
 app.action(

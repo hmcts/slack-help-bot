@@ -18,6 +18,7 @@
     "@types/config": "4.4.0",
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
+    "axios": "^1.19.0",
     "cajache": "^2.0.2",
     "config": "^5.0.0",
     "jira-client": "^8.1.0",

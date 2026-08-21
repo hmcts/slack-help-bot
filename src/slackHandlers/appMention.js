@@ -1,8 +1,13 @@
 const { summariseThread } = require("../ai/ai");
 
-const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
-\`ticket-type\ [support|task]\` - Changes this ticket's Jira type
-\`summarise\` - Summarises the thread using AI
+const helpText = `
+Available commands:
+• \`help\` - List all available commands
+• \`status-update <JIRA-KEY> <NEW-STATUS>\` - Update a ticket's status
+• \`status <JIRA-KEY> <NEW-STATUS>\` - Shortcut for status-update
+• \`duplicate <jira ticket id>\` - Mark a request as a duplicate
+• \`summarise\` - AI summarizes all replies
+• \`ticket-type [support|task]\` - Changes this ticket's Jira type
 
 If you want to escalate a request please tag \`platformops-bau\`
 `;
