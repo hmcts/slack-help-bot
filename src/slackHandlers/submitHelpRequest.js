@@ -280,7 +280,7 @@ async function submitHelpRequest(body, client, area) {
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
-         "ticket-type-support",
+        "ticket-type-support",
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
     });
