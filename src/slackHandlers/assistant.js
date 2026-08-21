@@ -381,13 +381,13 @@ async function handleConversationMessage({
 
     if (pendingPlatform && selectedPlatformArea && !pendingPlatform.question) {
       await say({
-        text: `Thanks — I’ll search ${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}. What issue or question can I help with?`,
+        text: "What issue can I help with? I’ll search the platform docs to help.",
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `Thanks — I’ll search ${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}. What issue or question can I help with?`,
+              text: "What issue can I help with? I’ll search the platform docs to help.",
             },
           },
           {
