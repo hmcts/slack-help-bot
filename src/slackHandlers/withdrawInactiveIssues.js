@@ -182,10 +182,10 @@ const withdrawInactiveIssues = async (app) => {
       const issueId = issue.key;
 
       try {
-        // Withdraw issue and add withdrawn label in Jira
+        // Transition first; only label successfully withdrawn issues.
         console.log(`Withdrawing issue ${issueId}...`);
-        await addWithdrawnLabel(issueId);
         await withdrawIssue(issueId);
+        await addWithdrawnLabel(issueId);
         console.log(`Issue ${issueId} withdrawn`);
       } catch (err) {
         console.error(

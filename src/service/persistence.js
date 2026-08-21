@@ -452,6 +452,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
         notifiedAt === undefined || updatedAt <= notifiedAt + 5 * 60 * 1000;
 
       if (days === INACTIVITY_STAGES.SECOND_WARNING) {
+        // If the first reminder label is missing, use the issue age directly.
         return (
           !currentLabelActive &&
           unchangedSinceNotification &&
@@ -464,8 +465,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
         );
       }
 
+      // Reminder labels are useful anchors when a cron run was missed, but
+      // they must not be required for the withdrawal stage. Fall back to the
+      // issue's current age when no prior reminder label exists.
       return (
-        !hasLabel("inactivity-notified-second-warning") &&
         unchangedSinceNotification &&
         ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
           (notifiedAt === undefined && age >= withdrawalMs))
