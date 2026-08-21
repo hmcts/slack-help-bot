@@ -4,6 +4,8 @@ slack:
   #app_token: no default
   report_channel_id: C01KHKNJUKE
   report_channel_crime_id: C01KHKQJZ3V
+  # Slack user-group ID to mention when a request is automatically escalated.
+  bau_user_group_id: S05895026RE
 
 jira:
   start_transition_id: 21
@@ -12,6 +14,9 @@ jira:
   project: SBOX
   issue_type_name: Bug
   issue_type_id: 10900
+  priority_normal_id: "4"
+  priority_high_id: "3"
+  priority_critical_id: "1"
   support_issue_type_id: 18400
   task_issue_type_id: 3
   #username: no default
@@ -32,3 +37,9 @@ search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
   help_requests_index_name: "help-requests"
   knowledge_store_index_name: "the-hmcts-way"
+
+confluence:
+  base_url: "https://tools.hmcts.net/confluence"
+  functional_releases_parent_id: "1933865840"
+  service_catalogue_page_id: "1847019495"
+  # api_token: no default

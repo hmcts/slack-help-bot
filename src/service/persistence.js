@@ -10,6 +10,12 @@ const systemUser = config.get("jira.username");
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
+const jiraPriorities = {
+  normal: config.get("jira.priority_normal_id"),
+  high: config.get("jira.priority_high_id"),
+  critical: config.get("jira.priority_critical_id"),
+};
+
 const supportIssueTypeId =
   config.get("jira.support_issue_type_id") || issueTypeId;
 const taskIssueTypeId = config.get("jira.task_issue_type_id");
@@ -282,6 +288,25 @@ async function assignHelpRequest(issueId, email) {
   }
 }
 
+async function updateHelpRequestPriority(issueId, priority) {
+  const jiraPriorityId = jiraPriorities[priority] || jiraPriorities.normal;
+  try {
+    await jira.updateIssue(issueId, {
+      fields: { priority: { id: jiraPriorityId } },
+    });
+    return true;
+  } catch (err) {
+    // Never log the complete HTTP error: request objects contain the Jira
+    // Authorization header. Jira's response body has the useful field error.
+    const jiraError = err?.response?.body || err?.error || err?.message;
+    console.error(`Unable to set Jira priority on ${issueId}`, {
+      requestedPriorityId: jiraPriorityId,
+      jiraError,
+    });
+    return false;
+  }
+}
+
 async function createHelpRequestInJira(
   summary,
   project,
@@ -319,6 +344,7 @@ async function createHelpRequest({
   summary,
   userEmail,
   labels,
+  priority = "normal",
   issueType = "support",
 }) {
   const user = await convertEmail(userEmail);
@@ -353,6 +379,12 @@ async function createHelpRequest({
         JSON.stringify(result),
       );
     }
+  }
+
+  if (result?.key) {
+    // Jira can reject priority on the create screen for some projects. Apply it
+    // after creation so a priority configuration issue never loses a request.
+    await updateHelpRequestPriority(result.key, priority);
   }
 
   return result.key;
@@ -510,6 +542,7 @@ async function getUserByKey(key) {
 module.exports.resolveHelpRequest = resolveHelpRequest;
 module.exports.startHelpRequest = startHelpRequest;
 module.exports.assignHelpRequest = assignHelpRequest;
+module.exports.updateHelpRequestPriority = updateHelpRequestPriority;
 module.exports.createHelpRequest = createHelpRequest;
 module.exports.updateHelpRequestDescription = updateHelpRequestDescription;
 module.exports.addCommentToHelpRequest = addCommentToHelpRequest;

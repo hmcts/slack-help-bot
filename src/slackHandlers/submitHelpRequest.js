@@ -11,6 +11,7 @@ const {
 const {
   createHelpRequest,
   updateHelpRequestDescription,
+  addCommentToHelpRequest,
 } = require("../service/persistence");
 const { checkSlackResponseError } = require("./errorHandling");
 const { lookupUsersEmail } = require("./utils/lookupUser");
@@ -19,6 +20,7 @@ const { createHelpRequestInCosmos } = require("../service/cosmos");
 const { uuidv7 } = require("uuidv7");
 const { deleteCacheEntry } = require("./utils/aiCache");
 const appInsights = require("../modules/appInsights");
+const { triageCriticalOwnership } = require("./serviceOwnership");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -96,6 +98,11 @@ function getFollowUpQuestions(blocks) {
     question: block.label?.text ?? "Follow-up question",
     placeholder: block.element?.placeholder?.text ?? "",
   }));
+}
+
+function getInitialSelectedOption(blocks, actionId) {
+  return blocks.find((block) => block.element?.action_id === actionId)?.element
+    ?.initial_option;
 }
 
 /**
@@ -177,6 +184,12 @@ async function submitHelpRequest(body, client, area) {
       area: values.area
         ? values.area.selected_option
         : inputBlocks[6].element.initial_option,
+      priority: values.priority
+        ? values.priority.selected_option
+        : getInitialSelectedOption(blocks, "priority") || {
+            text: { type: "plain_text", text: "Normal", emoji: true },
+            value: "normal",
+          },
       followUpAnswers: getFollowUpAnswers(values, blocks),
     };
 
@@ -280,9 +293,11 @@ async function submitHelpRequest(body, client, area) {
       labels: [
         cleanLabel(`area-${helpRequest.area.value}`),
         cleanLabel(`team-${helpRequest.team.value}`),
+        cleanLabel(`priority-${helpRequest.priority.value}`),
         "ticket-type-support",
         area === "crime" ? "platform-area-crime" : "platform-area-non-crime",
       ],
+      priority: helpRequest.priority.value,
     });
 
     const mainRes = await client.chat.postMessage({
@@ -342,6 +357,7 @@ async function submitHelpRequest(body, client, area) {
       created_at: new Date(),
       key: jiraId,
       status: "Open",
+      priority: helpRequest.priority.value,
       area,
       title: helpRequest.summary,
       description: helpRequest.description,
@@ -349,6 +365,26 @@ async function submitHelpRequest(body, client, area) {
       ticket_type: "support",
       url: permaLink,
     });
+
+    if (helpRequest.priority.value === "critical") {
+      await triageCriticalOwnership({
+        event: {
+          channel: mainRes.channel,
+          text: helpRequest.description,
+        },
+        rootMessage: mainRes.message,
+        threadMessages: [
+          {
+            bot_id: "slack-help-bot",
+            blocks: helpRequestDetailBlocks(helpRequest),
+          },
+        ],
+        client,
+        jiraId,
+        slackLink: permaLink,
+        addJiraComment: addCommentToHelpRequest,
+      });
+    }
 
     appInsights.trackEvent("Submitted help request", { key: jiraId });
 

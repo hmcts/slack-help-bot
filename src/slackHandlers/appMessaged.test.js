@@ -12,6 +12,10 @@ jest.mock("./utils/lookupUser", () => ({
   lookupUsersName: jest.fn(),
 }));
 
+jest.mock("./helpRequestPriority", () => ({
+  monitorThreadPriority: jest.fn(),
+}));
+
 const { appMessaged } = require("./appMessaged");
 
 describe("appMessaged", () => {

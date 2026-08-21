@@ -10,6 +10,9 @@ const {
 const { lookupUsersName, convertProfileToName } = require("./utils/lookupUser");
 const config = require("config");
 const { notifyThreadWatchers } = require("./watchHelpRequestThread");
+const { monitorThreadPriority } = require("./helpRequestPriority");
+const { followUpWithReleaseNotes } = require("./releaseFollowUp");
+const { triageCriticalOwnership } = require("./serviceOwnership");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -146,6 +149,33 @@ async function appMessaged(event, context, client, say) {
         name,
         message: newTargetText,
       });
+
+      if (helpRequestMessages[0].text === "New platform help request raised") {
+        await monitorThreadPriority({
+          event,
+          rootMessage: helpRequestMessages[0],
+          threadMessages: helpRequestMessages,
+          client,
+        });
+        await triageCriticalOwnership({
+          event,
+          rootMessage: helpRequestMessages[0],
+          threadMessages: helpRequestMessages,
+          client,
+          jiraId,
+          slackLink,
+          addJiraComment: addCommentToHelpRequest,
+        });
+        await followUpWithReleaseNotes({
+          event,
+          rootMessage: helpRequestMessages[0],
+          client,
+          jiraId,
+          slackLink,
+          addJiraComment: addCommentToHelpRequest,
+          threadMessages: helpRequestMessages,
+        });
+      }
     } else {
       // either need to implement pagination or find a better way to get the first message in the thread
       console.warn(

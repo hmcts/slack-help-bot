@@ -16,7 +16,11 @@ const {
   resolutionDocumentationPrompt,
   followUpQuestionsPrompt,
   knowledgeAnswerPrompt,
+  priorityAssessmentPrompt,
+  releaseSummaryPrompt,
+  serviceOwnershipPrompt,
 } = require("./prompts");
+const { sanitizePriorityAssessment } = require("./priority");
 
 const scope = "https://cognitiveservices.azure.com/.default";
 const azureADTokenProvider = getBearerTokenProvider(
@@ -382,6 +386,117 @@ Instructions:
   return { answer, sourceIndexes };
 }
 
+async function assessPriority(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: priorityAssessmentPrompt() },
+      { role: "user", content: input },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected priority response from LLM: ${result.choices}`);
+  }
+
+  return sanitizePriorityAssessment(
+    JSON.parse(result.choices[0].message.content),
+  );
+}
+
+async function summariseReleasePages(
+  releaseFamily,
+  pages,
+  incidentContext,
+  followUpFocus,
+) {
+  const context = pages
+    .map(
+      (page, index) => `[${index + 1}]
+Title: ${page.title}
+Source type: ${page.linkedTechnicalRelease ? "Linked technical release notes" : "Functional release page"}
+URL: ${page.url}
+Content:
+${truncateText(page.content, 12000)}`,
+    )
+    .join("\n\n");
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: releaseSummaryPrompt() },
+      {
+        role: "user",
+        content: `Release family: ${releaseFamily}\n\nRequested follow-up focus:\n${
+          followUpFocus || "None - provide the initial incident-focused summary"
+        }\n\nIncident context:\n${truncateText(
+          incidentContext,
+          8000,
+        )}\n\nConfluence pages:\n${context}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+    temperature: 0,
+  });
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected release summary response: ${result.choices}`);
+  }
+  const summary = JSON.parse(result.choices[0].message.content).summary;
+  return typeof summary === "string" && summary.trim()
+    ? truncateText(summary.trim(), 2900)
+    : "The matching release pages do not clearly describe what changed.";
+}
+
+function sanitizeShortStrings(values, limit = 5) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value) => typeof value === "string" && value.trim())
+    .slice(0, limit)
+    .map((value) => truncateText(value.trim(), 150));
+}
+
+async function identifyServiceOwnership(incidentContext, catalogue) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: serviceOwnershipPrompt() },
+      {
+        role: "user",
+        content: `Incident context:\n${truncateText(
+          incidentContext,
+          8000,
+        )}\n\nService and Component Catalogue:\n${truncateText(
+          catalogue.content,
+          35000,
+        )}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+    temperature: 0,
+  });
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected service ownership response: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  const confidence = ["low", "medium", "high"].includes(parsed.confidence)
+    ? parsed.confidence
+    : "low";
+  return {
+    owningTeam:
+      typeof parsed.owningTeam === "string"
+        ? truncateText(parsed.owningTeam.trim(), 150)
+        : "",
+    contacts: sanitizeShortStrings(parsed.contacts),
+    matchedServices: sanitizeShortStrings(parsed.matchedServices),
+    reason:
+      typeof parsed.reason === "string"
+        ? truncateText(parsed.reason.trim(), 500)
+        : "",
+    confidence,
+  };
+}
+
 module.exports.analyticsRecommendations = analyticsRecommendations;
 module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
@@ -392,3 +507,6 @@ module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;
 module.exports.sanitizeResolutionSummary = sanitizeResolutionSummary;
+module.exports.assessPriority = assessPriority;
+module.exports.summariseReleasePages = summariseReleasePages;
+module.exports.identifyServiceOwnership = identifyServiceOwnership;

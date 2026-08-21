@@ -9,11 +9,16 @@ jest.mock("../../service/searchKnowledgeStore", () => ({
 jest.mock("../../ai/ai", () => ({
   analyticsRecommendations: jest.fn(),
   followUpQuestions: jest.fn(),
+  assessPriority: jest.fn(),
 }));
 
 const { searchHelpRequests } = require("../../service/searchHelpRequests");
 const { searchKnowledgeStore } = require("../../service/searchKnowledgeStore");
-const { analyticsRecommendations, followUpQuestions } = require("../../ai/ai");
+const {
+  analyticsRecommendations,
+  followUpQuestions,
+  assessPriority,
+} = require("../../ai/ai");
 const { queryAi } = require("./aiCache");
 
 describe("queryAi", () => {
@@ -32,6 +37,11 @@ describe("queryAi", () => {
     searchKnowledgeStore.mockResolvedValue([]);
     analyticsRecommendations.mockResolvedValue({});
     followUpQuestions.mockResolvedValue([]);
+    assessPriority.mockResolvedValue({
+      priority: "normal",
+      confidence: "high",
+      reasons: [],
+    });
 
     const result = await queryAi(
       {
@@ -56,6 +66,11 @@ describe("queryAi", () => {
     searchHelpRequests.mockResolvedValue([]);
     analyticsRecommendations.mockResolvedValue({});
     followUpQuestions.mockResolvedValue([]);
+    assessPriority.mockResolvedValue({
+      priority: "normal",
+      confidence: "high",
+      reasons: [],
+    });
 
     const result = await queryAi(
       {
@@ -70,5 +85,35 @@ describe("queryAi", () => {
 
     expect(searchKnowledgeStore).not.toHaveBeenCalled();
     expect(result.knowledgeStoreResults).toStrictEqual([]);
+  });
+
+  it("returns safe fallbacks when Azure Search and OpenAI are unavailable", async () => {
+    searchHelpRequests.mockRejectedValue(new Error("search auth failed"));
+    searchKnowledgeStore.mockRejectedValue(new Error("knowledge auth failed"));
+    analyticsRecommendations.mockRejectedValue(new Error("AI auth failed"));
+    followUpQuestions.mockRejectedValue(new Error("AI auth failed"));
+    assessPriority.mockRejectedValue(new Error("AI auth failed"));
+
+    const result = await queryAi(
+      {
+        summary: "Unique authentication fallback test",
+        description: "Dependencies are unavailable",
+        analysis: "",
+        prBuildUrl: "",
+      },
+      "crime",
+    );
+
+    expect(result).toStrictEqual({
+      relatedIssues: [],
+      knowledgeStoreResults: [],
+      aiRecommendation: {},
+      followUpQuestions: [],
+      priorityAssessment: {
+        priority: "normal",
+        confidence: "low",
+        reasons: [],
+      },
+    });
   });
 });

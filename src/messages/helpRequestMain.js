@@ -6,6 +6,7 @@ function helpRequestMainBlocks({
   environment,
   prBuildUrl,
   jiraId,
+  priority,
   ticketType,
   area,
 }) {
@@ -21,6 +22,10 @@ function helpRequestMainBlocks({
     {
       type: "mrkdwn",
       text: `*Environment* :house_with_garden: \n ${environment.text.text}`,
+    },
+    {
+      type: "mrkdwn",
+      text: `*Priority* :rotating_light: \n ${priority?.text?.text || "Normal"}`,
     },
   ];
 
@@ -108,6 +113,29 @@ function helpRequestMainBlocks({
           },
           action_id: "manage_help_request_thread_watch",
           value: "[]",
+        },
+        {
+          type: "static_select",
+          placeholder: {
+            type: "plain_text",
+            text: "Change priority",
+            emoji: true,
+          },
+          options: [
+            {
+              text: { type: "plain_text", text: "Normal", emoji: true },
+              value: "normal",
+            },
+            {
+              text: { type: "plain_text", text: "High", emoji: true },
+              value: "high",
+            },
+            {
+              text: { type: "plain_text", text: "Critical", emoji: true },
+              value: "critical",
+            },
+          ],
+          action_id: "change_help_request_priority",
         },
       ],
     },

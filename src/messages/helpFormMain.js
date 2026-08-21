@@ -12,6 +12,26 @@ const {
   extractKnowledgeStoreHighlight,
 } = require("./util");
 
+const priorities = [
+  {
+    text: { type: "plain_text", text: "Normal", emoji: true },
+    value: "normal",
+  },
+  {
+    text: { type: "plain_text", text: "High", emoji: true },
+    value: "high",
+  },
+  {
+    text: { type: "plain_text", text: "Critical", emoji: true },
+    value: "critical",
+  },
+];
+
+function getPriorityOption(priority) {
+  const value = priority?.value || priority || "normal";
+  return priorities.find((option) => option.value === value) || priorities[0];
+}
+
 function helpFormAnalyticsBlocks({
   user,
   helpRequest,
@@ -100,6 +120,31 @@ function helpFormAnalyticsBlocks({
         type: "plain_text",
         text: "Area :globe_with_meridians:",
         emoji: true,
+      },
+    },
+    {
+      type: "input",
+      block_id: "request_priority",
+      element: {
+        type: "static_select",
+        options: priorities,
+        action_id: "priority",
+        initial_option: getPriorityOption(helpRequest?.priority),
+      },
+      label: {
+        type: "plain_text",
+        text: "Priority",
+        emoji: true,
+      },
+      hint: {
+        type: "plain_text",
+        text:
+          helpRequest?.priorityReasons?.length > 0
+            ? `Suggested from impact: ${helpRequest.priorityReasons.join("; ")}`.slice(
+                0,
+                2000,
+              )
+            : "Choose the operational impact. Urgent wording alone does not make a request high priority.",
       },
     },
     isAdvanced
@@ -539,3 +584,5 @@ module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
 module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;
 module.exports.helpFormKnowledgeStoreBlocks = helpFormKnowledgeStoreBlocks;
 module.exports.helpFormFollowUpBlocks = helpFormFollowUpBlocks;
+module.exports.priorities = priorities;
+module.exports.getPriorityOption = getPriorityOption;

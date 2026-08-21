@@ -166,10 +166,16 @@ async function submitInitialHelpRequest(body, client, source, area) {
         const result = await queryAi(helpRequest, area, {
           skipKnowledgeStore,
         });
-        relatedIssues = result.relatedIssues;
-        knowledgeStoreResults = result.knowledgeStoreResults;
-        aiRecommendation = result.aiRecommendation;
-        followUpQuestions = result.followUpQuestions || [];
+        relatedIssues = result?.relatedIssues || [];
+        knowledgeStoreResults = result?.knowledgeStoreResults || [];
+        aiRecommendation = result?.aiRecommendation || {};
+        const priorityAssessment = result?.priorityAssessment || {
+          priority: "normal",
+          reasons: [],
+        };
+        aiRecommendation.priority = priorityAssessment.priority;
+        aiRecommendation.priorityReasons = priorityAssessment.reasons;
+        followUpQuestions = result?.followUpQuestions || [];
       } catch (error) {
         console.log(
           "An error occurred when fetching AI recommendations",
