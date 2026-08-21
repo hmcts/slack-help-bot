@@ -1,9 +1,12 @@
 const {
   searchForInactiveIssues,
+  addInactivityNotificationLabel,
   addWithdrawnLabel,
   withdrawIssue,
   getUserByKey,
+  INACTIVITY_STAGES,
 } = require("../service/persistence");
+const config = require("config");
 const getSlackUserInfo = async (app, userEmail) => {
   try {
     return await app.client.users.lookupByEmail({
@@ -17,9 +20,29 @@ const getSlackUserInfo = async (app, userEmail) => {
   }
 };
 
-const sendSlackMessage = async (app, channel, jiraIssue, thread) => {
+const firstReminderMs = Number(config.get("inactivity.first_reminder_ms"));
+const secondReminderMs = Number(config.get("inactivity.second_reminder_ms"));
+const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
+
+const formatDuration = (durationMs) => {
+  const minutes = Math.round(durationMs / 60000);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const days = Math.round(minutes / 1440);
+  return `${days} day${days === 1 ? "" : "s"}`;
+};
+
+const sendSlackMessage = async (
+  app,
+  channel,
+  jiraIssue,
+  thread,
+  reminderMs,
+) => {
   let message;
-  if (thread === undefined) {
+  if (reminderMs !== undefined) {
+    const remainingMs = withdrawalMs - reminderMs;
+    message = `Hi there! Issue ${jiraIssue} has been inactive for ${formatDuration(reminderMs)}. Please add an update if you still require help. If there is no activity, this issue will be withdrawn in ${formatDuration(remainingMs)}.`;
+  } else if (thread === undefined) {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, please contact Platform Operations.`;
   } else {
     message = `Hi there! Issue ${jiraIssue} has been withdrawn due to inactivity. If you require this issue to be re-opened, you can do so from this thread - ${thread}.`;
@@ -32,19 +55,85 @@ const sendSlackMessage = async (app, channel, jiraIssue, thread) => {
     });
   } catch (error) {
     console.error(`Error sending message to user ${channel}`, error);
+    return false;
+  }
+  return true;
+};
+
+const notifyInactiveIssue = async (app, issue, reminderMs) => {
+  const reporter = await getUserByKey(issue.fields.reporter.key);
+  const slackUserInfo = await getSlackUserInfo(app, reporter.emailAddress);
+  const description = issue.fields.description;
+  const urlMatch = description.match(
+    /https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+\/[\w.-]+\?[\w=&.-]+/,
+  );
+
+  if (urlMatch) {
+    const urlString = urlMatch[0];
+    const url = new URL(urlString);
+    const dmSent = await sendSlackMessage(
+      app,
+      slackUserInfo.user.id,
+      issue.key,
+      urlString,
+      reminderMs,
+    );
+    const threadSent = await commentOnSlackThread(
+      app,
+      url.searchParams.get("cid"),
+      url.searchParams.get("thread_ts"),
+      reminderMs,
+    );
+    return dmSent && threadSent;
+  } else {
+    return await sendSlackMessage(
+      app,
+      slackUserInfo.user.id,
+      issue.key,
+      undefined,
+      reminderMs,
+    );
   }
 };
 
-const commentOnSlackThread = async (app, channel, timestamp) => {
+const notifyInactiveIssues = async (app, days) => {
+  const isFirstWarning = days === INACTIVITY_STAGES.FIRST_WARNING;
+  const notificationLabel = `inactivity-notified-${
+    isFirstWarning ? "first-warning" : "second-warning"
+  }`;
+  const reminderMs = isFirstWarning ? firstReminderMs : secondReminderMs;
+  const results = await searchForInactiveIssues(days, notificationLabel);
+
+  for (const issue of results.issues) {
+    try {
+      if (!issue.fields.description) continue;
+      if (await notifyInactiveIssue(app, issue, reminderMs)) {
+        await addInactivityNotificationLabel(
+          issue.key,
+          `${notificationLabel}-${Date.now()}`,
+        );
+      }
+    } catch (err) {
+      console.error(`Error notifying issue ${issue.key}`, err);
+    }
+  }
+};
+
+const commentOnSlackThread = async (app, channel, timestamp, reminderMs) => {
   try {
     await app.client.chat.postMessage({
       channel: channel,
       thread_ts: timestamp,
-      text: "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread.",
+      text:
+        reminderMs === undefined
+          ? "This issue has been withdrawn due to inactivity. You can re-open the issue at anytime from this thread."
+          : `This issue has been inactive for ${formatDuration(reminderMs)}. Please add an update if you still require help.`,
     });
   } catch (error) {
     console.error(`Error replying to Slack thread ${channel}`, error);
+    return false;
   }
+  return true;
 };
 
 const setRequestStatusSlack = async (app, channel, timestamp) => {
@@ -85,19 +174,28 @@ const setRequestStatusSlack = async (app, channel, timestamp) => {
 };
 
 const withdrawInactiveIssues = async (app) => {
-  const results = await searchForInactiveIssues();
+  const results = await searchForInactiveIssues(INACTIVITY_STAGES.WITHDRAWAL);
 
   // Loop through inactive issues
   if (results.issues.length > 0) {
     for (const issue of results.issues) {
       const issueId = issue.key;
-      try {
-        // Withdraw issue and add withdrawn label in Jira
-        console.log(`Withdrawing issue ${issueId}...`);
-        await addWithdrawnLabel(issueId);
-        await withdrawIssue(issueId);
-        console.log(`Issue ${issueId} withdrawn`);
 
+      try {
+        // Transition first; only label successfully withdrawn issues.
+        console.log(`Withdrawing issue ${issueId}...`);
+        await withdrawIssue(issueId);
+        await addWithdrawnLabel(issueId);
+        console.log(`Issue ${issueId} withdrawn`);
+      } catch (err) {
+        console.error(
+          `Error transitioning issue ${issueId}; it will be retried`,
+          err,
+        );
+        continue;
+      }
+
+      try {
         const reporterKey = issue.fields.reporter.key;
         const reporter = await getUserByKey(reporterKey);
         const reporterEmail = reporter.emailAddress;
@@ -127,7 +225,10 @@ const withdrawInactiveIssues = async (app) => {
           await sendSlackMessage(app, slackUserId, issueId);
         }
       } catch (err) {
-        console.error(`Error withdrawing issue ${issueId}`, err);
+        console.error(
+          `Error notifying reporter of withdrawn issue ${issueId}`,
+          err,
+        );
       }
     }
   } else {
@@ -136,3 +237,5 @@ const withdrawInactiveIssues = async (app) => {
 };
 
 module.exports.withdrawInactiveIssues = withdrawInactiveIssues;
+module.exports.notifyInactiveIssues = notifyInactiveIssues;
+module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;

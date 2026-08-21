@@ -20,6 +20,9 @@ const jiraProject = config.get("jira.project");
 const jiraStartTransitionId = config.get("jira.start_transition_id");
 const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
+const firstReminderMs = Number(config.get("inactivity.first_reminder_ms"));
+const secondReminderMs = Number(config.get("inactivity.second_reminder_ms"));
+const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
 const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
 const jira = new JiraApi({
@@ -417,10 +420,29 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
-async function searchForInactiveIssues() {
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -30d`;
+const withdrawFailedLabel = "auto-withdraw-failed";
+const INACTIVITY_STAGES = Object.freeze({
+  FIRST_WARNING: "first-warning",
+  SECOND_WARNING: "second-warning",
+  WITHDRAWAL: "withdrawal",
+});
+// Local-only override for testing the notify/withdraw process end-to-end against
+// one known issue instead of whatever currently matches the real inactivity criteria
+const testIssueKey = process.env.JIRA_TEST_ISSUE_KEY;
+
+async function searchForInactiveIssues(days, notificationLabel) {
+  let jqlQuery;
+  if (testIssueKey) {
+    jqlQuery = `key = "${testIssueKey}"`;
+  } else {
+    const excludedLabels = [withdrawFailedLabel];
+    const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
+      .map((label) => `"${label}"`)
+      .join(", ")}))`;
+    jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress")${labelFilter}`;
+  }
   try {
-    return await jira.searchJira(jqlQuery, {
+    const results = await jira.searchJira(jqlQuery, {
       fields: [
         "created",
         "description",
@@ -428,13 +450,107 @@ async function searchForInactiveIssues() {
         "updated",
         "status",
         "reporter",
+        "labels",
       ],
     });
+
+
+    const now = Date.now();
+    const firstToSecondMs = secondReminderMs - firstReminderMs;
+    const secondToWithdrawalMs = withdrawalMs - secondReminderMs;
+    const prefix = notificationLabel;
+    results.issues = results.issues.filter((issue) => {
+      const labels = issue.fields.labels || [];
+      if (labels.includes(withdrawFailedLabel)) return false;
+
+      const updatedAt = new Date(issue.fields.updated).getTime();
+      const age = now - updatedAt;
+      const hasLabel = (labelPrefix) =>
+        labels.some(
+          (label) =>
+            label === labelPrefix || label.startsWith(`${labelPrefix}-`),
+        );
+      const getLabelTime = (labelPrefix) => {
+        const label = labels.find((item) =>
+          item.startsWith(`${labelPrefix}-`),
+        );
+        if (!label) return undefined;
+        const value = Number(label.slice(labelPrefix.length + 1));
+        return Number.isFinite(value) ? value : undefined;
+      };
+      const currentNotifiedAt = prefix ? getLabelTime(prefix) : undefined;
+      const currentLabelActive =
+        (prefix && labels.includes(prefix)) ||
+        (currentNotifiedAt !== undefined &&
+          updatedAt <= currentNotifiedAt + 5 * 60 * 1000);
+
+      if (days === INACTIVITY_STAGES.FIRST_WARNING) {
+        return (
+          !currentLabelActive &&
+          age >= firstReminderMs &&
+          age < secondReminderMs
+        );
+      }
+
+      const previousPrefix = days === INACTIVITY_STAGES.SECOND_WARNING
+        ? "inactivity-notified-first-warning-"
+        : "inactivity-notified-second-warning-";
+      const previousLabelTime = getLabelTime(previousPrefix);
+      const previousLabelActive =
+        previousLabelTime !== undefined &&
+        updatedAt <= previousLabelTime + 5 * 60 * 1000;
+      const notifiedAt = previousLabelActive ? previousLabelTime : undefined;
+      const baselineAge = notifiedAt === undefined ? age : now - notifiedAt;
+      const unchangedSinceNotification =
+        notifiedAt === undefined || updatedAt <= notifiedAt + 5 * 60 * 1000;
+
+      if (days === INACTIVITY_STAGES.SECOND_WARNING) {
+        // If the first reminder label is missing, use the issue age directly.
+        return (
+          !currentLabelActive &&
+          unchangedSinceNotification &&
+          ((notifiedAt !== undefined &&
+            baselineAge >= firstToSecondMs &&
+            baselineAge < withdrawalMs - firstReminderMs) ||
+            (notifiedAt === undefined &&
+              age >= secondReminderMs &&
+              age < withdrawalMs))
+        );
+      }
+
+      // Reminder labels are useful anchors when a cron run was missed, but
+      // they must not be required for the withdrawal stage. Fall back to the
+      // issue's current age when no prior reminder label exists.
+      return (
+        unchangedSinceNotification &&
+        ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
+          (notifiedAt === undefined && age >= withdrawalMs))
+      );
+    });
+    return results;
   } catch (err) {
     console.log("Error searching for issues in jira", err);
     return {
       issues: [],
     };
+  }
+}
+
+async function addInactivityNotificationLabel(issueId, label) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: label,
+          },
+        ],
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log(`Error adding label to issue ${issueId} in jira`, err);
+    return false;
   }
 }
 
@@ -477,6 +593,27 @@ async function withdrawIssue(issueId) {
       id: jiraWithdrawnTransitionId,
     },
   });
+}
+
+// Marks an issue so it's excluded from future withdrawal attempts, since a failed
+// transition (e.g. a Jira workflow config error) will otherwise be retried every run
+async function addWithdrawFailedLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: withdrawFailedLabel,
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(
+      `Error adding withdraw-failed label to issue ${issueId} in jira`,
+      err,
+    );
+  }
 }
 
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
@@ -527,7 +664,10 @@ module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;
+module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.addWithdrawFailedLabel = addWithdrawFailedLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
 module.exports.getUserByKey = getUserByKey;
