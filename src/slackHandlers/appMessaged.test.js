@@ -2,6 +2,10 @@ jest.mock("../modules/appInsights", () => ({
   trackEvent: jest.fn(),
 }));
 
+jest.mock("config", () => ({
+  get: jest.fn((key) => key),
+}));
+
 jest.mock("../service/persistence", () => ({
   addCommentToHelpRequest: jest.fn(),
   extractJiraIdFromBlocks: jest.fn(),
@@ -12,54 +16,53 @@ jest.mock("./utils/lookupUser", () => ({
   lookupUsersName: jest.fn(),
 }));
 
+jest.mock("./assistant", () => ({
+  handleAgentMessage: jest.fn(),
+}));
+
 const { appMessaged } = require("./appMessaged");
+const { handleAgentMessage } = require("./assistant");
 
 describe("appMessaged", () => {
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
-  it("tells the user to send their question when they send help in a DM", async () => {
+  it("routes help messages through the agent conversation", async () => {
     const say = jest.fn();
+    const client = {};
+    const event = {
+      channel_type: "im",
+      channel: "D1",
+      user: "U1",
+      text: "help",
+    };
 
-    await appMessaged(
-      {
-        channel_type: "im",
-        channel: "D1",
-        user: "U1",
-        text: "help",
-      },
-      {},
-      {},
-      say,
-    );
+    await appMessaged(event, {}, client, say);
 
-    expect(say).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: "Send me your question in this DM to get started.",
-      }),
-    );
+    expect(handleAgentMessage).toHaveBeenCalledWith({
+      message: event,
+      client,
+    });
+    expect(say).not.toHaveBeenCalled();
   });
 
-  it("keeps normal DM messages routed to knowledge search", async () => {
+  it("routes normal DM messages through the agent conversation", async () => {
     const say = jest.fn();
+    const client = {};
+    const event = {
+      channel_type: "im",
+      channel: "D1",
+      user: "U1",
+      text: "How do I find pipeline logs?",
+    };
 
-    await appMessaged(
-      {
-        channel_type: "im",
-        channel: "D1",
-        user: "U1",
-        text: "How do I find pipeline logs?",
-      },
-      {},
-      {},
-      say,
-    );
+    await appMessaged(event, {}, client, say);
 
-    expect(say).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: "Which platform should I search?",
-      }),
-    );
+    expect(handleAgentMessage).toHaveBeenCalledWith({
+      message: event,
+      client,
+    });
+    expect(say).not.toHaveBeenCalled();
   });
 });
