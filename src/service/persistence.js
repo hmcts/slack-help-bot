@@ -10,6 +10,9 @@ const systemUser = config.get("jira.username");
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
+const supportIssueTypeId =
+  config.get("jira.support_issue_type_id") || issueTypeId;
+const taskIssueTypeId = config.get("jira.task_issue_type_id");
 
 /** @type {string} */
 const jiraProject = config.get("jira.project");
@@ -114,6 +117,31 @@ async function markAsDuplicate(jiraIdToUpdate, parentJiraId) {
   } catch (err) {
     console.log("Error marking help request as duplicate in jira", err);
   }
+}
+
+async function updateHelpRequestType(jiraId, ticketType) {
+  const issueTypeId =
+    ticketType === "task" ? taskIssueTypeId : supportIssueTypeId;
+  const ticketTypeLabel = `ticket-type-${ticketType}`;
+
+  if (!issueTypeId) {
+    throw new Error(`No Jira issue type configured for ${ticketType}`);
+  }
+
+  await jira.updateIssue(jiraId, {
+    fields: {
+      issuetype: {
+        id: issueTypeId,
+      },
+    },
+    update: {
+      labels: [
+        { remove: "ticket-type-support" },
+        { remove: "ticket-type-task" },
+        { add: ticketTypeLabel },
+      ],
+    },
+  });
 }
 
 async function startHelpRequest(jiraId) {
@@ -257,13 +285,26 @@ async function assignHelpRequest(issueId, email) {
   }
 }
 
-async function createHelpRequestInJira(summary, project, user, labels) {
+async function createHelpRequestInJira(
+  summary,
+  project,
+  user,
+  labels,
+  issueType = "support",
+) {
+  const selectedIssueTypeId =
+    issueType === "task" ? taskIssueTypeId : supportIssueTypeId;
+
+  if (!selectedIssueTypeId) {
+    throw new Error(`No Jira issue type configured for ${issueType}`);
+  }
+
   console.log(`Creating help request in Jira for user: ${user}`);
   return await jira.addNewIssue({
     fields: {
       summary: summary,
       issuetype: {
-        id: issueTypeId,
+        id: selectedIssueTypeId,
       },
       project: {
         id: project.id,
@@ -277,7 +318,12 @@ async function createHelpRequestInJira(summary, project, user, labels) {
   });
 }
 
-async function createHelpRequest({ summary, userEmail, labels }) {
+async function createHelpRequest({
+  summary,
+  userEmail,
+  labels,
+  issueType = "support",
+}) {
   const user = await convertEmail(userEmail);
 
   const project = await jira.getProject(jiraProject);
@@ -287,7 +333,13 @@ async function createHelpRequest({ summary, userEmail, labels }) {
 
   let result;
   try {
-    result = await createHelpRequestInJira(summary, project, user, labels);
+    result = await createHelpRequestInJira(
+      summary,
+      project,
+      user,
+      labels,
+      issueType,
+    );
   } catch (err) {
     // in case the user doesn't exist in Jira use the system user
     result = await createHelpRequestInJira(
@@ -295,6 +347,7 @@ async function createHelpRequest({ summary, userEmail, labels }) {
       project,
       systemUser,
       labels,
+      issueType,
     );
 
     if (!result.key) {
@@ -563,6 +616,27 @@ async function addWithdrawFailedLabel(issueId) {
   }
 }
 
+async function updateIssueStatus(issueId, statusName) {
+  const transitions = await jira.listTransitions(issueId);
+  const transition = transitions.transitions?.find(
+    ({ to }) => to?.name?.toLowerCase() === statusName.toLowerCase(),
+  );
+
+  if (!transition) {
+    const availableStatuses = (transitions.transitions ?? [])
+      .map(({ to }) => to?.name)
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `Status "${statusName}" is not available for ${issueId}. Available: ${availableStatuses || "none"}`,
+    );
+  }
+
+  await jira.transitionIssue(issueId, {
+    transition: { id: transition.id },
+  });
+}
+
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
 async function getUserByKey(key) {
   const token = config.get("jira.api_token");
@@ -608,11 +682,13 @@ module.exports.searchForIssuesAssignedTo = searchForIssuesAssignedTo;
 module.exports.searchForIssuesRaisedBy = searchForIssuesRaisedBy;
 module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
+module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;
 module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
+module.exports.updateIssueStatus = updateIssueStatus;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
 module.exports.addWithdrawFailedLabel = addWithdrawFailedLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;

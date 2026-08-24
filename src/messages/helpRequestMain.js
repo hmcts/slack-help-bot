@@ -6,6 +6,7 @@ function helpRequestMainBlocks({
   environment,
   prBuildUrl,
   jiraId,
+  ticketType,
   area,
 }) {
   const mainFields = [
@@ -53,6 +54,10 @@ function helpRequestMainBlocks({
         {
           type: "mrkdwn",
           text: `View on Jira: <${convertJiraKeyToUrl(jiraId)}|${jiraId}>`,
+        },
+        {
+          type: "mrkdwn",
+          text: `Ticket type: ${ticketType?.text?.text || "Support"}`,
         },
       ],
     },

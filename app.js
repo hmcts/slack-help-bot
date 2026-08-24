@@ -82,6 +82,7 @@ const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
   watchHelpRequestThread,
 } = require("./src/slackHandlers/watchHelpRequestThread");
+
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
