@@ -127,3 +127,6 @@ tfplan
 .terraform.lock.hcl
 .terraform/
 terraform.tfstate
+
+# Use for to load app
+run.sh
