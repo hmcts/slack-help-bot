@@ -172,13 +172,12 @@ async function updateHelpRequestInCosmos(item) {
   }
 
   if (item.ticket_type) {
-      updateObj.push({
-        op: "add",
-        path: "/ticket_type",
-        value: item.ticket_type,
-      });
-    }
-
+    updateObj.push({
+      op: "add",
+      path: "/ticket_type",
+      value: item.ticket_type,
+    });
+  }
 
   await container.item(id, id).patch(updateObj);
 }

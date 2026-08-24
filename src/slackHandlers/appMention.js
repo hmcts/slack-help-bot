@@ -23,10 +23,7 @@ const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
 const { updateHelpRequestInCosmos } = require("../service/cosmos");
-const {
-  handleStatusUpdate,
-  isStatusCommand,
-} = require("./statusUpdate");
+const { handleStatusUpdate, isStatusCommand } = require("./statusUpdate");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");

@@ -39,7 +39,7 @@ async function extractJiraKeyFromThread(client, channelId, threadTs) {
 
     return null;
   } catch (error) {
-    console.error('Error extracting Jira key from thread:', error);
+    console.error("Error extracting Jira key from thread:", error);
     return null;
   }
 }
@@ -53,14 +53,14 @@ async function handleStatusUpdate(command, client) {
   const { user_id, channel_id, text, thread_ts } = command;
 
   let cleanText = text
-    .replace(/<https?:\/\/[^|]+\|/g, '')  // Remove Slack link format: <https://...|
-    .replace(/[<>]/g, '')                  // Remove any remaining < >
-    .replace(/\|/g, '')                    // Remove pipe characters
-    .replace(/\s+/g, ' ')                  // Normalize spaces
+    .replace(/<https?:\/\/[^|]+\|/g, "") // Remove Slack link format: <https://...|
+    .replace(/[<>]/g, "") // Remove any remaining < >
+    .replace(/\|/g, "") // Remove pipe characters
+    .replace(/\s+/g, " ") // Normalize spaces
     .trim();
 
   if (!isStatusCommand(cleanText)) return false;
-  cleanText = cleanText.replace(STATUS_COMMAND, '').trim();
+  cleanText = cleanText.replace(STATUS_COMMAND, "").trim();
 
   let jiraKey = null;
   let newStatus = null;
@@ -73,7 +73,9 @@ async function handleStatusUpdate(command, client) {
     jiraKey = jiraKeyMatch[1];
 
     // Extract the status - everything after the Jira key
-    const afterKey = cleanText.substring(cleanText.indexOf(jiraKey) + jiraKey.length).trim();
+    const afterKey = cleanText
+      .substring(cleanText.indexOf(jiraKey) + jiraKey.length)
+      .trim();
     newStatus = afterKey.replace(/^["']|["']$/g, "").trim();
 
     console.log(`Found Jira key in command: ${jiraKey}`);
@@ -95,9 +97,10 @@ async function handleStatusUpdate(command, client) {
     await client.chat.postEphemeral({
       channel: channel_id,
       user: user_id,
-      text: "❌ Could not find Jira ticket number. Please specify it:\n" +
-            "`@PlatOps help status DTSPO-123 'In Progress'`\n\n" +
-            "Or make sure you're using this command in a help request thread.",
+      text:
+        "❌ Could not find Jira ticket number. Please specify it:\n" +
+        "`@PlatOps help status DTSPO-123 'In Progress'`\n\n" +
+        "Or make sure you're using this command in a help request thread.",
     });
     return;
   }
@@ -106,8 +109,9 @@ async function handleStatusUpdate(command, client) {
     await client.chat.postEphemeral({
       channel: channel_id,
       user: user_id,
-      text: `❌ Please specify a new status for ${jiraKey}.\n` +
-            "Example: `@PlatOps help status 'In Progress'`",
+      text:
+        `❌ Please specify a new status for ${jiraKey}.\n` +
+        "Example: `@PlatOps help status 'In Progress'`",
     });
     return;
   }
@@ -131,7 +135,6 @@ async function handleStatusUpdate(command, client) {
       user: user_id,
       text: `✅ Successfully updated ${jiraKey} to "${newStatus}"`,
     });
-
   } catch (error) {
     console.error(`Error updating status for ${jiraKey}:`, error);
     await client.chat.postEphemeral({
