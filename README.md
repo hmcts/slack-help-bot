@@ -19,6 +19,10 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 - Help request threads support these commands by messaging `@PlatOps help <command>`:
   - `help` - list of all available commands
   - `duplicate <jira ticket id>` - mark a request as a duplicate of another ticket
+  - `ticket-type support|task` - change the Jira issue type
+  - `status <Jira status>` - change the current ticket's Jira status
+  - `status-update <Jira status>` - alias for `status`
+  - Both status commands accept an optional Jira key, for example `@PlatOps help status DTSPO-123 In Progress`. When used in a help request thread, the Jira key can be omitted. The requested status must be a transition available for that Jira issue.
   - `summarise` - an AI will summarise all replies in the Slack thread into one message
 - On close of a request the bot will ask for what type of help was required and what was done to resolve the issue.
 - `@PlatOps help` home page displays the following reports:
@@ -26,7 +30,7 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
   - Assigned to me
   - Raised by me
 - Auto close inactive issues
-  - A cron job built into the bot will close any issues that have been not been updated for 10 days
+  - A weekday cron job sends inactivity reminders after 10 and 20 days, then withdraws issues after 30 days without an update.
 - Analytics on usage of the bot
   - Events are recorded in Application Insights when user actions are taken, for more details see [analytics](#analytics).
   - Labels are added to Jira tickets that can be reported on in Jira to see what team / area / environment is requesting the most help

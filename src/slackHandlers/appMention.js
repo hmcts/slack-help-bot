@@ -1,8 +1,13 @@
 const { summariseThread } = require("../ai/ai");
 
-const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
-\`ticket-type\ [support|task]\` - Changes this ticket's Jira type
-\`summarise\` - Summarises the thread using AI
+const helpText = `
+Available commands:
+• \`help\` - List all available commands
+• \`status-update <JIRA-KEY> <NEW-STATUS>\` - Update a ticket's status
+• \`status <JIRA-KEY> <NEW-STATUS>\` - Shortcut for status-update
+• \`duplicate <jira ticket id>\` - Mark a request as a duplicate
+• \`summarise\` - AI summarizes all replies
+• \`ticket-type [support|task]\` - Changes this ticket's Jira type
 
 If you want to escalate a request please tag \`platformops-bau\`
 `;
@@ -18,6 +23,7 @@ const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
 const { updateHelpRequestInCosmos } = require("../service/cosmos");
+const { handleStatusUpdate, isStatusCommand } = require("./statusUpdate");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -198,7 +204,18 @@ async function appMention(event, client, say) {
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (/ticket-type/i.test(event.text)) {
+        const commandText = event.text.replace(/<@[^>]+>/g, "").trim();
+        if (isStatusCommand(commandText)) {
+          await handleStatusUpdate(
+            {
+              user_id: event.user,
+              channel_id: event.channel,
+              text: commandText,
+              thread_ts: event.thread_ts,
+            },
+            client,
+          );
+        } else if (/ticket-type/i.test(event.text)) {
           await handleTicketType({
             event,
             client,
