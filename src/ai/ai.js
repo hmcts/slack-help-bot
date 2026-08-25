@@ -472,8 +472,6 @@ async function answerFromRunbookKnowledgeStore(
         );
 
   return { answer, sourceIndexes };
-
-  return { answer, sourceIndexes };
 }
 
 module.exports.analyticsRecommendations = analyticsRecommendations;

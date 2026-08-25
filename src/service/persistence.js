@@ -479,6 +479,27 @@ async function withdrawIssue(issueId) {
   });
 }
 
+async function updateIssueStatus(issueId, statusName) {
+  const transitions = await jira.listTransitions(issueId);
+  const transition = transitions.transitions?.find(
+    ({ to }) => to?.name?.toLowerCase() === statusName.toLowerCase(),
+  );
+
+  if (!transition) {
+    const availableStatuses = (transitions.transitions ?? [])
+      .map(({ to }) => to?.name)
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `Status "${statusName}" is not available for ${issueId}. Available: ${availableStatuses || "none"}`,
+    );
+  }
+
+  await jira.transitionIssue(issueId, {
+    transition: { id: transition.id },
+  });
+}
+
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
 async function getUserByKey(key) {
   const token = config.get("jira.api_token");
@@ -528,6 +549,7 @@ module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
+module.exports.updateIssueStatus = updateIssueStatus;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
 module.exports.getUserByKey = getUserByKey;
