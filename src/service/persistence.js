@@ -437,7 +437,7 @@ const debugInactive = (...args) => {
 async function searchForInactiveIssues(days, notificationLabel) {
   let jqlQuery;
   if (testIssueKey) {
-    jqlQuery = `key = "${testIssueKey}" AND status NOT IN ("Done", "Withdrawn", "Closed", "Resolved") AND labels NOT IN ("auto-withdrawn")`;
+    jqlQuery = `key = "${testIssueKey}" AND status NOT IN ("Done", "Withdrawn", "Closed", "Resolved")`;
   } else {
     const excludedLabels = [withdrawFailedLabel];
     const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
