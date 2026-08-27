@@ -128,7 +128,10 @@ const notifyInactiveIssues = async (app, days) => {
           issue.fields.labels || [],
         );
       } else {
-        debugInactive("notification not fully sent; label not added", issue.key);
+        debugInactive(
+          "notification not fully sent; label not added",
+          issue.key,
+        );
       }
     } catch (err) {
       console.error(`Error notifying issue ${issue.key}`, err);

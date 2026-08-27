@@ -467,7 +467,6 @@ async function searchForInactiveIssues(days, notificationLabel) {
       ],
     });
 
-
     const now = Date.now();
     debugInactive("jira results", {
       stage: days,
@@ -517,11 +516,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
           updatedAt <= currentNotifiedAt + BOT_UPDATE_TOLERANCE_MS);
 
       if (days === INACTIVITY_STAGES.FIRST_WARNING) {
-        const eligible = (
+        const eligible =
           !currentLabelActive &&
           age >= firstReminderMs &&
-          age < secondReminderMs
-        );
+          age < secondReminderMs;
         debugInactive("eligibility", {
           key: issue.key,
           stage: days,
@@ -535,9 +533,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
         return eligible;
       }
 
-      const previousPrefix = days === INACTIVITY_STAGES.SECOND_WARNING
-        ? "inactivity-notified-first-warning"
-        : "inactivity-notified-second-warning";
+      const previousPrefix =
+        days === INACTIVITY_STAGES.SECOND_WARNING
+          ? "inactivity-notified-first-warning"
+          : "inactivity-notified-second-warning";
       const previousLabelTime = getLabelTime(previousPrefix);
       const previousLabelActive =
         previousLabelTime !== undefined &&
@@ -550,7 +549,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
 
       if (days === INACTIVITY_STAGES.SECOND_WARNING) {
         // If the first reminder label is missing, use the issue age directly.
-        const eligible = (
+        const eligible =
           !currentLabelActive &&
           unchangedSinceNotification &&
           ((notifiedAt !== undefined &&
@@ -558,8 +557,7 @@ async function searchForInactiveIssues(days, notificationLabel) {
             baselineAge < withdrawalMs - firstReminderMs) ||
             (notifiedAt === undefined &&
               age >= secondReminderMs &&
-              age < withdrawalMs))
-        );
+              age < withdrawalMs));
         debugInactive("eligibility", {
           key: issue.key,
           stage: days,
@@ -579,11 +577,10 @@ async function searchForInactiveIssues(days, notificationLabel) {
       // Reminder labels are useful anchors when a cron run was missed, but
       // they must not be required for the withdrawal stage. Fall back to the
       // issue's current age when no prior reminder label exists.
-      const eligible = (
+      const eligible =
         unchangedSinceNotification &&
         ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
-          (notifiedAt === undefined && age >= withdrawalMs))
-      );
+          (notifiedAt === undefined && age >= withdrawalMs));
       debugInactive("eligibility", {
         key: issue.key,
         stage: days,
@@ -610,7 +607,11 @@ async function searchForInactiveIssues(days, notificationLabel) {
   }
 }
 
-async function addInactivityNotificationLabel(issueId, label, existingLabels = []) {
+async function addInactivityNotificationLabel(
+  issueId,
+  label,
+  existingLabels = [],
+) {
   try {
     const labelPrefix = label.replace(/-\d+$/, "");
     const labelsToReplace = existingLabels.filter(
