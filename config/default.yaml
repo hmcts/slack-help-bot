@@ -37,3 +37,4 @@ inactivity:
   first_reminder_ms: 864000000
   second_reminder_ms: 1728000000
   withdrawal_ms: 2592000000
+  ops_runbook_index_name: "ops-runbook"
