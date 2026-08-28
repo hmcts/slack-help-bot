@@ -78,6 +78,16 @@ AI summarising:
 
 1. If a user requests a help request to be summarised, all comments are retrieved and sent to AI services for summarisation.
 
+Ticket taxonomy analysis and exports:
+
+1. Ensure the Jira, Slack, and Azure settings in `.env` are configured and authenticate locally with `az login`.
+2. Run an analysis for a start date and number of days:
+   `npm run analyse -- --start-date=2026-08-01 --days=7`
+3. Or provide an exclusive end date:
+   `npm run analyse -- --start-date=2026-08-01 --end-date=2026-09-01`
+4. The command exports JSON checkpoints, an Excel workbook, and a Markdown report to `analysis-output/`. The Excel workbook contains issue-level analysis and category/sub-category distributions.
+5. Use `--output=<directory>` to choose another export directory, or `--force` to reassess tickets instead of reusing checkpoints.
+
 Azure resources:
 
 - All azure resources are created in the [`components/infrastructure`](./components/infrastructure) folder.
@@ -196,10 +206,12 @@ You'll be able to install and test changes to your app there without waiting for
 ```
 
 After creating the app, open **Agents** in the Slack app settings and enable
-the agent experience. Reinstall the app after adding the `assistant:write`
-scope and agent events. Agent conversations use Slack threads in the Messages
-tab, allowing the bot to use recent replies as short-term context. Migrating an
-existing Slack app to `agent_view` cannot be reversed.
+the agent experience. The manifest above already includes the required
+`assistant:write` scope and agent events, so install the app in the workspace as
+described below. If you change scopes or event subscriptions later, reinstall
+the app so Slack applies those changes. Agent conversations use Slack threads
+in the Messages tab, allowing the bot to use recent replies as short-term
+context. Migrating an existing Slack app to `agent_view` cannot be reversed.
 
 In the Messages tab, platform selection and documentation/Jira feedback use
 buttons with typed replies as a fallback. The bot asks any AI clarification and
