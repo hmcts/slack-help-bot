@@ -12,14 +12,14 @@ function knowledgeSearchAnswerBlocks({ answer, area }) {
       },
     },
     {
-      type: "context",
+      // Use a section block here: Slack's Agent message validation rejects
+      // context elements even though they are valid in ordinary messages.
+      type: "section",
       block_id: `knowledge_search_conversation_feedback_${area}`,
-      elements: [
-        {
-          type: "mrkdwn",
-          text: "Did that solve the problem? Reply `yes` or `no`, or use a button.",
-        },
-      ],
+      text: {
+        type: "mrkdwn",
+        text: "Did that solve the problem? Reply `yes` or `no`, or use a button.",
+      },
     },
     {
       type: "actions",
