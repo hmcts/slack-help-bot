@@ -78,16 +78,6 @@ AI summarising:
 
 1. If a user requests a help request to be summarised, all comments are retrieved and sent to AI services for summarisation.
 
-Ticket taxonomy analysis and exports:
-
-1. Ensure the Jira, Slack, and Azure settings in `.env` are configured and authenticate locally with `az login`.
-2. Run an analysis for a start date and number of days:
-   `npm run analyse -- --start-date=2026-08-01 --days=7`
-3. Or provide an exclusive end date:
-   `npm run analyse -- --start-date=2026-08-01 --end-date=2026-09-01`
-4. The command exports JSON checkpoints, an Excel workbook, and a Markdown report to `analysis-output/`. The Excel workbook contains issue-level analysis and category/sub-category distributions.
-5. Use `--output=<directory>` to choose another export directory, or `--force` to reassess tickets instead of reusing checkpoints.
-
 Azure resources:
 
 - All azure resources are created in the [`components/infrastructure`](./components/infrastructure) folder.
