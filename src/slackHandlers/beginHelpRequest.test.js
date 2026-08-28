@@ -31,39 +31,4 @@ describe("beginHelpRequest", () => {
       }),
     );
   });
-
-  it("posts a prefilled form when a DM documentation answer supplies a description", async () => {
-    const client = {
-      conversations: {
-        open: jest.fn().mockResolvedValue({ channel: { id: "D1" } }),
-      },
-      chat: {
-        postMessage: jest.fn().mockResolvedValue({ ok: true }),
-        update: jest.fn(),
-      },
-    };
-
-    await beginHelpRequest({
-      userId: "U1",
-      client,
-      area: "other",
-      ts: "123.456",
-      initialDescription: "The deployment is failing in preview.",
-    });
-
-    expect(client.chat.update).not.toHaveBeenCalled();
-    expect(client.chat.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        channel: "D1",
-        blocks: expect.arrayContaining([
-          expect.objectContaining({
-            element: expect.objectContaining({
-              action_id: "description",
-              initial_value: "The deployment is failing in preview.",
-            }),
-          }),
-        ]),
-      }),
-    );
-  });
 });

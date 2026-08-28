@@ -145,6 +145,16 @@ describe("convertMarkdownToSlackMrkdwn", () => {
       "Use *Jenkins* first",
     );
   });
+
+  it("converts headings and Markdown links to Slack formatting", () => {
+    expect(
+      convertMarkdownToSlackMrkdwn(
+        "### Next step\nRead the [deployment guide](https://example.test/guide)",
+      ),
+    ).toBe(
+      "*Next step*\nRead the <https://example.test/guide|deployment guide>",
+    );
+  });
 });
 
 describe("getSourceResults", () => {
