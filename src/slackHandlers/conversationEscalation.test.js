@@ -420,7 +420,9 @@ describe("conversation escalation funnel", () => {
       expect.objectContaining({
         area: "other",
         initialSummary: "Preview deployment returns HTTP 503",
-        initialDescription: expect.stringContaining("Service?\n  Answer: payments"),
+        initialDescription: expect.stringContaining(
+          "Service?\n  Answer: payments",
+        ),
         initialPrBuildUrl: "https://example.test/build/7",
         initialAnalysis: "",
         initialRecommendations: {

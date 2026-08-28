@@ -19,4 +19,3 @@ function helpFormGoodbyeBlocks({ helpRequestUrl }) {
 }
 
 module.exports.helpFormGoodbyeBlocks = helpFormGoodbyeBlocks;
-

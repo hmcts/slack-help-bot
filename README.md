@@ -113,7 +113,7 @@ You'll be able to install and test changes to your app there without waiting for
     "description": "Help requests for Platform Operations",
     "background_color": "#262626"
   },
-"features": {
+  "features": {
     "app_home": {
       "home_tab_enabled": true,
       "messages_tab_enabled": true,

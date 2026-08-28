@@ -539,4 +539,3 @@ module.exports.helpFormAnalyticsBlocks = helpFormAnalyticsBlocks;
 module.exports.helpFormRelatedIssuesBlocks = helpFormRelatedIssuesBlocks;
 module.exports.helpFormKnowledgeStoreBlocks = helpFormKnowledgeStoreBlocks;
 module.exports.helpFormFollowUpBlocks = helpFormFollowUpBlocks;
-
