@@ -21,6 +21,7 @@ const {
   conversationIntentPrompt,
   clarificationReplyPrompt,
   conversationTurnPrompt,
+  runbookAnswerPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -83,6 +84,20 @@ function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
       sourceIndex >= 1 &&
       sourceIndex <= sourceCount,
   );
+}
+
+// LLMs sometimes wrap Slack mrkdwn answers in a ``` code fence, which Slack then
+// renders as a literal, unformatted code block instead of rich text.
+function stripMarkdownCodeFence(text) {
+  const match = text.trim().match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+
+  return match ? match[1] : text;
+}
+
+// On thin/duplicate ticket input the LLM occasionally echoes the JSON schema's
+// example value instead of following the fallback-text instruction.
+function isPlaceholderAnswer(answer) {
+  return answer.trim().toLowerCase() === "your slack mrkdwn answer";
 }
 
 function sanitizeResolutionSummary(resolutionSummary) {
@@ -512,13 +527,90 @@ Instructions:
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
   const answer =
-    parsed.answer || "I couldn't find an answer in the documentation.";
-  const sourceIndexes = sanitizeSourceIndexes(
-    parsed.sourceIndexes,
-    knowledgeStoreResults.length,
-  );
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   console.log("LLM Knowledge Store Answer:", parsed);
+
+  return { answer, sourceIndexes };
+}
+
+async function requestRunbookAnswer(question, context) {
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: runbookAnswerPrompt(),
+      },
+      {
+        role: "user",
+        content: `Ticket details:
+${question}
+
+Search results:
+${context}
+
+Instructions:
+- Produce a runbook-ready answer with exactly the four required sections.
+- Only use supplied search results.`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  return JSON.parse(result.choices.pop().message.content);
+}
+
+async function answerFromRunbookKnowledgeStore(
+  question,
+  knowledgeStoreResults,
+) {
+  if (knowledgeStoreResults.length === 0) {
+    return {
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    };
+  }
+
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+
+  let parsed = await requestRunbookAnswer(question, context);
+  console.log("LLM Runbook Answer:", parsed);
+
+  // the model occasionally echoes the JSON schema's example text instead of a real answer; retry once
+  if (parsed.answer && isPlaceholderAnswer(parsed.answer)) {
+    parsed = await requestRunbookAnswer(question, context);
+    console.log("LLM Runbook Answer (retry):", parsed);
+  }
+
+  const answer =
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   return { answer, sourceIndexes };
 }
@@ -534,6 +626,8 @@ module.exports.understandConversationTurn = understandConversationTurn;
 module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
 module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;
+module.exports.answerFromRunbookKnowledgeStore =
+  answerFromRunbookKnowledgeStore;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;

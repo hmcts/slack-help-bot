@@ -30,3 +30,9 @@ search:
   endpoint: AZURE_SEARCH_ENDPOINT
   help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME
   knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME
+
+inactivity:
+  first_reminder_ms: INACTIVITY_FIRST_REMINDER_MS
+  second_reminder_ms: INACTIVITY_SECOND_REMINDER_MS
+  withdrawal_ms: INACTIVITY_WITHDRAWAL_MS
+  ops_runbook_index_name: AZURE_SEARCH_OPS_RUNBOOK_INDEX_NAME

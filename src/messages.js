@@ -1,6 +1,8 @@
 const {
   knowledgeSearchAnswerBlocks,
 } = require("./messages/knowledgeSearchAnswer");
+const { helpFormMainBlocks } = require("./messages/helpFormMain");
+const { helpFormGoodbyeBlocks } = require("./messages/helpFormGoodbye");
 
 const { helpRequestMainBlocks } = require("./messages/helpRequestMain");
 const { helpRequestDetailBlocks } = require("./messages/helpRequestDetails");

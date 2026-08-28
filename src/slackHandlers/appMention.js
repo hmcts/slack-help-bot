@@ -1,8 +1,16 @@
 const { summariseThread } = require("../ai/ai");
+const { answerFromRunbookKnowledgeStore } = require("../ai/ai");
+const { searchOpsRunbook } = require("../service/searchOpsRunbook");
 
-const helpText = `\`duplicate\ [JiraID]\` - Marks this ticket as a duplicate of the specified ID
-\`ticket-type\ [support|task]\` - Changes this ticket's Jira type
-\`summarise\` - Summarises the thread using AI
+const helpText = `
+Available commands:
+• \`help\` - List all available commands
+• \`status-update <JIRA-KEY> <NEW-STATUS>\` - Update a ticket's status
+• \`status <JIRA-KEY> <NEW-STATUS>\` - Shortcut for status-update
+• \`duplicate <jira ticket id>\` - Mark a request as a duplicate
+• \`summarise\` - AI summarizes all replies
+• \`ticket-type [support|task]\` - Changes this ticket's Jira type
+• \`ops-runbook\` - Suggests a runbook-ready summary and relevant solution from ops-runbook docs
 
 If you want to escalate a request please tag \`platformops-bau\`
 `;
@@ -18,6 +26,7 @@ const { extractSlackLinkFromText } = require("../messages/util");
 const { helpRequestDuplicateBlocks } = require("../messages");
 const { lookupUsersName } = require("./utils/lookupUser");
 const { updateHelpRequestInCosmos } = require("../service/cosmos");
+const { handleStatusUpdate, isStatusCommand } = require("./statusUpdate");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -50,6 +59,117 @@ async function extractReplies({ client, messages }) {
 
 function extractSummaryFromBlocks(blocks) {
   return blocks[0].text.text;
+}
+
+function cleanSlackMrkdwn(text) {
+  return text
+    .replace(/^\*+|\*+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// getIssueDescription returns the whole Jira field, which wraps the real text in an
+// auto-generated header/footer (see jiraMessages.js mapFieldsToDescription) that
+// otherwise pollutes search relevance and the LLM prompt.
+function extractIssueDescriptionSection(rawDescription) {
+  const match = rawDescription.match(
+    /\*Issue description\*\s*\n*([\s\S]*?)\n*\*Analysis done so far\*/,
+  );
+  return match ? match[1] : rawDescription;
+}
+
+function extractDescriptionFromBlocks(messages) {
+  for (const message of messages) {
+    if (!Array.isArray(message.blocks)) {
+      continue;
+    }
+
+    for (const block of message.blocks) {
+      const blockText = block?.text?.text;
+      if (typeof blockText !== "string") {
+        continue;
+      }
+
+      if (blockText.includes(":spiral_note_pad: Description:")) {
+        return cleanSlackMrkdwn(
+          blockText.replace(":spiral_note_pad: Description:", ""),
+        );
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function convertStoragePathToOpsRunbookUrl(storagePath) {
+  if (!storagePath) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(storagePath);
+    const relativePath = url.pathname.replace(/^\/ops-runbook\/build/, "");
+    return `https://hmcts.github.io/ops-runbooks${relativePath}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function getRunbookSourceLines(knowledgeStoreResults, sourceIndexes) {
+  if (!Array.isArray(sourceIndexes) || sourceIndexes.length === 0) {
+    return "";
+  }
+
+  const sourceLines = sourceIndexes
+    .map((sourceIndex) => {
+      const item = knowledgeStoreResults[sourceIndex - 1];
+      if (!item) {
+        return undefined;
+      }
+
+      const title = item.document?.title || `Source ${sourceIndex}`;
+      const sourcePath = item.document?.metadata_storage_path;
+      const sourceUrl = convertStoragePathToOpsRunbookUrl(sourcePath);
+
+      if (sourceUrl) {
+        return `${sourceIndex}. <${sourceUrl}|${title}>`;
+      }
+
+      return `${sourceIndex}. ${title}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return sourceLines.length > 0 ? `*Runbook sources*\n${sourceLines}` : "";
+}
+
+function getRelatedRunbookPageLines(knowledgeStoreResults) {
+  const pageLines = knowledgeStoreResults
+    .map((item, index) => {
+      const title = item.document?.title || `Source ${index + 1}`;
+      const sourceUrl = convertStoragePathToOpsRunbookUrl(
+        item.document?.metadata_storage_path,
+      );
+
+      return sourceUrl ? `\u2022 <${sourceUrl}|${title}>` : undefined;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return pageLines.length > 0
+    ? `*Related runbook pages you may find useful*\n${pageLines}`
+    : "";
+}
+
+function linkifyInlineCitations(answer, knowledgeStoreResults) {
+  return answer.replace(/\[(\d+)\]/g, (match, indexText) => {
+    const item = knowledgeStoreResults[Number(indexText) - 1];
+    const sourceUrl = convertStoragePathToOpsRunbookUrl(
+      item?.document?.metadata_storage_path,
+    );
+
+    return sourceUrl ? `<${sourceUrl}|${match}>` : match;
+  });
 }
 
 async function handleDuplicate({ event, client, helpRequestMessages, say }) {
@@ -104,6 +224,59 @@ async function handleDuplicate({ event, client, helpRequestMessages, say }) {
       channel: event.channel,
     });
   }
+}
+
+async function handleRunbook({ event, client, helpRequestMessages, say }) {
+  const blocks = helpRequestMessages[0].blocks;
+  const summary = cleanSlackMrkdwn(extractSummaryFromBlocks(blocks));
+  const jiraId = extractJiraIdFromBlocks(blocks);
+
+  const issueDescription = await getIssueDescription(jiraId);
+  const description =
+    cleanSlackMrkdwn(
+      issueDescription ? extractIssueDescriptionSection(issueDescription) : "",
+    ) ||
+    extractDescriptionFromBlocks(helpRequestMessages) ||
+    "No ticket description provided.";
+
+  const runbookPrompt = `Ticket subject: ${summary}\nTicket description: ${description}\n\nSuggest a concise runbook-ready summary and the most relevant fix or next steps from the runbook documentation.`;
+  // instructional wording in runbookPrompt dilutes semantic search relevance, so search with just the ticket text
+  const searchQuery = `${summary}\n${description}`;
+
+  const knowledgeStoreResults = await searchOpsRunbook(searchQuery);
+  const runbookAnswer = await answerFromRunbookKnowledgeStore(
+    runbookPrompt,
+    knowledgeStoreResults,
+  );
+
+  const noAnswerFound =
+    runbookAnswer.sourceIndexes.length === 0 &&
+    knowledgeStoreResults.length > 0;
+
+  // when the LLM can't synthesise a confident answer, still surface the retrieved
+  // pages so the user has somewhere to look rather than a dead-end
+  if (noAnswerFound) {
+    const relatedPageLines = getRelatedRunbookPageLines(knowledgeStoreResults);
+    await say({
+      text: `Hi <@${event.user}>, I couldn't find a confident answer in the runbook documentation, but these pages may be relevant:\n\n${relatedPageLines}\n\n_${feedback}_`,
+      thread_ts: event.thread_ts,
+    });
+    return;
+  }
+
+  const sourceLines = getRunbookSourceLines(
+    knowledgeStoreResults,
+    runbookAnswer.sourceIndexes,
+  );
+  const linkedAnswer = linkifyInlineCitations(
+    runbookAnswer.answer,
+    knowledgeStoreResults,
+  );
+
+  await say({
+    text: `Hi <@${event.user}>, suggested runbook summary and relevant solution:\n\n${linkedAnswer}${sourceLines ? `\n\n${sourceLines}` : ""}\n\n_${feedback}_`,
+    thread_ts: event.thread_ts,
+  });
 }
 
 function updateTicketTypeDisplay(blocks, ticketType) {
@@ -198,21 +371,23 @@ async function appMention(event, client, say) {
         helpRequestMessages.length > 0 &&
         helpRequestMessages[0].text === "New platform help request raised"
       ) {
-        if (/ticket-type/i.test(event.text)) {
+        const commandText = event.text.replace(/<@[^>]+>/g, "").trim();
+        if (isStatusCommand(commandText)) {
+          await handleStatusUpdate(
+            {
+              user_id: event.user,
+              channel_id: event.channel,
+              text: commandText,
+              thread_ts: event.thread_ts,
+            },
+            client,
+          );
+        } else if (/ticket-type/i.test(event.text)) {
           await handleTicketType({
             event,
             client,
             helpRequestMessages,
             say,
-          });
-        } else if (event.text.includes("help")) {
-          const usageMessage = `Hi <@${event.user}>, here is what I can do:
-
-${helpText}`;
-
-          await say({
-            text: usageMessage,
-            thread_ts: event.thread_ts,
           });
         } else if (event.text.includes("duplicate")) {
           await handleDuplicate({
@@ -248,6 +423,34 @@ ${helpText}`;
             name: "eyes",
             timestamp: event.ts,
             channel: event.channel,
+          });
+        } else if (/ops-runbook/i.test(event.text)) {
+          await client.reactions.add({
+            name: "eyes",
+            timestamp: event.ts,
+            channel: event.channel,
+          });
+
+          await handleRunbook({
+            event,
+            client,
+            helpRequestMessages,
+            say,
+          });
+
+          await client.reactions.remove({
+            name: "eyes",
+            timestamp: event.ts,
+            channel: event.channel,
+          });
+        } else if (event.text.includes("help")) {
+          const usageMessage = `Hi <@${event.user}>, here is what I can do:
+
+${helpText}`;
+
+          await say({
+            text: usageMessage,
+            thread_ts: event.thread_ts,
           });
         } else {
           await say({
