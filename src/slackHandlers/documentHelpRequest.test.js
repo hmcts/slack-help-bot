@@ -9,6 +9,10 @@ jest.mock("../service/cosmos", () => ({
   updateHelpRequestInCosmos: jest.fn(),
 }));
 
+jest.mock("config", () => ({
+  get: jest.fn((key) => key),
+}));
+
 const {
   getDocumentationFromView,
   getDocumentRequestKey,
@@ -28,7 +32,7 @@ describe("getDocumentationFromView", () => {
                 selected_option: {
                   value: "incident / one-off platform failure",
                   text: {
-                    text: "Incident / One-Off Platform Failure",
+                    text: "Platform One-Off Failure",
                   },
                 },
               },
@@ -42,7 +46,8 @@ describe("getDocumentationFromView", () => {
         },
       }),
     ).toStrictEqual({
-      category: "Incident / One-Off Platform Failure",
+      category: "Platform One-Off Failure",
+      subCategory: "Other",
       how: "Resolved by restarting the failed job.",
     });
   });
@@ -51,7 +56,7 @@ describe("getDocumentationFromView", () => {
     expect(
       getDocumentationFromView({
         private_metadata:
-          '{"thread_ts":"123.456","suggested_category":"incident / one-off platform failure","suggested_category_label":"Incident / One-Off Platform Failure","suggested_resolution":"Resolved by restarting the failed job."}',
+          '{"thread_ts":"123.456","suggested_category":"platform one-off failure","suggested_category_label":"Platform One-Off Failure","suggested_resolution":"Resolved by restarting the failed job."}',
         state: {
           values: {
             category_block: {
@@ -68,7 +73,8 @@ describe("getDocumentationFromView", () => {
         },
       }),
     ).toStrictEqual({
-      category: "Incident / One-Off Platform Failure",
+      category: "Platform One-Off Failure",
+      subCategory: "Other",
       how: "Resolved by restarting the failed job.",
     });
   });
@@ -99,6 +105,7 @@ describe("getDocumentationFromView", () => {
       }),
     ).toStrictEqual({
       category: "Self-Service Gap",
+      subCategory: "Other",
       how: "User was shown the existing self-service route.",
     });
   });

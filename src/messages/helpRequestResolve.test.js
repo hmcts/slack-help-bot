@@ -53,7 +53,7 @@ describe("helpRequestResolveBlocks", () => {
       thread_ts: "123.456",
       area: "other",
       suggestedCategory: {
-        category: "Incident / One-Off Platform Failure",
+        category: "Platform One-Off Failure",
         confidence: "high",
       },
       suggestedResolution: "The failing job was restarted.",
@@ -75,7 +75,7 @@ describe("helpRequestResolveBlocks", () => {
       thread_ts: "123.456",
       area: "other",
       suggestedCategory: {
-        category: "Incident / One-Off Platform Failure",
+        category: "Platform One-Off Failure",
         confidence: "high",
       },
       suggestedResolution: "The failing job was restarted.",
@@ -83,8 +83,8 @@ describe("helpRequestResolveBlocks", () => {
 
     expect(parseResolvePrivateMetadata(view.private_metadata)).toStrictEqual({
       threadTs: "123.456",
-      suggestedCategory: "incident / one-off platform failure",
-      suggestedCategoryLabel: "Incident / One-Off Platform Failure",
+      suggestedCategory: "platform one-off failure",
+      suggestedCategoryLabel: "Platform One-Off Failure",
       suggestedResolution: "The failing job was restarted.",
     });
   });
@@ -132,9 +132,26 @@ describe("findResolutionCategoryOption", () => {
 });
 
 describe("getResolutionCategories", () => {
-  it("includes crime-specific resolution categories for crime", () => {
-    expect(
-      getResolutionCategories("crime").map((category) => category.text.text),
-    ).toContain("Joiner / Mover / Leaver (JML)");
+  it("includes Platform Access as a standard resolution category", () => {
+    const categories = getResolutionCategories("other").map(
+      (category) => category.text.text,
+    );
+
+    expect(categories).toContain("Platform Access");
+    expect(categories).toContain("Local Setup");
+    expect(categories).toContain("Service Misconfiguration");
+    expect(categories).toContain("Other");
+    expect(categories).not.toContain("Network Failure");
+    expect(categories).not.toContain("Other Service / Team Issue");
+  });
+
+  it("uses Platform Access instead of a standalone JML category", () => {
+    const categories = getResolutionCategories("crime").map(
+      (category) => category.text.text,
+    );
+
+    expect(categories).toContain("Platform Access");
+    expect(categories).not.toContain("Joiner / Mover / Leaver (JML)");
+    expect(categories).toContain("Release Support");
   });
 });

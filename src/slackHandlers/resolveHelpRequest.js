@@ -52,12 +52,18 @@ function extractThreadText(messages) {
 }
 
 function toSuggestedCategory(suggestion) {
-  if (!suggestion?.category || suggestion.category === "Unknown") {
+  if (!suggestion?.category) {
     return null;
   }
 
+  const category =
+    suggestion.category.trim().toLowerCase() === "unknown"
+      ? "Other"
+      : suggestion.category;
+
   return {
-    category: suggestion.category,
+    category,
+    subCategory: suggestion.subCategory || "Other",
     confidence: suggestion.confidence || "unknown",
   };
 }
@@ -137,6 +143,7 @@ async function resolveHelpRequestHandler(client, body, area) {
         threadTs: body.message.ts,
         area,
         suggestedCategory,
+        suggestedSubCategory: suggestedCategory?.subCategory,
         suggestedResolution: suggestion.resolutionSummary,
       });
     } catch (aiError) {

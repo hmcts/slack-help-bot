@@ -271,6 +271,14 @@ async function search(jqlQuery, startAt, fields) {
   }
 }
 
+async function searchForAnalysis(jqlQuery, startAt, fields) {
+  return jira.searchJira(jqlQuery, {
+    fields,
+    maxResults: 750,
+    startAt,
+  });
+}
+
 async function assignHelpRequest(issueId, email) {
   /** @type {string} */
   const user = await convertEmail(email);
@@ -385,19 +393,19 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(
   externalSystemId,
-  { category, how },
+  { category, subCategory, how },
 ) {
   try {
     await jira.addComment(
       externalSystemId,
-      createResolveComment({ category, how }),
+      createResolveComment({ category, subCategory, how }),
     );
   } catch (err) {
     console.log("Error creating comment in jira", externalSystemId, err);
   }
 }
 
-async function addLabel(externalSystemId, { category }) {
+async function addLabel(externalSystemId, { category, subCategory }) {
   try {
     await jira.updateIssue(externalSystemId, {
       update: {
@@ -405,6 +413,13 @@ async function addLabel(externalSystemId, { category }) {
           {
             add: `resolution-${category.toLowerCase().replaceAll(" ", "-")}`,
           },
+          ...(subCategory
+            ? [
+                {
+                  add: `resolution-subcategory-${subCategory.toLowerCase().replaceAll(" ", "-")}`,
+                },
+              ]
+            : []),
         ],
       },
     });
@@ -547,6 +562,7 @@ module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
+module.exports.searchForAnalysis = searchForAnalysis;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
 module.exports.withdrawIssue = withdrawIssue;
 module.exports.updateIssueStatus = updateIssueStatus;

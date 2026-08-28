@@ -71,6 +71,16 @@ AI summarising:
 
 1. If a user requests a help request to be summarised, all comments are retrieved and sent to AI services for summarisation.
 
+Ticket taxonomy analysis:
+
+1. Ensure the Jira, Slack and Azure settings in `.env` are configured and authenticate locally with `az login`.
+2. Run one analysis command with a start date and either a day count or an end date (the end date is exclusive):
+   - `npm run analyse -- --start-date=2026-07-01 --days=7`
+   - `npm run analyse -- --start-date=2026-07-01 --end-date=2026-07-08`
+3. The command reads Jira issues created during the selected period, identifies help requests from Jira permalinks or Jira keys indexed from the configured Slack report channels, retrieves their complete threads and asks the configured Azure OpenAI deployment to assess each issue before producing an aggregate taxonomy report. Unrelated Jira delivery work is skipped.
+4. JSON checkpoints, Excel workbooks and Markdown reports are written to the ignored `analysis-output/` directory. The workbook contains metadata, issue-level analysis, category distribution and sub-category distribution sheets. Re-running resumes from the checkpoint; pass `--force` to reassess every issue.
+5. The command is read-only for Jira and Slack and does not update tickets.
+
 Azure resources:
 
 - All azure resources are created in the [`components/infrastructure`](./components/infrastructure) folder.

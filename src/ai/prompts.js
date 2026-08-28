@@ -1,3 +1,13 @@
+const {
+  RESOLUTION_CATEGORIES,
+  KNOWN_SUBCATEGORIES,
+} = require("../analysis/resolutionTaxonomy");
+const { TAXONOMY_RULES } = require("../analysis/resolutionTaxonomy");
+const resolutionCategoryList = RESOLUTION_CATEGORIES.map(
+  (category) => `- ${category}`,
+).join("\n");
+const resolutionSubcategoryList = JSON.stringify(KNOWN_SUBCATEGORIES, null, 2);
+
 const crime = `You are a member of the Platform Operations support team at HMCTS. You are to assist the team by classifying what team, environment and area the user needs help with
 
 The environment must be one of: STE, DEV, SIT, NFT, Pre-Production, Production, PRX, Non-live Mgmt, Live Mgmt, Other
@@ -75,19 +85,9 @@ const resolutionClassification = `You are a member of the Platform Operations su
 Based on the conversation thread and resolution details provided, classify the resolution into ONE of these categories:
 
 **Standard Categories:**
-- Missing / Inadequate Docs
-- Self-Service Gap
-- Tooling / Automation Deficiency
-- Platform Feature Missing / Misaligned
-- Poor Signposting / Discoverability
-- User Education / Misuse
-- Policy / Process Ambiguity
-- Incident / One-Off Platform Failure
-- External Failure (GitHub / Azure / Sonarcloud etc)
-- Triage Error / Wrong Queue
-- Network Failure
-- Joiner / Mover / Leaver (JML)
-- Release Support
+${resolutionCategoryList}
+
+${TAXONOMY_RULES}
 
 Analyze the conversation to understand:
 - What was the root cause?
@@ -95,7 +95,7 @@ Analyze the conversation to understand:
 - Could it have been prevented with better documentation or tooling?
 
 You must reply with only one category from the list above.
-If you cannot determine the category with confidence, reply with "Unknown"
+If the issue is clearly a Platform Operations support issue but the evidence does not establish a more specific category, reply with Platform One-Off Failure and low confidence. Use Other only for clearly unrelated, test, placeholder, or genuinely non-platform issues.
 
 Respond using JSON, example:
 {
@@ -114,19 +114,14 @@ Based only on the conversation thread provided, suggest:
 2. A concise resolution note for the "How?" field.
 
 The category must be ONE of:
-- Missing / Inadequate Docs
-- Self-Service Gap
-- Tooling / Automation Deficiency
-- Platform Feature Missing / Misaligned
-- Poor Signposting / Discoverability
-- User Education / Misuse
-- Policy / Process Ambiguity
-- Incident / One-Off Platform Failure
-- External Failure (GitHub / Azure / Sonarcloud etc)
-- Triage Error / Wrong Queue
-- Network Failure
-- Joiner / Mover / Leaver (JML)
-- Release Support
+${resolutionCategoryList}
+
+The sub-category should be selected from the category's allowed sub-categories:
+${resolutionSubcategoryList}
+
+If the issue is clearly a Platform Operations support issue but the evidence does not establish a more specific category, use Platform One-Off Failure with low confidence. Use Other only for clearly unrelated, test, placeholder, or genuinely non-platform issues.
+
+${TAXONOMY_RULES}
 
 Resolution note rules:
 - Only include facts present in the thread.
@@ -139,13 +134,15 @@ Resolution note rules:
 Respond using JSON:
 {
   "category": "Missing / Inadequate Docs",
+  "subCategory": "Other",
   "confidence": "high",
   "resolutionSummary": "The user was directed to the existing documentation and the missing signposting was identified."
 }
 
 If you cannot determine the category with confidence, use:
 {
-  "category": "Unknown",
+  "category": "Platform One-Off Failure",
+  "subCategory": "Other",
   "confidence": "low",
   "resolutionSummary": "Resolution not clear from the thread."
 }

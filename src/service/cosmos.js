@@ -171,6 +171,14 @@ async function updateHelpRequestInCosmos(item) {
     });
   }
 
+  if (item.resolution_sub_type) {
+    updateObj.push({
+      op: "add",
+      path: "/resolution_sub_type",
+      value: item.resolution_sub_type,
+    });
+  }
+
   if (item.ticket_type) {
     updateObj.push({
       op: "add",

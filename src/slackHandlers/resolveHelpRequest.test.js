@@ -1,3 +1,10 @@
+jest.mock("../ai/ai", () => ({
+  suggestResolutionDocumentation: jest.fn(),
+}));
+jest.mock("config", () => ({
+  get: jest.fn((key) => key),
+}));
+
 const {
   extractTextFromBlock,
   extractThreadText,
@@ -62,13 +69,17 @@ describe("extractThreadText", () => {
 });
 
 describe("toSuggestedCategory", () => {
-  it("returns null for unknown categories", () => {
+  it("normalizes legacy unknown categories to Other", () => {
     expect(
       toSuggestedCategory({
         category: "Unknown",
         confidence: "low",
       }),
-    ).toBeNull();
+    ).toStrictEqual({
+      category: "Other",
+      subCategory: "Other",
+      confidence: "low",
+    });
   });
 
   it("keeps known categories", () => {
@@ -79,6 +90,7 @@ describe("toSuggestedCategory", () => {
       }),
     ).toStrictEqual({
       category: "Missing / Inadequate Docs",
+      subCategory: "Other",
       confidence: "high",
     });
   });

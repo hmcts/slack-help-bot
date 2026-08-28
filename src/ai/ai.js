@@ -245,6 +245,7 @@ async function classifyResolution(threadMessages) {
 
   return {
     category: parsed.category,
+    subCategory: parsed.subCategory || "Other",
     confidence: parsed.confidence || "unknown",
   };
 }
@@ -282,6 +283,7 @@ async function suggestResolutionDocumentation(threadMessages) {
 
   return {
     category: parsed.category,
+    subCategory: parsed.subCategory || "Other",
     confidence: parsed.confidence || "unknown",
     resolutionSummary: sanitizeResolutionSummary(parsed.resolutionSummary),
   };
