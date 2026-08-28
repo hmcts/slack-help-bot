@@ -272,6 +272,7 @@ If you aren't in the `DTS Platform Operations group` you will need, at minimum:
 cp env.template.txt .env
 
 # 2) Load it into your shell (optional, but convenient)
+set -o allexport; source .env; set +o allexport
 
 
 # 3) Use the repo’s Node version
