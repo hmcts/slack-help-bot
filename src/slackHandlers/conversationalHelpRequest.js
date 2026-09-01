@@ -69,11 +69,7 @@ function draftFromEarlierThread(messages, startIndex) {
       answers.push({ question, answer: messageText(reply) });
     }
   }
-  const description = answers.length
-    ? `${originalQuestion}\n\nAdditional information:\n${answers
-        .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
-        .join("\n")}`
-    : originalQuestion;
+  const description = originalQuestion;
   const links = [
     ...new Set(description.match(/https?:\/\/[^\s<>()|>]+/g) ?? []),
   ]
