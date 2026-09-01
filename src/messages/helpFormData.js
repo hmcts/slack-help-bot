@@ -1,6 +1,7 @@
 const { optionBlock } = require("./util");
 const environments = (area) => {
   const nonCrimeEnvs = [
+    optionBlock("N/A", "not-applicable"),
     optionBlock("AAT / Staging", "staging"),
     optionBlock("Preview / Dev", "dev"),
     optionBlock("Production"),
@@ -11,6 +12,7 @@ const environments = (area) => {
   ];
 
   const crimeEnvs = [
+    optionBlock("N/A", "not-applicable"),
     optionBlock("STE"),
     optionBlock("DEV"),
     optionBlock("SIT"),

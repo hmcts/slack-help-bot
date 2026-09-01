@@ -6,14 +6,20 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 ## Features
 
 - Users can ask the bot a question in a direct message. The bot searches the `the-hmcts-way` index in `Azure AI Search`, generates a grounded response using `Azure AI Services`, and links to the source documents it used.
-- Users confirm they have read the direct-message answer before the bot offers ticket creation.
-- Users can request help from Platform Operations from the direct-message answer by confirming they have read it and clicking `Still need help`.
+- Users can answer the platform question with a button or typed reply. The rest of the support flow stays in the same Slack thread.
+- If the documentation is not useful, the bot searches similar Jira tickets. If those do not help, it asks up to four clarification questions, one at a time, and retries previously empty searches with the new context.
+- The first clarification question asks what the user has already checked or tried; it counts toward the four-question maximum.
 - If users type `help`, the bot tells them to send their actual question in DM with the full issue description.
 - While requesting help the bot will:
   - Use the user's original direct message as the ticket description.
-  - Ask users to fill in some details about their request.
-  - Search the `help-requests` index in `Azure AI Search` which will return the top 3 most relevant results from previous requests.
-  - Send the data to `Azure AI Services` to determine which area, environment and team the request is likely about and will preselect these fields for the user.
+  - Generate a concise ticket summary from the conversation; users can edit the summary or description during final review.
+  - Reuse PR, build, log and other URLs supplied in the conversation instead of asking for them again.
+  - Use AI to preselect environment, owning team and technical area, asking only when a suggestion cannot be matched to an allowed value.
+  - Keep ticket review and editing in the Slack thread, with edit buttons for text fields and in-place dropdowns for classification fields.
+  - Delay the visible help-request draft until required selections are complete, then allow inline text editing with Save/Cancel controls.
+  - Treat solved, cancelled and ticket-created threads as closed and ignore later replies; users start a new top-level DM for another request.
+  - Ask users for the remaining ticket details conversationally, using searchable dropdowns where a fixed choice is useful.
+  - Search the `help-requests` index in `Azure AI Search`, returning up to three relevant previous requests.
   - Create a ticket in Jira with the data provided.
   - Post the request in the `#platops-help` channel.
 - Help request threads support these commands by messaging `@PlatOps help <command>`:
@@ -41,20 +47,21 @@ With a focus on sign-posting, tooling and documentation to allow users to help t
 
 During help request workflow the application:
 
-1. Asks Azure AI services for recommendation for area, environment and team.
-2. Searches Azure AI search for similar requests.
-3. Creates the request in Slack and Jira.
-4. Stores the request in Cosmos DB.
-5. Replies on the help request Slack thread are added to Jira.
+1. Collects the remaining ticket fields one question at a time in the existing conversation thread.
+2. Creates the request in Slack and Jira.
+3. Stores the request in Cosmos DB.
+4. Replies on the help request Slack thread are added to Jira.
    - Replies on Jira are not added to Slack.
 
 For direct-message questions the application:
 
 1. Searches the `the-hmcts-way` index in `Azure AI Search`.
 2. Sends the retrieved documentation snippets and the user's question to `Azure AI Services`.
-3. Replies in Slack with a generated answer, source links, an `I have read the above suggestion` checkbox and `Solved` / `Still need help` buttons.
-4. Opens the ticket form when the user confirms they read the suggestion and selects `Still need help`.
-5. Uses the original direct message as the ticket description.
+3. Replies in Slack with a generated answer and source links, then asks whether it solved the problem.
+4. If it did not solve the problem, searches similar Jira tickets and asks whether any are useful.
+5. If no result is useful, asks up to three AI-generated clarification questions, one at a time.
+6. Retries only the documentation or Jira searches that previously had no results, using the additional answers.
+7. Collects the remaining ticket details conversationally and creates the request.
 
 On close of the help request:
 
@@ -122,6 +129,19 @@ You'll be able to install and test changes to your app there without waiting for
       "messages_tab_enabled": true,
       "messages_tab_read_only_enabled": false
     },
+    "agent_view": {
+      "agent_description": "Answers Platform Operations questions using HMCTS documentation and helps users raise a support request when needed.",
+      "suggested_prompts": [
+        {
+          "title": "Pipeline logs",
+          "message": "How do I find the logs for a failed pipeline?"
+        },
+        {
+          "title": "Preview environment",
+          "message": "How do I troubleshoot a preview environment?"
+        }
+      ]
+    },
     "bot_user": { "display_name": "PlatOps help", "always_online": true },
     "shortcuts": [
       {
@@ -136,6 +156,7 @@ You'll be able to install and test changes to your app there without waiting for
     "scopes": {
       "bot": [
         "app_mentions:read",
+        "assistant:write",
         "channels:history",
         "channels:read",
         "chat:write",
@@ -159,6 +180,7 @@ You'll be able to install and test changes to your app there without waiting for
       "user_events": ["app_home_opened"],
       "bot_events": [
         "app_home_opened",
+        "app_context_changed",
         "app_mention",
         "message.channels",
         "message.im",
@@ -182,6 +204,21 @@ You'll be able to install and test changes to your app there without waiting for
   }
 }
 ```
+
+After creating the app, open **Agents** in the Slack app settings and enable
+the agent experience. The manifest above already includes the required
+`assistant:write` scope and agent events, so install the app in the workspace as
+described below. If you change scopes or event subscriptions later, reinstall
+the app so Slack applies those changes. Agent conversations use Slack threads
+in the Messages tab, allowing the bot to use recent replies as short-term
+context. Migrating an existing Slack app to `agent_view` cannot be reversed.
+
+In the Messages tab, platform selection and documentation/Jira feedback use
+buttons with typed replies as a fallback. The bot asks any AI clarification and
+ticket-intake questions one at a time in the same thread. Environment, team,
+and technical area use searchable dropdowns instead of printing long lists.
+Optional questions have a Skip button, and the final summary has Submit and
+Cancel buttons. Users can still correct it with a message such as
 
 2. (Optional) Use this app in Workflow Builder
 
@@ -246,6 +283,7 @@ cp env.template.txt .env
 
 # 2) Load it into your shell (optional, but convenient)
 set -o allexport; source .env; set +o allexport
+
 
 # 3) Use the repo’s Node version
 nvm install

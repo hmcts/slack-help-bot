@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "analyse": "node scripts/analyseTickets.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "format:check": "prettier --check \"app.js\" \"src/**/*.js\"",
     "start": "node app.js"
   },
   "author": "Platform Operations",

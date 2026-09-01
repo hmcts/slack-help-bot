@@ -34,11 +34,6 @@ const http = require("http");
 const cron = require("node-cron");
 const { requestListener } = require("./src/routes/server");
 const { beginHelpRequest } = require("./src/slackHandlers/beginHelpRequest");
-const { startHelpForm } = require("./src/slackHandlers/startHelpForm");
-const {
-  submitInitialHelpRequest,
-} = require("./src/slackHandlers/submitInitialHelpRequest");
-const { submitHelpRequest } = require("./src/slackHandlers/submitHelpRequest");
 const { appMention } = require("./src/slackHandlers/appMention");
 const {
   assignHelpRequestToMe,
@@ -57,14 +52,6 @@ const {
 } = require("./src/slackHandlers/appHome/viewRequestsAssignedToMe");
 const { appMessaged } = require("./src/slackHandlers/appMessaged");
 const {
-  handleKnowledgeSearchPlatformSelection,
-} = require("./src/slackHandlers/searchKnowledgeStoreSelection");
-const {
-  handleKnowledgeSearchReadSuggestion,
-  handleKnowledgeSearchSolved,
-  handleKnowledgeSearchStillNeedHelp,
-} = require("./src/slackHandlers/knowledgeSearchFeedback");
-const {
   viewRequestsRaisedByMe,
 } = require("./src/slackHandlers/appHome/viewRequestsRaisedByMe");
 const {
@@ -75,12 +62,19 @@ const {
 } = require("./src/slackHandlers/documentHelpRequest");
 const {
   withdrawInactiveIssues,
+  notifyInactiveIssues,
+  INACTIVITY_STAGES,
 } = require("./src/slackHandlers/withdrawInactiveIssues");
 const { reactionAdded } = require("./src/slackHandlers/reactionAdded");
 const {
   watchHelpRequestThread,
 } = require("./src/slackHandlers/watchHelpRequestThread");
-
+const {
+  handleAgentConversationAction,
+} = require("./src/slackHandlers/assistant");
+const {
+  handleConversationalHelpAction,
+} = require("./src/slackHandlers/conversationalHelpRequest");
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(requestListener(app));
@@ -102,179 +96,18 @@ app.shortcut(
 );
 
 app.action(
-  "begin_help_request_non_crime",
-  async ({ body, action, context, client, ack }) => {
-    await ack();
-    await beginHelpRequest({
-      userId: body.user.id,
-      client,
-      area: "other",
-      ts: body.message.ts,
-      initialDescription: action?.value,
-    });
-  },
-);
-
-app.action(
-  "begin_help_request_crime",
-  async ({ body, action, context, client, ack }) => {
-    await ack();
-    await beginHelpRequest({
-      userId: body.user.id,
-      client,
-      area: "crime",
-      ts: body.message.ts,
-      initialDescription: action?.value,
-    });
-  },
-);
-
-app.action(
-  "start_help_form_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await startHelpForm(client, body, "crime");
-  },
-);
-
-app.action(
-  "start_help_form",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await startHelpForm(client, body, "other");
-  },
-);
-
-app.action(
-  "search_knowledge_store_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await handleKnowledgeSearchPlatformSelection(client, body, "crime");
-  },
-);
-
-app.action(
-  "search_knowledge_store_non_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await handleKnowledgeSearchPlatformSelection(client, body, "other");
-  },
-);
-
-app.action("knowledge_search_solved", async ({ body, action, ack, client }) => {
-  await ack();
-  await handleKnowledgeSearchSolved(client, body, action);
-});
-
-app.action(
-  "knowledge_search_read_suggestion",
+  /^(knowledge|jira)_search_conversation_/,
   async ({ body, action, ack, client }) => {
     await ack();
-    await handleKnowledgeSearchReadSuggestion(client, body, action);
+    await handleAgentConversationAction({ body, action, client });
   },
 );
 
 app.action(
-  "knowledge_search_still_need_help",
+  /^help_request_conversation_/,
   async ({ body, action, ack, client }) => {
     await ack();
-    await handleKnowledgeSearchStillNeedHelp(client, body, action);
-  },
-);
-
-app.action(
-  "submit_initial_help_request",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "initial", "other");
-  },
-);
-
-app.action(
-  "submit_initial_help_request_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "initial", "crime");
-  },
-);
-
-app.action(
-  "advance_from_knowledge_store",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "knowledge_store", "other");
-  },
-);
-
-app.action(
-  "advance_from_knowledge_store_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "knowledge_store", "crime");
-  },
-);
-
-app.action(
-  "advance_from_follow_up",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "follow_up", "other");
-  },
-);
-
-app.action(
-  "advance_from_follow_up_skip",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "follow_up", "other");
-  },
-);
-
-app.action(
-  "advance_from_related_issues",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "related_issues", "other");
-  },
-);
-
-app.action(
-  "advance_from_related_issues_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "related_issues", "crime");
-  },
-);
-
-app.action(
-  "advance_from_follow_up_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "follow_up", "crime");
-  },
-);
-
-app.action(
-  "advance_from_follow_up_skip_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitInitialHelpRequest(body, client, "follow_up", "crime");
-  },
-);
-
-app.action(
-  "submit_help_request",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitHelpRequest(body, client, "other");
-  },
-);
-
-app.action(
-  "submit_help_request_crime",
-  async ({ body, action, ack, client, context }) => {
-    await ack();
-    await submitHelpRequest(body, client, "crime");
+    await handleConversationalHelpAction({ body, action, client });
   },
 );
 
@@ -372,7 +205,9 @@ app.event("message", async ({ event, context, client, say }) => {
 /////////////////////////////
 
 app.event("app_home_opened", async ({ event, client }) => {
-  await appHomeUnassignedIssues(event.user, client);
+  if (event.tab !== "messages") {
+    await appHomeUnassignedIssues(event.user, client);
+  }
 });
 
 app.action(
@@ -400,5 +235,7 @@ app.action(
 );
 
 cron.schedule("0 8 * * 1-5", async () => {
+  await notifyInactiveIssues(app, INACTIVITY_STAGES.FIRST_WARNING);
+  await notifyInactiveIssues(app, INACTIVITY_STAGES.SECOND_WARNING);
   await withdrawInactiveIssues(app);
 });

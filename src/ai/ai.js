@@ -15,7 +15,13 @@ const {
   resolutionClassificationPrompt,
   resolutionDocumentationPrompt,
   followUpQuestionsPrompt,
+  ticketSummaryPrompt,
   knowledgeAnswerPrompt,
+  knowledgeSearchQueryRewritePrompt,
+  conversationIntentPrompt,
+  clarificationReplyPrompt,
+  conversationTurnPrompt,
+  runbookAnswerPrompt,
 } = require("./prompts");
 
 const scope = "https://cognitiveservices.azure.com/.default";
@@ -80,6 +86,20 @@ function sanitizeSourceIndexes(sourceIndexes, sourceCount) {
   );
 }
 
+// LLMs sometimes wrap Slack mrkdwn answers in a ``` code fence, which Slack then
+// renders as a literal, unformatted code block instead of rich text.
+function stripMarkdownCodeFence(text) {
+  const match = text.trim().match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+
+  return match ? match[1] : text;
+}
+
+// On thin/duplicate ticket input the LLM occasionally echoes the JSON schema's
+// example value instead of following the fallback-text instruction.
+function isPlaceholderAnswer(answer) {
+  return answer.trim().toLowerCase() === "your slack mrkdwn answer";
+}
+
 function sanitizeResolutionSummary(resolutionSummary) {
   const fallback = "Resolution not clear from the thread.";
 
@@ -116,6 +136,48 @@ Content excerpt:
 ${content}`;
     })
     .join("\n\n");
+}
+
+function formatConversation(conversation) {
+  return conversation
+    .slice(-8)
+    .map(({ role, content }) => {
+      const speaker = role === "assistant" ? "Assistant" : "User";
+      return `${speaker}: ${truncateText(content, 1500)}`;
+    })
+    .join("\n");
+}
+
+async function rewriteKnowledgeSearchQuery(question, conversation = []) {
+  if (conversation.length === 0) {
+    return question;
+  }
+
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: knowledgeSearchQueryRewritePrompt(),
+      },
+      {
+        role: "user",
+        content: `Recent conversation:\n${formatConversation(
+          conversation,
+        )}\n\nLatest message:\n${truncateText(question, 2000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  const rewrittenQuery = parsed.query?.trim();
+
+  return rewrittenQuery ? truncateText(rewrittenQuery, 2000) : question;
 }
 
 async function analyticsRecommendations(input, area) {
@@ -323,10 +385,105 @@ async function followUpQuestions(input) {
   return questions;
 }
 
+async function classifyConversationIntent(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: conversationIntentPrompt() },
+      { role: "user", content: truncateText(input, 1000) },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+  const parsed = JSON.parse(result.choices[0].message.content);
+  return new Set([
+    "greeting",
+    "needs_issue",
+    "platform_related",
+    "off_topic",
+  ]).has(parsed.intent)
+    ? parsed.intent
+    : "platform_related";
+}
+
+async function understandConversationTurn({ question, greetingShown = false }) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: conversationTurnPrompt() },
+      {
+        role: "user",
+        content: `Greeting already shown: ${greetingShown}\nLatest message: ${truncateText(question, 1000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  const parsed = JSON.parse(result.choices?.[0]?.message?.content ?? "{}");
+  const intent = new Set([
+    "greeting",
+    "needs_issue",
+    "platform_related",
+    "off_topic",
+  ]).has(parsed.intent)
+    ? parsed.intent
+    : "platform_related";
+  return {
+    intent,
+    response: typeof parsed.response === "string" ? parsed.response.trim() : "",
+  };
+}
+
+async function classifyClarificationReply({ question, answer, context = "" }) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: clarificationReplyPrompt() },
+      {
+        role: "user",
+        content: `Question: ${truncateText(question, 1000)}\nReply: ${truncateText(answer, 2000)}\nContext: ${truncateText(context, 2000)}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+  const content = result.choices?.[0]?.message?.content;
+  const parsed = JSON.parse(content);
+  const allowed = new Set([
+    "answer",
+    "clarification_request",
+    "new_question",
+    "unrelated",
+    "skip",
+  ]);
+  return allowed.has(parsed.type) ? parsed.type : "answer";
+}
+
+async function generateTicketSummary(input) {
+  const result = await client.chat.completions.create({
+    messages: [
+      { role: "system", content: ticketSummaryPrompt() },
+      { role: "user", content: truncateText(input, 6000) },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length !== 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  const parsed = JSON.parse(result.choices[0].message.content);
+  return typeof parsed.summary === "string"
+    ? parsed.summary.trim().slice(0, 255)
+    : "";
+}
+
 async function answerFromKnowledgeStore(
   question,
   knowledgeStoreResults,
   area = "other",
+  conversation = [],
 ) {
   if (knowledgeStoreResults.length === 0) {
     return {
@@ -337,6 +494,7 @@ async function answerFromKnowledgeStore(
 
   const context = formatKnowledgeStoreContext(knowledgeStoreResults, area);
 
+  const conversationContext = formatConversation(conversation);
   const result = await client.chat.completions.create({
     messages: [
       {
@@ -346,7 +504,11 @@ async function answerFromKnowledgeStore(
       {
         role: "user",
         content: `Selected platform: ${getKnowledgeStoreScope(area)}
-Question:
+${
+  conversationContext
+    ? `Recent conversation (use only to interpret the current question):\n${conversationContext}\n\n`
+    : ""
+}Current question:
 ${question}
 
 Search results:
@@ -373,13 +535,90 @@ Instructions:
   const content = result.choices.pop().message.content;
   const parsed = JSON.parse(content);
   const answer =
-    parsed.answer || "I couldn't find an answer in the documentation.";
-  const sourceIndexes = sanitizeSourceIndexes(
-    parsed.sourceIndexes,
-    knowledgeStoreResults.length,
-  );
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   console.log("LLM Knowledge Store Answer:", parsed);
+
+  return { answer, sourceIndexes };
+}
+
+async function requestRunbookAnswer(question, context) {
+  const result = await client.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: runbookAnswerPrompt(),
+      },
+      {
+        role: "user",
+        content: `Ticket details:
+${question}
+
+Search results:
+${context}
+
+Instructions:
+- Produce a runbook-ready answer with exactly the four required sections.
+- Only use supplied search results.`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    model: "0125-Preview",
+  });
+
+  if (result.choices.length > 1) {
+    throw new Error(`Unexpected response from LLM: ${result.choices}`);
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error(`No response from LLM, ${result}`);
+  }
+
+  return JSON.parse(result.choices.pop().message.content);
+}
+
+async function answerFromRunbookKnowledgeStore(
+  question,
+  knowledgeStoreResults,
+) {
+  if (knowledgeStoreResults.length === 0) {
+    return {
+      answer: "I couldn't find an answer in the documentation.",
+      sourceIndexes: [],
+    };
+  }
+
+  const context = formatKnowledgeStoreContext(knowledgeStoreResults);
+
+  let parsed = await requestRunbookAnswer(question, context);
+  console.log("LLM Runbook Answer:", parsed);
+
+  // the model occasionally echoes the JSON schema's example text instead of a real answer; retry once
+  if (parsed.answer && isPlaceholderAnswer(parsed.answer)) {
+    parsed = await requestRunbookAnswer(question, context);
+    console.log("LLM Runbook Answer (retry):", parsed);
+  }
+
+  const answer =
+    parsed.answer && !isPlaceholderAnswer(parsed.answer)
+      ? stripMarkdownCodeFence(parsed.answer)
+      : "I couldn't find an answer in the documentation.";
+  const sourceIndexes =
+    answer === "I couldn't find an answer in the documentation."
+      ? []
+      : sanitizeSourceIndexes(
+          parsed.sourceIndexes,
+          knowledgeStoreResults.length,
+        );
 
   return { answer, sourceIndexes };
 }
@@ -389,7 +628,14 @@ module.exports.summariseThread = summariseThread;
 module.exports.classifyResolution = classifyResolution;
 module.exports.suggestResolutionDocumentation = suggestResolutionDocumentation;
 module.exports.followUpQuestions = followUpQuestions;
+module.exports.classifyConversationIntent = classifyConversationIntent;
+module.exports.classifyClarificationReply = classifyClarificationReply;
+module.exports.understandConversationTurn = understandConversationTurn;
+module.exports.generateTicketSummary = generateTicketSummary;
 module.exports.answerFromKnowledgeStore = answerFromKnowledgeStore;
+module.exports.rewriteKnowledgeSearchQuery = rewriteKnowledgeSearchQuery;
+module.exports.answerFromRunbookKnowledgeStore =
+  answerFromRunbookKnowledgeStore;
 module.exports.formatKnowledgeStoreContext = formatKnowledgeStoreContext;
 module.exports.formatKnowledgeStoreCaptions = formatKnowledgeStoreCaptions;
 module.exports.sanitizeSourceIndexes = sanitizeSourceIndexes;

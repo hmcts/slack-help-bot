@@ -23,6 +23,14 @@ describe("sanitizeFollowUpQuestions", () => {
     ]);
   });
 
+  it("keeps only one question even if the model returns several", () => {
+    expect(
+      sanitizeFollowUpQuestions({
+        questions: ["First?", "Second?"],
+      }),
+    ).toEqual([{ question: "First?", placeholder: "" }]);
+  });
+
   it("accepts objects with placeholders", () => {
     expect(
       sanitizeFollowUpQuestions({
