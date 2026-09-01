@@ -32,7 +32,6 @@ function mapFieldsToDescription({
   prBuildUrl,
   environment,
   description,
-  analysis,
   followUpAnswers,
   checkedWithTeam,
   slackLink,
@@ -48,8 +47,6 @@ ${optionalField("Environment", environment.text.text)}
 *Issue description*
 
 ${description}
-
-*Analysis done so far*: ${analysis ?? "None"}
 
 ${formatFollowUpAnswers(followUpAnswers)}
 `;
