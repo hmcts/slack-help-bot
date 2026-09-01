@@ -30,6 +30,55 @@ const CLOSED_THREAD_BLOCK_IDS = new Set([
 const PLATFORM_PROMPT_TEXT =
   "Hi! I’m here to help with HMCTS Platform Operations queries. Which platform do you need support with?";
 
+async function streamKnowledgeAnswer({
+  client,
+  channel,
+  threadTs,
+  result,
+  area,
+  fallback,
+}) {
+  const blocks = knowledgeSearchAnswerBlocks({ answer: result.text, area });
+  if (!client.apiCall) {
+    return fallback({
+      text: result.text,
+      blocks,
+      metadata: {
+        event_type: "knowledge_search_answer",
+        event_payload: { area, result_count: result.resultCount },
+      },
+    });
+  }
+
+  const chunks = result.text.match(/.{1,900}(?:\s+|$)/g) || [result.text];
+  const started = await client.apiCall("chat.startStream", {
+    channel,
+    thread_ts: threadTs,
+    chunks: [{ type: "markdown_text", text: chunks[0] }],
+  });
+  const streamTs = started.ts;
+  if (!streamTs) {
+    throw new Error("Slack stream did not return a timestamp");
+  }
+  for (const text of chunks.slice(1)) {
+    await client.apiCall("chat.appendStream", {
+      channel,
+      ts: streamTs,
+      chunks: [{ type: "markdown_text", text }],
+    });
+  }
+  return client.apiCall("chat.stopStream", {
+    channel,
+    ts: streamTs,
+    blocks,
+    metadata: {
+      event_type: "knowledge_search_answer",
+      event_payload: { area, result_count: result.resultCount },
+    },
+    session_status: "active",
+  });
+}
+
 function messageTimestampMs(message) {
   const seconds = Number.parseFloat(message.ts);
   return Number.isFinite(seconds) ? seconds * 1000 : 0;
@@ -481,20 +530,13 @@ async function handleConversationMessage({
       return;
     }
 
-    await say({
-      text: result.text,
-      metadata: {
-        event_type: "knowledge_search_answer",
-        event_payload: {
-          question: searchQuestion,
-          area,
-          result_count: result.resultCount,
-        },
-      },
-      blocks: knowledgeSearchAnswerBlocks({
-        answer: result.text,
-        area,
-      }),
+    await streamKnowledgeAnswer({
+      client,
+      channel: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      result,
+      area,
+      fallback: say,
     });
   } catch (error) {
     console.error("An error occurred while answering an agent message", error);
@@ -506,7 +548,6 @@ async function handleConversationMessage({
 
 async function handleAgentMessage({ message, client }) {
   const threadTs = message.thread_ts ?? message.ts;
-
   return handleConversationMessage({
     message,
     client,
@@ -517,13 +558,13 @@ async function handleAgentMessage({ message, client }) {
         thread_ts: threadTs,
       }),
     setStatus: (status) =>
-      client.assistant.threads.setStatus({
+      client.assistant?.threads?.setStatus?.({
         channel_id: message.channel,
         thread_ts: threadTs,
         status,
       }),
     setTitle: (title) =>
-      client.assistant.threads.setTitle({
+      client.assistant?.threads?.setTitle?.({
         channel_id: message.channel,
         thread_ts: threadTs,
         title,
