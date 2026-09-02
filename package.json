@@ -6,7 +6,6 @@
   "scripts": {
     "analyse": "node scripts/analyseTickets.js",
     "test": "jest",
-    "test:functional": "jest --runInBand src/service/persistence.functional.test.js",
     "format:check": "prettier --check \"app.js\" \"src/**/*.js\"",
     "start": "node app.js"
   },
@@ -42,8 +41,7 @@
       "jest-extended"
     ],
     "testPathIgnorePatterns": [
-      "/node_modules/",
-      "persistence\\.functional\\.test\\.js"
+      "/node_modules/"
     ]
   }
 }
