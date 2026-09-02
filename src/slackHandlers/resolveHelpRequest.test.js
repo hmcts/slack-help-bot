@@ -77,8 +77,22 @@ describe("toSuggestedCategory", () => {
       }),
     ).toStrictEqual({
       category: "Other",
-      subCategory: "Other",
+      subCategory: "Insufficient Evidence",
       confidence: "low",
+    });
+  });
+
+  it("rejects a sub-category that does not belong to the category", () => {
+    expect(
+      toSuggestedCategory({
+        category: "Platform Access",
+        subCategory: "Database Updates",
+        confidence: "high",
+      }),
+    ).toStrictEqual({
+      category: "Platform Access",
+      subCategory: "Other",
+      confidence: "high",
     });
   });
 
@@ -112,6 +126,12 @@ describe("updateResolveModal", () => {
       },
       threadTs: "123.456",
       area: "other",
+      suggestedCategory: {
+        category: "Platform One-Off Failure",
+        subCategory: "Application Gateway",
+        confidence: "high",
+      },
+      suggestedSubCategory: "Application Gateway",
       suggestedResolution: "Resolved by updating the pipeline config.",
     });
 
@@ -127,6 +147,9 @@ describe("updateResolveModal", () => {
       ),
     ).toStrictEqual({
       threadTs: "123.456",
+      suggestedCategory: "platform one-off failure",
+      suggestedCategoryLabel: "Platform One-Off Failure",
+      suggestedSubCategory: "Application Gateway",
       suggestedResolution: "Resolved by updating the pipeline config.",
     });
   });

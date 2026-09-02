@@ -59,6 +59,7 @@ const {
 } = require("./src/slackHandlers/startHelpRequestHandler");
 const {
   documentHelpRequest,
+  updateResolutionSubcategories,
 } = require("./src/slackHandlers/documentHelpRequest");
 const {
   withdrawInactiveIssues,
@@ -162,6 +163,14 @@ app.action(
   async ({ body, action, ack, client, context, payload }) => {
     await ack();
     await resolveHelpRequestHandler(client, body, "crime");
+  },
+);
+
+app.action(
+  /^(category|category_pending)$/,
+  async ({ ack, body, action, client }) => {
+    await ack();
+    await updateResolutionSubcategories({ body, action, client });
   },
 );
 

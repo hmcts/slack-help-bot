@@ -95,7 +95,7 @@ Analyze the conversation to understand:
 - Could it have been prevented with better documentation or tooling?
 
 You must reply with only one category from the list above.
-If the issue is clearly a Platform Operations support issue but the evidence does not establish a more specific category, reply with Platform One-Off Failure and low confidence. Use Other only for clearly unrelated, test, placeholder, or genuinely non-platform issues.
+Select from the strongest established administrative disposition, request type, resolution, affected capability, or root cause. A formal root cause is not required when the request or completed action establishes the category. Use Other only when none of those establish a category.
 
 Respond using JSON, example:
 {
@@ -119,7 +119,7 @@ ${resolutionCategoryList}
 The sub-category should be selected from the category's allowed sub-categories:
 ${resolutionSubcategoryList}
 
-If the issue is clearly a Platform Operations support issue but the evidence does not establish a more specific category, use Platform One-Off Failure with low confidence. Use Other only for clearly unrelated, test, placeholder, or genuinely non-platform issues.
+Select the sub-category only from the list for the selected category. Use the affected capability or operation even when root cause is unknown. Use Other / Insufficient Evidence with low confidence only when the administrative disposition, request type, resolution, affected capability, owner, and root cause all fail to establish a category.
 
 ${TAXONOMY_RULES}
 
@@ -141,8 +141,8 @@ Respond using JSON:
 
 If you cannot determine the category with confidence, use:
 {
-  "category": "Platform One-Off Failure",
-  "subCategory": "Other",
+  "category": "Other",
+  "subCategory": "Insufficient Evidence",
   "confidence": "low",
   "resolutionSummary": "Resolution not clear from the thread."
 }

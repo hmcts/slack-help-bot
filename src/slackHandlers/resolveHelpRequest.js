@@ -1,5 +1,9 @@
 const { helpRequestResolveBlocks } = require("../messages");
 const { suggestResolutionDocumentation } = require("../ai/ai");
+const {
+  normalizeCategory,
+  normalizeSubCategory,
+} = require("../analysis/resolutionTaxonomy");
 const config = require("config");
 
 const reportChannelId = config.get("slack.report_channel_id");
@@ -56,14 +60,15 @@ function toSuggestedCategory(suggestion) {
     return null;
   }
 
-  const category =
-    suggestion.category.trim().toLowerCase() === "unknown"
-      ? "Other"
-      : suggestion.category;
+  const category = normalizeCategory(suggestion.category) || "Other";
 
   return {
     category,
-    subCategory: suggestion.subCategory || "Other",
+    subCategory: normalizeSubCategory(
+      category,
+      suggestion.subCategory,
+      category === "Other" ? "Insufficient Evidence" : "Other",
+    ),
     confidence: suggestion.confidence || "unknown",
   };
 }
@@ -74,6 +79,7 @@ async function updateResolveModal({
   threadTs,
   area,
   suggestedCategory,
+  suggestedSubCategory,
   suggestedResolution,
   isAiSuggestionLoading = false,
 }) {
@@ -84,6 +90,7 @@ async function updateResolveModal({
       thread_ts: threadTs,
       area,
       suggestedCategory,
+      suggestedSubCategory,
       suggestedResolution,
       isAiSuggestionLoading,
     }),

@@ -17,6 +17,7 @@ const {
   getDocumentationFromView,
   getDocumentRequestKey,
   isHelpRequestAlreadyDone,
+  updateResolutionSubcategories,
 } = require("./documentHelpRequest");
 
 describe("getDocumentationFromView", () => {
@@ -115,6 +116,50 @@ describe("getDocumentRequestKey", () => {
   it("creates a stable key for the area and thread", () => {
     expect(getDocumentRequestKey({ area: "other", threadTs: "123.456" })).toBe(
       "other:123.456",
+    );
+  });
+});
+
+describe("updateResolutionSubcategories", () => {
+  it("replaces the global list with options for the selected category", async () => {
+    const update = jest.fn().mockResolvedValue({});
+
+    await updateResolutionSubcategories({
+      client: { views: { update } },
+      action: {
+        action_id: "category",
+        selected_option: {
+          value: "platform-one-off-failure",
+          text: { text: "Platform One-Off Failure" },
+        },
+      },
+      body: {
+        view: {
+          id: "V123",
+          hash: "hash",
+          callback_id: "document_help_request",
+          title: { type: "plain_text", text: "Document Help Request" },
+          submit: { type: "plain_text", text: "Document" },
+          private_metadata: "123.456",
+          blocks: [
+            {
+              type: "input",
+              block_id: "subcategory_block",
+              element: { action_id: "subcategory" },
+            },
+          ],
+        },
+      },
+    });
+
+    const updatedView = update.mock.calls[0][0].view;
+    const labels = updatedView.blocks[0].element.options.map(
+      (option) => option.text.text,
+    );
+    expect(labels).toContain("Application Gateway");
+    expect(labels).not.toContain("Database Updates");
+    expect(updatedView.private_metadata).toContain(
+      '"suggested_category_label":"Platform One-Off Failure"',
     );
   });
 });

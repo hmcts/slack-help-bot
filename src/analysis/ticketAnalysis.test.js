@@ -100,6 +100,7 @@ describe("ticket analysis helpers", () => {
     expect(RESOLUTION_CATEGORIES).toContain("Other");
     expect(RESOLUTION_CATEGORIES).toContain("Platform Improvement");
     expect(RESOLUTION_CATEGORIES).toContain("Bot Test");
+    expect(RESOLUTION_CATEGORIES).toContain("Withdrawn / Duplicate");
     expect(KNOWN_SUBCATEGORIES.Other).toStrictEqual([
       "Test / Placeholder Ticket",
       "Insufficient Evidence",
@@ -107,20 +108,20 @@ describe("ticket analysis helpers", () => {
     ]);
   });
 
-  it("uses a low-confidence platform fallback for unknown classifications", () => {
+  it("uses insufficient evidence rather than inventing a platform failure", () => {
     expect(
       normalizeAnalysisClassification({
         recommendedCategory: "Unknown",
         recommendedSubCategory: "Unknown",
       }),
     ).toMatchObject({
-      recommendedCategory: "Platform One-Off Failure",
-      recommendedSubCategory: "Other",
+      recommendedCategory: "Other",
+      recommendedSubCategory: "Insufficient Evidence",
       confidence: "low",
     });
     expect(normalizeAnalysisClassification({})).toMatchObject({
-      recommendedCategory: "Platform One-Off Failure",
-      recommendedSubCategory: "Other",
+      recommendedCategory: "Other",
+      recommendedSubCategory: "Insufficient Evidence",
       confidence: "low",
     });
   });
@@ -144,6 +145,34 @@ describe("ticket analysis helpers", () => {
         recommendedSubCategory: "Terraform / Infrastructure",
       }).recommendedSubCategory,
     ).toBe("Terraform / Azure Infrastructure");
+  });
+
+  it("normalizes punctuation and rejects incompatible sub-categories", () => {
+    expect(
+      normalizeAnalysisClassification({
+        recommendedCategory: "Platform One-Off Failure.",
+        recommendedSubCategory: "Other.",
+      }),
+    ).toMatchObject({
+      recommendedCategory: "Platform One-Off Failure",
+      recommendedSubCategory: "Other",
+    });
+    expect(
+      normalizeAnalysisClassification({
+        recommendedCategory: "Platform Access",
+        recommendedSubCategory: "Database Updates",
+      }).recommendedSubCategory,
+    ).toBe("Other");
+  });
+
+  it("turns string nulls from the model into actual nulls", () => {
+    expect(
+      normalizeAnalysisClassification({
+        recommendedCategory: "Policy / Process Ambiguity",
+        recommendedSubCategory: "Access Governance",
+        taxonomyGap: "null",
+      }).taxonomyGap,
+    ).toBeNull();
   });
 
   it("includes New Setup under Platform Access", () => {
@@ -280,6 +309,7 @@ describe("ticket analysis helpers", () => {
     expect(KNOWN_SUBCATEGORIES["Local Setup"]).toStrictEqual([
       "VPN",
       "SSH",
+      "Developer Tooling",
       "Other",
     ]);
   });
@@ -291,6 +321,10 @@ describe("ticket analysis helpers", () => {
       "Flux Config",
       "Terraform / Azure Infrastructure",
       "Platform Config",
+      "Database",
+      "Identity / Authentication",
+      "CI/CD / Automation",
+      "Observability / Grafana",
       "Other",
     ]);
   });
@@ -303,7 +337,26 @@ describe("ticket analysis helpers", () => {
     expect(subCategories).toContain("Azure");
   });
 
-  it("calculates deterministic category and sub-category counts", () => {
+  it("distinguishes administrative closure reasons", () => {
+    expect(KNOWN_SUBCATEGORIES["Withdrawn / Duplicate"]).toStrictEqual([
+      "Duplicate",
+      "Withdrawn",
+      "No Longer Required",
+      "No Issue Found",
+      "Other",
+    ]);
+    expect(
+      normalizeAnalysisClassification({
+        recommendedCategory: "Withdrawn / Duplicate",
+        recommendedSubCategory: "Duplicate",
+      }),
+    ).toMatchObject({
+      recommendedCategory: "Withdrawn / Duplicate",
+      recommendedSubCategory: "Duplicate",
+    });
+  });
+
+  it("calculates category and sub-category counts", () => {
     expect(distributionFor(analyses)).toStrictEqual({
       "Platform Access": {
         total: 2,
@@ -320,6 +373,8 @@ describe("ticket analysis helpers", () => {
     });
     expect(prompt).toContain('"GitHub": 1');
     expect(prompt).toContain("DTSPO-1");
+    expect(prompt).toContain("Exact issue count: 2");
+    expect(prompt).toContain("using 2 as the denominator");
   });
 
   it("builds a Markdown issue audit", () => {

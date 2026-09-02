@@ -4,10 +4,12 @@ const {
   createResolvePrivateMetadata,
   findResolutionCategoryOption,
   getResolutionCategories,
+  getResolutionSubCategories,
   HOW_BLOCK_ID,
   HOW_PENDING_BLOCK_ID,
   helpRequestResolveBlocks,
   parseResolvePrivateMetadata,
+  SUBCATEGORY_BLOCK_ID,
 } = require("./helpRequestResolve");
 
 describe("helpRequestResolveBlocks", () => {
@@ -88,6 +90,30 @@ describe("helpRequestResolveBlocks", () => {
       suggestedResolution: "The failing job was restarted.",
     });
   });
+
+  it("shows only sub-categories valid for the suggested category", () => {
+    const view = helpRequestResolveBlocks({
+      thread_ts: "123.456",
+      area: "other",
+      suggestedCategory: {
+        category: "Platform One-Off Failure",
+        confidence: "high",
+      },
+      suggestedSubCategory: "Application Gateway",
+    });
+    const subCategoryBlock = view.blocks.find(
+      (block) => block.block_id === SUBCATEGORY_BLOCK_ID,
+    );
+    const labels = subCategoryBlock.element.options.map(
+      (option) => option.text.text,
+    );
+
+    expect(labels).toContain("Application Gateway");
+    expect(labels).not.toContain("Database Updates");
+    expect(subCategoryBlock.element.initial_option.text.text).toBe(
+      "Application Gateway",
+    );
+  });
 });
 
 describe("createResolvePrivateMetadata", () => {
@@ -141,6 +167,7 @@ describe("getResolutionCategories", () => {
     expect(categories).toContain("Local Setup");
     expect(categories).toContain("Service Misconfiguration");
     expect(categories).toContain("Other");
+    expect(categories).toContain("Withdrawn / Duplicate");
     expect(categories).not.toContain("Network Failure");
     expect(categories).not.toContain("Other Service / Team Issue");
   });
@@ -153,5 +180,16 @@ describe("getResolutionCategories", () => {
     expect(categories).toContain("Platform Access");
     expect(categories).not.toContain("Joiner / Mover / Leaver (JML)");
     expect(categories).toContain("Release Support");
+  });
+});
+
+describe("getResolutionSubCategories", () => {
+  it("returns a category-specific list", () => {
+    expect(getResolutionSubCategories("Policy / Process Ambiguity")).toContain(
+      "Access Governance",
+    );
+    expect(
+      getResolutionSubCategories("Policy / Process Ambiguity"),
+    ).not.toContain("Certificates");
   });
 });

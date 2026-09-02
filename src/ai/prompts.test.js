@@ -72,7 +72,22 @@ describe.each([
     expect(prompt).toContain("- Other");
     expect(prompt).not.toContain('reply with "Unknown"');
     expect(prompt).toContain(
-      "clearly a Platform Operations support issue but the evidence does not establish a more specific category",
+      "Use Other / Insufficient Evidence only when the administrative disposition, request type, affected capability, resolution, owner, and root cause all fail to establish a category",
+    );
+    expect(prompt).toContain("Other / Insufficient Evidence");
+  });
+
+  it("classifies from a clear request or resolution without requiring root cause", () => {
+    const prompt = getPrompt();
+
+    expect(prompt).toContain(
+      "A confirmed root cause is not required when the request or completed action establishes the category",
+    );
+    expect(prompt).toContain(
+      "run a database job, catch-up, script, clone operation, or data change",
+    );
+    expect(prompt).toContain(
+      "routine or proactive certificate review, issuance, installation, renewal",
     );
   });
 
@@ -92,6 +107,17 @@ describe.each([
     expect(resolutionClassificationPrompt()).toContain(
       "Tickets withdrawn because the requester used an incorrect process",
     );
+  });
+
+  it("classifies administrative closures separately", () => {
+    const prompt = getPrompt();
+
+    expect(prompt).toContain("- Withdrawn / Duplicate");
+    expect(prompt).toContain(
+      "Use Withdrawn / Duplicate for administrative closures",
+    );
+    expect(prompt).toContain("No Longer Required");
+    expect(prompt).toContain("No Issue Found");
   });
 
   it("uses Missing / Inadequate Docs only when documentation is absent or inadequate", () => {

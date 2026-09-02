@@ -1,34 +1,45 @@
 const {
   RESOLUTION_CATEGORIES,
   KNOWN_SUBCATEGORIES,
+  normalizeCategory,
+  normalizeSubCategory,
 } = require("./resolutionTaxonomy");
 
 const { TAXONOMY_RULES } = require("./resolutionTaxonomy");
 
 function normalizeAnalysisClassification(analysis = {}) {
-  const requestedCategory = String(analysis.recommendedCategory || "").trim();
-  const hasKnownCategory = RESOLUTION_CATEGORIES.includes(requestedCategory);
-  const recommendedCategory = hasKnownCategory
-    ? requestedCategory
-    : "Platform One-Off Failure";
-  const requestedSubCategory = String(
-    analysis.recommendedSubCategory || "",
-  ).trim();
-  const subCategoryAliases = {
-    "Terraform / Infrastructure": "Terraform / Azure Infrastructure",
-  };
-  const normalizedSubCategory =
-    subCategoryAliases[requestedSubCategory] || requestedSubCategory;
-  const recommendedSubCategory =
-    recommendedCategory === "Other" ||
-    !normalizedSubCategory ||
-    normalizedSubCategory.toLowerCase() === "unknown"
-      ? "Other"
-      : normalizedSubCategory;
+  const recommendedCategory = normalizeCategory(analysis.recommendedCategory);
+  const hasKnownCategory = Boolean(recommendedCategory);
+  const safeCategory = recommendedCategory || "Other";
+  const recommendedSubCategory = normalizeSubCategory(
+    safeCategory,
+    analysis.recommendedSubCategory,
+    hasKnownCategory ? "Other" : "Insufficient Evidence",
+  );
+
+  const nullableFields = [
+    "evidenceLimitation",
+    "taxonomyGap",
+    "proposedCategory",
+    "proposedSubCategory",
+    "proposalReason",
+  ];
+  const normalizedNulls = Object.fromEntries(
+    nullableFields
+      .filter((field) =>
+        ["null", "none", "n/a"].includes(
+          String(analysis[field] ?? "")
+            .trim()
+            .toLowerCase(),
+        ),
+      )
+      .map((field) => [field, null]),
+  );
 
   return {
     ...analysis,
-    recommendedCategory,
+    ...normalizedNulls,
+    recommendedCategory: safeCategory,
     recommendedSubCategory,
     ...(hasKnownCategory ? {} : { confidence: "low" }),
   };
@@ -180,9 +191,10 @@ Return JSON only:
   "resolution": "what resolved or closed it, or Not clear",
   "owner": "team or service owning the underlying issue, or Unknown",
   "existingClassification": "existing category or null",
-  "recommendedCategory": "one allowed category; use Platform One-Off Failure with low confidence for an unclear but clearly platform-related issue, otherwise use Other for unrelated or test issues",
-  "recommendedSubCategory": "best existing or proposed reusable sub-category; use Other when the evidence does not establish one",
+  "recommendedCategory": "exactly one allowed category selected from the strongest established administrative disposition, request type, resolution, affected capability, or root cause; use Other only when none of those establish a category",
+  "recommendedSubCategory": "exactly one allowed sub-category for the selected category; use the affected capability or operation even when root cause is unknown, and use Insufficient Evidence under Other only when no category can be established",
   "confidence": "high, medium, or low",
+  "evidenceStatus": "established, limited, or insufficient",
   "evidenceLimitation": "missing evidence or null",
   "taxonomyGap": "why the current taxonomy is insufficient or null",
   "proposedCategory": "new category only if essential, otherwise null",
@@ -231,6 +243,8 @@ function buildReportPrompt({ period, project, analyses }) {
 
   return `Review the completed issue-level assessments for Jira project ${project}, covering ${period.from} to ${period.toExclusive} (exclusive).
 
+Exact issue count: ${analyses.length}. Do not state any other total. Calculate all percentages using ${analyses.length} as the denominator.
+
 Rules:
 ${TAXONOMY_RULES}
 
@@ -240,7 +254,7 @@ ${RESOLUTION_CATEGORIES.map((category) => `- ${category}`).join("\n")}
 Known sub-categories:
 ${JSON.stringify(KNOWN_SUBCATEGORIES, null, 2)}
 
-Deterministic recommended distribution:
+Recommended distribution calculated from the issue assessments:
 ${JSON.stringify(distributionFor(analyses), null, 2)}
 
 Issue assessments:
@@ -252,7 +266,7 @@ Produce a concise but complete Markdown report containing:
 3. Recommended category and sub-category distribution with counts and percentages.
 4. Changes to the existing taxonomy: keep, clarify, rename, merge, split, or remove.
 5. Ambiguous/Other cases and missing evidence.
-6. A production-ready AI classification prompt based on the evidence, returning category, subCategory, confidence, and reason as strict JSON.
+6. A production-ready AI classification prompt based on the evidence, returning category, subCategory, confidence, evidenceStatus, and reason as strict JSON.
 
 Do not reproduce raw Slack messages, personal data, or secrets. Do not invent evidence. Return JSON only in this shape:
 {

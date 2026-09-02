@@ -2,6 +2,7 @@ const { optionBlock } = require("./util");
 const {
   RESOLUTION_CATEGORIES,
   KNOWN_SUBCATEGORIES,
+  normalizeSubCategory,
 } = require("../analysis/resolutionTaxonomy");
 
 const CATEGORY_BLOCK_ID = "category_block";
@@ -149,14 +150,21 @@ function categoryInputBlock({
   };
 }
 
-function subcategoryInputBlock({ suggestedSubCategory, isPending }) {
-  const options = [...new Set(Object.values(KNOWN_SUBCATEGORIES).flat())].map(
-    (subcategory) => optionBlock(subcategory),
+function getResolutionSubCategories(category) {
+  return KNOWN_SUBCATEGORIES[category] || KNOWN_SUBCATEGORIES.Other;
+}
+
+function subcategoryInputBlock({ category, suggestedSubCategory, isPending }) {
+  const subCategories = getResolutionSubCategories(category);
+  const normalizedSuggestion = normalizeSubCategory(
+    category,
+    suggestedSubCategory,
   );
+  const options = subCategories.map((subcategory) => optionBlock(subcategory));
   const initialOption = options.find(
     (option) =>
       suggestedSubCategory &&
-      option.text.text.toLowerCase() === suggestedSubCategory.toLowerCase(),
+      option.text.text.toLowerCase() === normalizedSuggestion.toLowerCase(),
   );
 
   return {
@@ -176,7 +184,6 @@ function subcategoryInputBlock({ suggestedSubCategory, isPending }) {
       text: "Which platform or sub-category?",
       emoji: true,
     },
-    optional: true,
   };
 }
 
@@ -232,6 +239,11 @@ function helpRequestResolveBlocks({
     resolutionCategories,
     suggestedCategory,
   );
+  const selectedCategory = suggestedCategoryOption?.text.text || "Other";
+  const normalizedSuggestedSubCategory = normalizeSubCategory(
+    selectedCategory,
+    suggestedSubCategory,
+  );
   const isPending = isAiSuggestionLoading;
 
   return {
@@ -285,7 +297,11 @@ function helpRequestResolveBlocks({
         suggestedCategoryOption,
         isPending,
       }),
-      subcategoryInputBlock({ suggestedSubCategory, isPending }),
+      subcategoryInputBlock({
+        category: selectedCategory,
+        suggestedSubCategory,
+        isPending,
+      }),
       ...(isAiSuggestionLoading ? [aiSuggestionLoadingBlock()] : []),
       howInputBlock({ suggestedResolution, isPending }),
     ],
@@ -297,7 +313,9 @@ function helpRequestResolveBlocks({
       threadTs: thread_ts,
       suggestedCategory: suggestedCategoryOption?.value,
       suggestedCategoryLabel: suggestedCategoryOption?.text.text,
-      suggestedSubCategory,
+      suggestedSubCategory: suggestedSubCategory
+        ? normalizedSuggestedSubCategory
+        : undefined,
       suggestedResolution,
     }),
   };
@@ -305,6 +323,8 @@ function helpRequestResolveBlocks({
 
 module.exports.helpRequestResolveBlocks = helpRequestResolveBlocks;
 module.exports.getResolutionCategories = getResolutionCategories;
+module.exports.getResolutionSubCategories = getResolutionSubCategories;
+module.exports.subcategoryInputBlock = subcategoryInputBlock;
 module.exports.createResolvePrivateMetadata = createResolvePrivateMetadata;
 module.exports.parseResolvePrivateMetadata = parseResolvePrivateMetadata;
 module.exports.findResolutionCategoryOption = findResolutionCategoryOption;
