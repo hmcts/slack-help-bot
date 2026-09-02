@@ -18,7 +18,7 @@ const DOCUMENTATION_FEEDBACK_PREFIX = "knowledge_search_conversation_feedback_";
 const JIRA_FEEDBACK_PREFIX = "jira_search_conversation_feedback_";
 const CLARIFICATION_START_PREFIX = "help_clarification_start_";
 const CLARIFICATION_QUESTION_PREFIX = "help_clarification_question_";
-const MAX_CLARIFICATION_QUESTIONS = 4;
+const MAX_CLARIFICATION_QUESTIONS = 3;
 const FIRST_CLARIFICATION_QUESTION = "What have you already checked or tried?";
 
 function blockId(message, prefix) {
@@ -315,6 +315,22 @@ function normalizedQuestion(value) {
     .trim();
 }
 
+function questionKeywords(value) {
+  return new Set(normalizedQuestion(value).split(" ").filter(Boolean));
+}
+
+function substantiallySameQuestion(first, second) {
+  if (normalizedQuestion(first) === normalizedQuestion(second)) return true;
+
+  const firstKeywords = questionKeywords(first);
+  const secondKeywords = questionKeywords(second);
+  if (firstKeywords.size === 0 || secondKeywords.size === 0) return false;
+
+  const overlap = [...firstKeywords].filter((word) => secondKeywords.has(word));
+  const combinedSize = firstKeywords.size + secondKeywords.size;
+  return (2 * overlap.length) / combinedSize >= 0.65;
+}
+
 function isInvestigationQuestion(question) {
   const normalized = normalizedQuestion(question);
   return (
@@ -350,16 +366,16 @@ async function askNextQuestion({
     console.error("Could not generate a clarification question", error);
   }
 
-  const asked = new Set(
-    answers.map(({ question }) => normalizedQuestion(question)),
-  );
+  const asked = answers.map(({ question }) => question);
   const investigationAlreadyAsked = answers.some(({ question }) =>
     isInvestigationQuestion(question),
   );
   const suggestion = suggestions.find(
     (item) =>
       item?.question &&
-      !asked.has(normalizedQuestion(item.question)) &&
+      !asked.some((question) =>
+        substantiallySameQuestion(question, item.question),
+      ) &&
       !(investigationAlreadyAsked && isInvestigationQuestion(item.question)),
   );
   if (!suggestion) {
