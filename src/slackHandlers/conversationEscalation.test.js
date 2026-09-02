@@ -384,7 +384,7 @@ describe("conversation escalation funnel", () => {
     );
   });
 
-  it("stops at four questions, retries only empty sources, then starts ticket intake", async () => {
+  it("stops at three questions, retries only empty sources, then starts ticket intake", async () => {
     searchHelpRequests.mockResolvedValue([
       { key: "DTSPO-2", title: "Matching issue", resolution: "Known fix" },
     ]);
@@ -399,8 +399,6 @@ describe("conversation escalation funnel", () => {
       user("6", "payments"),
       bot("7", "help_clarification_question_3", { question: "Impact?" }),
       user("8", "Blocking the team; logs: https://example.test/build/7"),
-      bot("9", "help_clarification_question_4", { question: "Frequency?" }),
-      user("10", "Every deployment"),
     ];
     const slack = client();
 

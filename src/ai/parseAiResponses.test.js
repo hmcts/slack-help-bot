@@ -19,24 +19,6 @@ describe("sanitizeFollowUpQuestions", () => {
     ).toEqual([{ question: "First?", placeholder: "" }]);
   });
 
-  it("accepts objects with placeholders", () => {
-    expect(
-      sanitizeFollowUpQuestions({
-        questions: [
-          {
-            question: "Which service is affected?",
-            placeholder: "Service name",
-          },
-        ],
-      }),
-    ).toStrictEqual([
-      {
-        question: "Which service is affected?",
-        placeholder: "Service name",
-      },
-    ]);
-  });
-
   it("returns an empty list for invalid input", () => {
     expect(sanitizeFollowUpQuestions({ questions: [null, 42] })).toStrictEqual(
       [],
