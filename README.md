@@ -88,6 +88,8 @@ Ticket taxonomy analysis:
 4. JSON checkpoints, Excel workbooks and Markdown reports are written to the ignored `analysis-output/` directory. The workbook contains metadata, issue-level analysis, category distribution and sub-category distribution sheets. Re-running resumes from the checkpoint; pass `--force` to reassess every issue against the latest taxonomy.
 5. The command is read-only for Jira and Slack and does not update tickets.
 
+The default `npm test` run excludes the Jira-backed persistence functional tests because they create and modify real external issues. Run `npm run test:functional` only with an explicitly configured test Jira project and credentials.
+
 Azure resources:
 
 - All azure resources are created in the [`components/infrastructure`](./components/infrastructure) folder.
