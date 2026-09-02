@@ -315,39 +315,8 @@ function normalizedQuestion(value) {
     .trim();
 }
 
-const QUESTION_STOP_WORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "are",
-  "can",
-  "could",
-  "do",
-  "does",
-  "for",
-  "how",
-  "is",
-  "it",
-  "of",
-  "please",
-  "the",
-  "to",
-  "what",
-  "when",
-  "which",
-  "where",
-  "who",
-  "why",
-  "you",
-  "your",
-]);
-
 function questionKeywords(value) {
-  return new Set(
-    normalizedQuestion(value)
-      .split(" ")
-      .filter((word) => word.length > 2 && !QUESTION_STOP_WORDS.has(word)),
-  );
+  return new Set(normalizedQuestion(value).split(" ").filter(Boolean));
 }
 
 function substantiallySameQuestion(first, second) {
@@ -358,8 +327,8 @@ function substantiallySameQuestion(first, second) {
   if (firstKeywords.size === 0 || secondKeywords.size === 0) return false;
 
   const overlap = [...firstKeywords].filter((word) => secondKeywords.has(word));
-  const smallerSetSize = Math.min(firstKeywords.size, secondKeywords.size);
-  return overlap.length / smallerSetSize >= 0.75;
+  const combinedSize = firstKeywords.size + secondKeywords.size;
+  return (2 * overlap.length) / combinedSize >= 0.65;
 }
 
 function isInvestigationQuestion(question) {
