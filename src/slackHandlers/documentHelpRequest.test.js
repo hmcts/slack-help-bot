@@ -9,10 +9,15 @@ jest.mock("../service/cosmos", () => ({
   updateHelpRequestInCosmos: jest.fn(),
 }));
 
+jest.mock("config", () => ({
+  get: jest.fn((key) => key),
+}));
+
 const {
   getDocumentationFromView,
   getDocumentRequestKey,
   isHelpRequestAlreadyDone,
+  updateResolutionSubcategories,
 } = require("./documentHelpRequest");
 
 describe("getDocumentationFromView", () => {
@@ -28,7 +33,7 @@ describe("getDocumentationFromView", () => {
                 selected_option: {
                   value: "incident / one-off platform failure",
                   text: {
-                    text: "Incident / One-Off Platform Failure",
+                    text: "Platform One-Off Failure",
                   },
                 },
               },
@@ -42,7 +47,8 @@ describe("getDocumentationFromView", () => {
         },
       }),
     ).toStrictEqual({
-      category: "Incident / One-Off Platform Failure",
+      category: "Platform One-Off Failure",
+      subCategory: "Other",
       how: "Resolved by restarting the failed job.",
     });
   });
@@ -51,7 +57,7 @@ describe("getDocumentationFromView", () => {
     expect(
       getDocumentationFromView({
         private_metadata:
-          '{"thread_ts":"123.456","suggested_category":"incident / one-off platform failure","suggested_category_label":"Incident / One-Off Platform Failure","suggested_resolution":"Resolved by restarting the failed job."}',
+          '{"thread_ts":"123.456","suggested_category":"platform one-off failure","suggested_category_label":"Platform One-Off Failure","suggested_resolution":"Resolved by restarting the failed job."}',
         state: {
           values: {
             category_block: {
@@ -68,7 +74,8 @@ describe("getDocumentationFromView", () => {
         },
       }),
     ).toStrictEqual({
-      category: "Incident / One-Off Platform Failure",
+      category: "Platform One-Off Failure",
+      subCategory: "Other",
       how: "Resolved by restarting the failed job.",
     });
   });
@@ -99,6 +106,7 @@ describe("getDocumentationFromView", () => {
       }),
     ).toStrictEqual({
       category: "Self-Service Gap",
+      subCategory: "Other",
       how: "User was shown the existing self-service route.",
     });
   });
@@ -108,6 +116,50 @@ describe("getDocumentRequestKey", () => {
   it("creates a stable key for the area and thread", () => {
     expect(getDocumentRequestKey({ area: "other", threadTs: "123.456" })).toBe(
       "other:123.456",
+    );
+  });
+});
+
+describe("updateResolutionSubcategories", () => {
+  it("replaces the global list with options for the selected category", async () => {
+    const update = jest.fn().mockResolvedValue({});
+
+    await updateResolutionSubcategories({
+      client: { views: { update } },
+      action: {
+        action_id: "category",
+        selected_option: {
+          value: "platform-one-off-failure",
+          text: { text: "Platform One-Off Failure" },
+        },
+      },
+      body: {
+        view: {
+          id: "V123",
+          hash: "hash",
+          callback_id: "document_help_request",
+          title: { type: "plain_text", text: "Document Help Request" },
+          submit: { type: "plain_text", text: "Document" },
+          private_metadata: "123.456",
+          blocks: [
+            {
+              type: "input",
+              block_id: "subcategory_block",
+              element: { action_id: "subcategory" },
+            },
+          ],
+        },
+      },
+    });
+
+    const updatedView = update.mock.calls[0][0].view;
+    const labels = updatedView.blocks[0].element.options.map(
+      (option) => option.text.text,
+    );
+    expect(labels).toContain("Application Gateway");
+    expect(labels).not.toContain("Database Updates");
+    expect(updatedView.private_metadata).toContain(
+      '"suggested_category_label":"Platform One-Off Failure"',
     );
   });
 });

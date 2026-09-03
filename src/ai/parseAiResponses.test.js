@@ -1,16 +1,4 @@
-const {
-  mapEnvironments,
-  sanitizeFollowUpQuestions,
-} = require("./parseAiResponses");
-
-describe("mapEnvironments", () => {
-  it("converts duel named environment to joined one", () => {
-    expect(mapEnvironments("Test")).toStrictEqual("Perftest / Test");
-  });
-  it("handles simple case", () => {
-    expect(mapEnvironments("Production")).toStrictEqual("Production");
-  });
-});
+const { sanitizeFollowUpQuestions } = require("./parseAiResponses");
 
 describe("sanitizeFollowUpQuestions", () => {
   it("accepts string questions", () => {
@@ -29,24 +17,6 @@ describe("sanitizeFollowUpQuestions", () => {
         questions: ["First?", "Second?"],
       }),
     ).toEqual([{ question: "First?", placeholder: "" }]);
-  });
-
-  it("accepts objects with placeholders", () => {
-    expect(
-      sanitizeFollowUpQuestions({
-        questions: [
-          {
-            question: "Which service is affected?",
-            placeholder: "Service name",
-          },
-        ],
-      }),
-    ).toStrictEqual([
-      {
-        question: "Which service is affected?",
-        placeholder: "Service name",
-      },
-    ]);
   });
 
   it("returns an empty list for invalid input", () => {

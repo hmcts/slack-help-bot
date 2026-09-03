@@ -10,15 +10,22 @@ const {
   CATEGORY_BLOCK_ID,
   CATEGORY_PENDING_ACTION_ID,
   CATEGORY_PENDING_BLOCK_ID,
+  SUBCATEGORY_ACTION_ID,
+  SUBCATEGORY_BLOCK_ID,
+  SUBCATEGORY_PENDING_ACTION_ID,
+  SUBCATEGORY_PENDING_BLOCK_ID,
   HOW_ACTION_ID,
   HOW_BLOCK_ID,
   HOW_PENDING_ACTION_ID,
   HOW_PENDING_BLOCK_ID,
+  createResolvePrivateMetadata,
   parseResolvePrivateMetadata,
+  subcategoryInputBlock,
 } = require("../messages/helpRequestResolve");
 
 const config = require("config");
 const { updateHelpRequestInCosmos } = require("../service/cosmos");
+const { KNOWN_SUBCATEGORIES } = require("../analysis/resolutionTaxonomy");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -49,18 +56,43 @@ function getHowValueFromView(view) {
   );
 }
 
+function getSelectedSubCategoryFromView(view) {
+  return (
+    getViewStateValue(view, SUBCATEGORY_BLOCK_ID, SUBCATEGORY_ACTION_ID)
+      ?.selected_option ||
+    getViewStateValue(
+      view,
+      SUBCATEGORY_PENDING_BLOCK_ID,
+      SUBCATEGORY_PENDING_ACTION_ID,
+    )?.selected_option
+  );
+}
+
 function getDocumentationFromView(view) {
   const metadata = parseResolvePrivateMetadata(view.private_metadata);
   const selectedCategory = getSelectedCategoryFromView(view);
+  const selectedSubCategory = getSelectedSubCategoryFromView(view);
   const howValue = getHowValueFromView(view);
+  const category =
+    selectedCategory?.text?.text ||
+    metadata.suggestedCategoryLabel ||
+    selectedCategory?.value ||
+    metadata.suggestedCategory ||
+    "Other";
+  const requestedSubCategory =
+    selectedSubCategory?.text?.text ||
+    metadata.suggestedSubCategory ||
+    selectedSubCategory?.value ||
+    "Other";
+  const subCategory = (KNOWN_SUBCATEGORIES[category] || ["Other"]).includes(
+    requestedSubCategory,
+  )
+    ? requestedSubCategory
+    : "Other";
 
   return {
-    category:
-      selectedCategory?.text?.text ||
-      metadata.suggestedCategoryLabel ||
-      selectedCategory?.value ||
-      metadata.suggestedCategory ||
-      "unknown",
+    category,
+    subCategory,
     how: howValue || metadata.suggestedResolution || "N/A",
   };
 }
@@ -71,6 +103,44 @@ function getDocumentRequestKey({ area, threadTs }) {
 
 function isHelpRequestAlreadyDone(blocks) {
   return blocks?.[2]?.fields?.[0]?.text?.includes("Done") === true;
+}
+
+async function updateResolutionSubcategories({ body, action, client }) {
+  const category = action.selected_option?.text?.text;
+  if (!category) {
+    return;
+  }
+
+  const isPending = action.action_id === CATEGORY_PENDING_ACTION_ID;
+  const metadata = parseResolvePrivateMetadata(body.view.private_metadata);
+  const subCategoryBlockIds = new Set([
+    SUBCATEGORY_BLOCK_ID,
+    SUBCATEGORY_PENDING_BLOCK_ID,
+  ]);
+  const blocks = body.view.blocks.map((block) =>
+    subCategoryBlockIds.has(block.block_id)
+      ? subcategoryInputBlock({ category, isPending })
+      : block,
+  );
+
+  await client.views.update({
+    view_id: body.view.id,
+    hash: body.view.hash,
+    view: {
+      type: "modal",
+      callback_id: body.view.callback_id,
+      title: body.view.title,
+      submit: body.view.submit,
+      ...(body.view.close ? { close: body.view.close } : {}),
+      blocks,
+      private_metadata: createResolvePrivateMetadata({
+        threadTs: metadata.threadTs,
+        suggestedCategory: action.selected_option.value,
+        suggestedCategoryLabel: category,
+        suggestedResolution: metadata.suggestedResolution,
+      }),
+    },
+  });
 }
 
 async function documentHelpRequest(client, body, area) {
@@ -146,6 +216,7 @@ async function documentHelpRequest(client, body, area) {
       status: "Done",
       resolution: documentation.how,
       resolution_type: documentation.category,
+      resolution_sub_type: documentation.subCategory,
     });
   } catch (error) {
     console.error(error);
@@ -158,5 +229,7 @@ module.exports.documentHelpRequest = documentHelpRequest;
 module.exports.getDocumentationFromView = getDocumentationFromView;
 module.exports.getSelectedCategoryFromView = getSelectedCategoryFromView;
 module.exports.getHowValueFromView = getHowValueFromView;
+module.exports.getSelectedSubCategoryFromView = getSelectedSubCategoryFromView;
 module.exports.getDocumentRequestKey = getDocumentRequestKey;
 module.exports.isHelpRequestAlreadyDone = isHelpRequestAlreadyDone;
+module.exports.updateResolutionSubcategories = updateResolutionSubcategories;

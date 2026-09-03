@@ -4,7 +4,9 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "analyse": "node scripts/analyseTickets.js",
     "test": "jest",
+    "test:functional": "jest --runInBand src/service/persistence.functional.test.js",
     "format:check": "prettier --check \"app.js\" \"src/**/*.js\"",
     "start": "node app.js"
   },
@@ -21,6 +23,7 @@
     "applicationinsights": "^3.0.0",
     "cajache": "^2.0.2",
     "config": "^5.0.0",
+    "exceljs": "^4.4.0",
     "jira-client": "^8.1.0",
     "js-yaml": "^5.0.0",
     "lodash": "^4.17.21",
@@ -37,6 +40,10 @@
   "jest": {
     "setupFilesAfterEnv": [
       "jest-extended"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "persistence\\.functional\\.test\\.js"
     ]
   }
 }

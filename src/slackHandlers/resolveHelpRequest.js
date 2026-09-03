@@ -1,5 +1,9 @@
 const { helpRequestResolveBlocks } = require("../messages");
 const { suggestResolutionDocumentation } = require("../ai/ai");
+const {
+  normalizeCategory,
+  normalizeSubCategory,
+} = require("../analysis/resolutionTaxonomy");
 const config = require("config");
 
 const reportChannelId = config.get("slack.report_channel_id");
@@ -52,12 +56,19 @@ function extractThreadText(messages) {
 }
 
 function toSuggestedCategory(suggestion) {
-  if (!suggestion?.category || suggestion.category === "Unknown") {
+  if (!suggestion?.category) {
     return null;
   }
 
+  const category = normalizeCategory(suggestion.category) || "Other";
+
   return {
-    category: suggestion.category,
+    category,
+    subCategory: normalizeSubCategory(
+      category,
+      suggestion.subCategory,
+      category === "Other" ? "Insufficient Evidence" : "Other",
+    ),
     confidence: suggestion.confidence || "unknown",
   };
 }
@@ -68,6 +79,7 @@ async function updateResolveModal({
   threadTs,
   area,
   suggestedCategory,
+  suggestedSubCategory,
   suggestedResolution,
   isAiSuggestionLoading = false,
 }) {
@@ -78,6 +90,7 @@ async function updateResolveModal({
       thread_ts: threadTs,
       area,
       suggestedCategory,
+      suggestedSubCategory,
       suggestedResolution,
       isAiSuggestionLoading,
     }),
@@ -137,6 +150,7 @@ async function resolveHelpRequestHandler(client, body, area) {
         threadTs: body.message.ts,
         area,
         suggestedCategory,
+        suggestedSubCategory: suggestedCategory?.subCategory,
         suggestedResolution: suggestion.resolutionSummary,
       });
     } catch (aiError) {

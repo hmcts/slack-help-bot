@@ -1,7 +1,16 @@
 const { optionBlock } = require("./util");
+const {
+  RESOLUTION_CATEGORIES,
+  KNOWN_SUBCATEGORIES,
+  normalizeSubCategory,
+} = require("../analysis/resolutionTaxonomy");
 
 const CATEGORY_BLOCK_ID = "category_block";
 const CATEGORY_ACTION_ID = "category";
+const SUBCATEGORY_BLOCK_ID = "subcategory_block";
+const SUBCATEGORY_ACTION_ID = "subcategory";
+const SUBCATEGORY_PENDING_BLOCK_ID = "subcategory_block_pending";
+const SUBCATEGORY_PENDING_ACTION_ID = "subcategory_pending";
 const HOW_BLOCK_ID = "how_block";
 const HOW_ACTION_ID = "how";
 const CATEGORY_PENDING_BLOCK_ID = "category_block_pending";
@@ -10,26 +19,12 @@ const HOW_PENDING_BLOCK_ID = "how_block_pending";
 const HOW_PENDING_ACTION_ID = "how_pending";
 
 function getResolutionCategories(area) {
-  const commonCategories = [
-    optionBlock("Missing / Inadequate Docs"),
-    optionBlock("Self-Service Gap"),
-    optionBlock("Tooling / Automation Deficiency"),
-    optionBlock("Platform Feature Missing / Misaligned"),
-    optionBlock("Poor Signposting / Discoverability"),
-    optionBlock("User Education / Misuse"),
-    optionBlock("Policy / Process Ambiguity"),
-    optionBlock("Incident / One-Off Platform Failure"),
-    optionBlock("External Failure (GitHub / Azure / Sonarcloud etc)"),
-    optionBlock("Triage Error / Wrong Queue"),
-    optionBlock("Network Failure"),
-  ];
+  const commonCategories = RESOLUTION_CATEGORIES.filter(
+    (category) => category !== "Release Support",
+  ).map((category) => optionBlock(category));
 
   if (area === "crime") {
-    return [
-      ...commonCategories,
-      optionBlock("Joiner / Mover / Leaver (JML)", "jml"),
-      optionBlock("Release Support"),
-    ];
+    return RESOLUTION_CATEGORIES.map((category) => optionBlock(category));
   }
 
   return commonCategories;
@@ -39,6 +34,7 @@ function createResolvePrivateMetadata({
   threadTs,
   suggestedCategory,
   suggestedCategoryLabel,
+  suggestedSubCategory,
   suggestedResolution,
 }) {
   if (!suggestedCategory && !suggestedResolution) {
@@ -55,6 +51,10 @@ function createResolvePrivateMetadata({
 
   if (suggestedCategoryLabel) {
     metadata.suggested_category_label = suggestedCategoryLabel;
+  }
+
+  if (suggestedSubCategory) {
+    metadata.suggested_sub_category = suggestedSubCategory;
   }
 
   if (suggestedResolution) {
@@ -84,6 +84,10 @@ function parseResolvePrivateMetadata(privateMetadata) {
 
     if (parsed.suggested_category_label) {
       metadata.suggestedCategoryLabel = parsed.suggested_category_label;
+    }
+
+    if (parsed.suggested_sub_category) {
+      metadata.suggestedSubCategory = parsed.suggested_sub_category;
     }
 
     if (parsed.suggested_resolution) {
@@ -146,6 +150,43 @@ function categoryInputBlock({
   };
 }
 
+function getResolutionSubCategories(category) {
+  return KNOWN_SUBCATEGORIES[category] || KNOWN_SUBCATEGORIES.Other;
+}
+
+function subcategoryInputBlock({ category, suggestedSubCategory, isPending }) {
+  const subCategories = getResolutionSubCategories(category);
+  const normalizedSuggestion = normalizeSubCategory(
+    category,
+    suggestedSubCategory,
+  );
+  const options = subCategories.map((subcategory) => optionBlock(subcategory));
+  const initialOption = options.find(
+    (option) =>
+      suggestedSubCategory &&
+      option.text.text.toLowerCase() === normalizedSuggestion.toLowerCase(),
+  );
+
+  return {
+    type: "input",
+    block_id: isPending ? SUBCATEGORY_PENDING_BLOCK_ID : SUBCATEGORY_BLOCK_ID,
+    element: {
+      type: "static_select",
+      placeholder: { type: "plain_text", text: "Select an item", emoji: true },
+      options,
+      ...(initialOption && { initial_option: initialOption }),
+      action_id: isPending
+        ? SUBCATEGORY_PENDING_ACTION_ID
+        : SUBCATEGORY_ACTION_ID,
+    },
+    label: {
+      type: "plain_text",
+      text: "Which platform or sub-category?",
+      emoji: true,
+    },
+  };
+}
+
 function aiSuggestionLoadingBlock() {
   return {
     type: "context",
@@ -189,6 +230,7 @@ function helpRequestResolveBlocks({
   thread_ts,
   area,
   suggestedCategory,
+  suggestedSubCategory,
   suggestedResolution,
   isAiSuggestionLoading = false,
 }) {
@@ -196,6 +238,11 @@ function helpRequestResolveBlocks({
   const suggestedCategoryOption = findResolutionCategoryOption(
     resolutionCategories,
     suggestedCategory,
+  );
+  const selectedCategory = suggestedCategoryOption?.text.text || "Other";
+  const normalizedSuggestedSubCategory = normalizeSubCategory(
+    selectedCategory,
+    suggestedSubCategory,
   );
   const isPending = isAiSuggestionLoading;
 
@@ -250,6 +297,11 @@ function helpRequestResolveBlocks({
         suggestedCategoryOption,
         isPending,
       }),
+      subcategoryInputBlock({
+        category: selectedCategory,
+        suggestedSubCategory,
+        isPending,
+      }),
       ...(isAiSuggestionLoading ? [aiSuggestionLoadingBlock()] : []),
       howInputBlock({ suggestedResolution, isPending }),
     ],
@@ -261,6 +313,9 @@ function helpRequestResolveBlocks({
       threadTs: thread_ts,
       suggestedCategory: suggestedCategoryOption?.value,
       suggestedCategoryLabel: suggestedCategoryOption?.text.text,
+      suggestedSubCategory: suggestedSubCategory
+        ? normalizedSuggestedSubCategory
+        : undefined,
       suggestedResolution,
     }),
   };
@@ -268,11 +323,17 @@ function helpRequestResolveBlocks({
 
 module.exports.helpRequestResolveBlocks = helpRequestResolveBlocks;
 module.exports.getResolutionCategories = getResolutionCategories;
+module.exports.getResolutionSubCategories = getResolutionSubCategories;
+module.exports.subcategoryInputBlock = subcategoryInputBlock;
 module.exports.createResolvePrivateMetadata = createResolvePrivateMetadata;
 module.exports.parseResolvePrivateMetadata = parseResolvePrivateMetadata;
 module.exports.findResolutionCategoryOption = findResolutionCategoryOption;
 module.exports.CATEGORY_BLOCK_ID = CATEGORY_BLOCK_ID;
 module.exports.CATEGORY_ACTION_ID = CATEGORY_ACTION_ID;
+module.exports.SUBCATEGORY_BLOCK_ID = SUBCATEGORY_BLOCK_ID;
+module.exports.SUBCATEGORY_ACTION_ID = SUBCATEGORY_ACTION_ID;
+module.exports.SUBCATEGORY_PENDING_BLOCK_ID = SUBCATEGORY_PENDING_BLOCK_ID;
+module.exports.SUBCATEGORY_PENDING_ACTION_ID = SUBCATEGORY_PENDING_ACTION_ID;
 module.exports.HOW_BLOCK_ID = HOW_BLOCK_ID;
 module.exports.HOW_ACTION_ID = HOW_ACTION_ID;
 module.exports.CATEGORY_PENDING_BLOCK_ID = CATEGORY_PENDING_BLOCK_ID;

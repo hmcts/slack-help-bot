@@ -43,7 +43,7 @@ describe("functional tests", () => {
   test("comment is added to help request", async () => {
     await jira.addCommentToHelpRequest("SBOX-58", {
       slackLink:
-        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611324186001500",
+        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611272568001500",
       name: "Alice",
       message: "Can anyone help?",
     });
@@ -52,7 +52,7 @@ describe("functional tests", () => {
   test("resolution comment is added to help request", async () => {
     await jira.addCommentToHelpRequestResolve("SBOX-58", {
       slackLink:
-        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611324186001500",
+        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611272568001500",
       category: "Other issue",
       how: "No issue found",
     });
@@ -61,7 +61,7 @@ describe("functional tests", () => {
   test("resolution label is added to help request", async () => {
     await jira.addLabel("SBOX-58", {
       slackLink:
-        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611324186001500",
+        "https://platformengin-tzf2541.slack.com/archives/C01KHKNJUKE/p1611272568001500",
       category: "Other-issue",
     });
   });

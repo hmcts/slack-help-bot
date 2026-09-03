@@ -1,4 +1,4 @@
-function helpRequestDocumentationBlocks({ category, how }) {
+function helpRequestDocumentationBlocks({ category, subCategory, how }) {
   return [
     {
       type: "section",
@@ -12,6 +12,13 @@ function helpRequestDocumentationBlocks({ category, how }) {
       text: {
         type: "mrkdwn",
         text: `:exclamation: *What:* ${category}`,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `:label: *Sub-category:* ${subCategory || "Other"}`,
       },
     },
     {
