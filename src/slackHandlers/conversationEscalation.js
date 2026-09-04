@@ -526,8 +526,6 @@ async function retrySearchesAndStartTicket({
     text: "Thanks — checking again with those details…",
   });
   const query = enrichedQuestion(session, answers);
-  // Keep answers in the dedicated follow-up section rather than duplicating
-  // them inside the base description shown in Slack and Jira.
   const description = session.question;
   const initialPrBuildUrl = extractUserLinks(query);
   const retryFailures = [];
