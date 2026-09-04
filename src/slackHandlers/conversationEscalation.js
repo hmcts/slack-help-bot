@@ -492,13 +492,6 @@ function enrichedQuestion(session, answers) {
     .join("\n")}`;
 }
 
-function ticketDescription(session, answers) {
-  if (answers.length === 0) return session.question;
-  return `${session.question}\n\nAdditional information:\n${answers
-    .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
-    .join("\n")}`;
-}
-
 function extractUserLinks(input) {
   const normalizedSlackLinks = input.replace(
     /<(https?:\/\/[^|>]+)(?:\|[^>]*)?>/g,
@@ -533,7 +526,9 @@ async function retrySearchesAndStartTicket({
     text: "Thanks — checking again with those details…",
   });
   const query = enrichedQuestion(session, answers);
-  const description = ticketDescription(session, answers);
+  // Keep answers in the dedicated follow-up section rather than duplicating
+  // them inside the base description shown in Slack and Jira.
+  const description = session.question;
   const initialPrBuildUrl = extractUserLinks(query);
   const retryFailures = [];
 
