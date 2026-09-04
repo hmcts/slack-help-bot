@@ -492,13 +492,6 @@ function enrichedQuestion(session, answers) {
     .join("\n")}`;
 }
 
-function ticketDescription(session, answers) {
-  if (answers.length === 0) return session.question;
-  return `${session.question}\n\nAdditional information:\n${answers
-    .map(({ question, answer }) => `- ${question}\n  Answer: ${answer}`)
-    .join("\n")}`;
-}
-
 function extractUserLinks(input) {
   const normalizedSlackLinks = input.replace(
     /<(https?:\/\/[^|>]+)(?:\|[^>]*)?>/g,
@@ -533,7 +526,7 @@ async function retrySearchesAndStartTicket({
     text: "Thanks — checking again with those details…",
   });
   const query = enrichedQuestion(session, answers);
-  const description = ticketDescription(session, answers);
+  const description = session.question;
   const initialPrBuildUrl = extractUserLinks(query);
   const retryFailures = [];
 
@@ -853,6 +846,24 @@ async function handleClarificationReply({ message, client, messages }) {
           question: latestQuestion,
         },
       },
+    });
+    return true;
+  }
+
+  if (replyType === "skip") {
+    await postMarker({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      id: "help_clarification_skipped",
+      text: "Understood — I’ll stop asking clarification questions and continue with the information already provided.",
+    });
+    await retrySearchesAndStartTicket({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      session,
+      answers: previousAnswers,
     });
     return true;
   }
