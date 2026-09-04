@@ -852,6 +852,24 @@ async function handleClarificationReply({ message, client, messages }) {
     return true;
   }
 
+  if (replyType === "skip") {
+    await postMarker({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      id: "help_clarification_skipped",
+      text: "Understood — I’ll stop asking clarification questions and continue with the information already provided.",
+    });
+    await retrySearchesAndStartTicket({
+      client,
+      channelId: message.channel,
+      threadTs: message.thread_ts ?? message.ts,
+      session,
+      answers: previousAnswers,
+    });
+    return true;
+  }
+
   const answers = [
     ...previousAnswers,
     {
