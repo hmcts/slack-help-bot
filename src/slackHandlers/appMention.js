@@ -173,12 +173,11 @@ function linkifyInlineCitations(answer, knowledgeStoreResults) {
 }
 
 async function handleDuplicate({ event, client, helpRequestMessages, say }) {
-  // handle pasted text that is a link in the format of <https://tools.hmcts.net/jira/browse/SBOX-494|SBOX-494>
-  // or <https://tools.hmcts.net/jira/browse/SBOX-494>
+  // Accept Slack-formatted Jira browse links, including links from before migration.
   const cleanedText = event.text
     .replace(/<https:.+\|/, "")
     .replace(/>/g, "")
-    .replace("<https://tools.hmcts.net/jira/browse/", "");
+    .replace(/<https?:\/\/[^\s<>]+\/browse\//, "");
   const result = cleanedText.match(/.+duplicate ([A-Z]+-[0-9]+)/);
   if (result) {
     const blocks = helpRequestMessages[0].blocks;

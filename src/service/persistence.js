@@ -26,9 +26,12 @@ const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
 const BOT_UPDATE_TOLERANCE_MS = 2 * 1000;
 const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
+const jiraBaseUrl = new URL(config.get("jira.base_url"));
 const jira = new JiraApi({
-  protocol: "https",
-  host: "tools.hmcts.net/jira",
+  protocol: jiraBaseUrl.protocol.replace(":", ""),
+  host: jiraBaseUrl.hostname,
+  port: jiraBaseUrl.port,
+  base: jiraBaseUrl.pathname.replace(/\/+$/, ""),
   bearer: config.get("jira.api_token"),
   apiVersion: "2",
   strictSSL: true,
@@ -737,7 +740,7 @@ async function getUserByKey(key) {
   const token = config.get("jira.api_token");
   try {
     const response = await fetch(
-      `https://tools.hmcts.net/jira/rest/api/2/user?key=${key}`,
+      `${jiraBaseUrl.href.replace(/\/+$/, "")}/rest/api/2/user?key=${encodeURIComponent(key)}`,
       {
         method: "GET",
         headers: {

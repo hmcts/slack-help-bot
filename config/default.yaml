@@ -6,6 +6,7 @@ slack:
   report_channel_crime_id: C01KHKQJZ3V
 
 jira:
+  base_url: "https://tools.hmcts.net/jira"
   start_transition_id: 21
   done_transition_id: 41
   withdrawn_transition_id: 101

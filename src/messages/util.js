@@ -1,3 +1,5 @@
+const config = require("config");
+
 function convertIso8601ToEpochSeconds(isoTime) {
   if (isoTime === undefined) {
     return undefined;
@@ -43,7 +45,7 @@ function extractKnowledgeStoreHighlight(item) {
 }
 
 function convertJiraKeyToUrl(jiraId) {
-  return `https://tools.hmcts.net/jira/browse/${jiraId}`;
+  return `${config.get("jira.base_url").replace(/\/+$/, "")}/browse/${jiraId}`;
 }
 
 const slackMessageIdRegex = /.*slack\.com\/archives\/[a-zA-Z0-9]{11}\/(.*)\|/;

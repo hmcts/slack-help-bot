@@ -1,10 +1,31 @@
+jest.mock("config", () => ({ get: jest.fn() }));
+
+const config = require("config");
 const {
+  convertJiraKeyToUrl,
   convertIso8601ToEpochSeconds,
   extractSlackLinkFromText,
   extractSlackMessageIdFromText,
   convertStoragePathToHmctsWayUrl,
   extractKnowledgeStoreHighlight,
 } = require("./util");
+
+describe("convertJiraKeyToUrl", () => {
+  it.each([
+    [
+      "https://tools.hmcts.net/jira",
+      "https://tools.hmcts.net/jira/browse/TEST-1",
+    ],
+    [
+      "https://example.atlassian.net/",
+      "https://example.atlassian.net/browse/TEST-1",
+    ],
+  ])("uses the configured base URL %s", (baseUrl, expected) => {
+    config.get.mockReturnValue(baseUrl);
+    expect(convertJiraKeyToUrl("TEST-1")).toBe(expected);
+    expect(config.get).toHaveBeenCalledWith("jira.base_url");
+  });
+});
 
 describe("convertIso8601ToEpochSeconds", () => {
   it("returns undefined if undefined", () => {
