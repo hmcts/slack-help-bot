@@ -5,6 +5,7 @@ slack:
   report_channel_crime_id: SLACK_REPORT_CHANNEL_CRIME_ID
 
 jira:
+  base_url: JIRA_BASE_URL
   start_transition_id: JIRA_START_TRANSITION_ID
   withdrawn_transition_id: JIRA_WITHDRAWN_TRANSITION_ID
   done_transition_id: JIRA_DONE_TRANSITION_ID
