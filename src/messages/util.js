@@ -45,7 +45,8 @@ function extractKnowledgeStoreHighlight(item) {
 }
 
 function convertJiraKeyToUrl(jiraId) {
-  return `${config.get("jira.base_url").replace(/\/+$/, "")}/browse/${jiraId}`;
+  const browseUrl = config.get("jira.browse_url");
+  return `${browseUrl.replace(/\/+$/, "")}/browse/${jiraId}`;
 }
 
 const slackMessageIdRegex = /.*slack\.com\/archives\/[a-zA-Z0-9]{11}\/(.*)\|/;
