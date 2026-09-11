@@ -6,8 +6,8 @@ slack:
   report_channel_crime_id: C01KHKQJZ3V
 
 jira:
-  api_url: "https://tools.hmcts.net/jira"
-  browse_url: "https://tools.hmcts.net/jira"
+  api_url: "https://api.atlassian.com/ex/jira/"
+  browse_url: "https://hmcts.atlassian.net"
   #cloud_id: no default
   start_transition_id: 21
   done_transition_id: 41

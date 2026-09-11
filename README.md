@@ -286,8 +286,8 @@ cp env.template.txt .env
 # 2) Load it into your shell (optional, but convenient)
 set -o allexport; source .env; set +o allexport
 
-# For Jira Cloud, obtain the Cloud ID from the site URL
-curl -sS "$JIRA_BROWSE_URL/_edge/tenant_info" | jq -r .cloudId
+# For Jira Cloud, open "$JIRA_BROWSE_URL/_edge/tenant_info" in a browser,
+# then copy the cloudId value into JIRA_CLOUD_ID.
 
 
 # 3) Use the repo’s Node version
