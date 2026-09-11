@@ -6,10 +6,8 @@ const {
   createResolveComment,
 } = require("./jiraMessages");
 
-const systemUser = config.get("jira.username");
-const systemAccountId = config.has("jira.system_account_id")
-  ? config.get("jira.system_account_id")
-  : undefined;
+let systemAccountId;
+let systemAccountIdPromise;
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
@@ -46,6 +44,23 @@ const jira = new JiraApi({
   strictSSL: true,
 });
 
+async function getSystemAccountId() {
+  if (systemAccountId) return systemAccountId;
+  if (!systemAccountIdPromise) {
+    systemAccountIdPromise = jira
+      .getCurrentUser()
+      .then((user) => {
+        systemAccountId = user?.accountId;
+        return systemAccountId;
+      })
+      .catch((err) => {
+        console.log("Unable to resolve Jira service account ID", err);
+        return undefined;
+      });
+  }
+  return systemAccountIdPromise;
+}
+
 /**
  * Extracts a jira ID
  *
@@ -74,7 +89,7 @@ function extraJiraId(text) {
  */
 async function convertEmail(email) {
   if (!email) {
-    return systemAccountId;
+    return getSystemAccountId();
   }
 
   try {
@@ -92,7 +107,7 @@ async function convertEmail(email) {
     return res[0].accountId || res[0].name;
   } catch (ex) {
     console.log("Querying username failed", ex);
-    return systemAccountId;
+    return getSystemAccountId();
   }
 }
 
@@ -360,14 +375,12 @@ async function createHelpRequest({
       issueType,
     );
   } catch (err) {
-    if (!systemAccountId) {
-      throw err;
-    }
+    const fallbackAccountId = await getSystemAccountId();
 
     result = await createHelpRequestInJira(
       summary,
       project,
-      systemAccountId,
+      fallbackAccountId,
       labels,
       issueType,
     );
