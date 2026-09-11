@@ -9,8 +9,8 @@ jira:
   api_url: "https://api.atlassian.com/ex/jira/"
   browse_url: "https://hmcts.atlassian.net"
   #cloud_id: no default
-  start_transition_id: 21
-  done_transition_id: 41
+  start_transition_id: 181
+  done_transition_id: 201
   withdrawn_transition_id: 101
   project: DTSPO
   issue_type_name: Support
@@ -19,7 +19,6 @@ jira:
   task_issue_type_id: 10002
   #username: no default
   #api_token: no default
-
 app_insights:
   #connection_string: no default
   role_name: platops-slack-help-bot
