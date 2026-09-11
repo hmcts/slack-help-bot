@@ -13,6 +13,10 @@ const setup = () => {
     setSecret("secrets.cftptl-intsvc.jira-username", "jira.username");
     setSecret("secrets.cftptl-intsvc.jira-api-token", "jira.api_token");
     setSecret("secrets.cftptl-intsvc.jira-cloud-id", "jira.cloud_id");
+    setSecret(
+      "secrets.cftptl-intsvc.jira-system-account-id",
+      "jira.system_account_id",
+    );
     setSecret("secrets.cftptl-intsvc.slack-bot-token", "slack.bot_token");
     setSecret("secrets.cftptl-intsvc.slack-app-token", "slack.app_token");
     setSecret(
