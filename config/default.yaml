@@ -6,15 +6,17 @@ slack:
   report_channel_crime_id: C01KHKQJZ3V
 
 jira:
-  base_url: "https://tools.hmcts.net/jira"
+  api_url: "https://tools.hmcts.net/jira"
+  browse_url: "https://tools.hmcts.net/jira"
+  #cloud_id: no default
   start_transition_id: 21
   done_transition_id: 41
   withdrawn_transition_id: 101
-  project: SBOX
-  issue_type_name: Bug
-  issue_type_id: 10900
-  support_issue_type_id: 18400
-  task_issue_type_id: 3
+  project: DTSPO
+  issue_type_name: Support
+  issue_type_id: 10115
+  support_issue_type_id: 10115
+  task_issue_type_id: 10002
   #username: no default
   #api_token: no default
 

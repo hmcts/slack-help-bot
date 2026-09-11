@@ -5,7 +5,9 @@ slack:
   report_channel_crime_id: SLACK_REPORT_CHANNEL_CRIME_ID
 
 jira:
-  base_url: JIRA_BASE_URL
+  api_url: JIRA_API_URL
+  browse_url: JIRA_BROWSE_URL
+  cloud_id: JIRA_CLOUD_ID
   start_transition_id: JIRA_START_TRANSITION_ID
   withdrawn_transition_id: JIRA_WITHDRAWN_TRANSITION_ID
   done_transition_id: JIRA_DONE_TRANSITION_ID
@@ -16,6 +18,7 @@ jira:
   task_issue_type_id: JIRA_TASK_ISSUE_TYPE_ID
   username: JIRA_USERNAME
   api_token: JIRA_API_TOKEN
+  system_account_id: JIRA_SYSTEM_ACCOUNT_ID
 
 app_insights:
   connection_string: APP_INSIGHTS_CONNECTION_STRING

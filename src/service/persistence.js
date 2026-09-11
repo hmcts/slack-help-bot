@@ -7,6 +7,9 @@ const {
 } = require("./jiraMessages");
 
 const systemUser = config.get("jira.username");
+const systemAccountId = config.has("jira.system_account_id")
+  ? config.get("jira.system_account_id")
+  : undefined;
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
@@ -26,13 +29,19 @@ const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
 const BOT_UPDATE_TOLERANCE_MS = 2 * 1000;
 const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
-const jiraBaseUrl = new URL(config.get("jira.base_url"));
+const jiraApiUrl = new URL(config.get("jira.api_url"));
+if (config.has("jira.cloud_id")) {
+  jiraApiUrl.pathname = `${jiraApiUrl.pathname.replace(/\/+$/, "")}/${config.get(
+    "jira.cloud_id",
+  )}`;
+}
 const jira = new JiraApi({
-  protocol: jiraBaseUrl.protocol.replace(":", ""),
-  host: jiraBaseUrl.hostname,
-  port: jiraBaseUrl.port,
-  base: jiraBaseUrl.pathname.replace(/\/+$/, ""),
-  bearer: config.get("jira.api_token"),
+  protocol: jiraApiUrl.protocol.replace(":", ""),
+  host: jiraApiUrl.hostname,
+  port: jiraApiUrl.port,
+  base: jiraApiUrl.pathname.replace(/\/+$/, ""),
+  username: config.get("jira.username"),
+  password: config.get("jira.api_token"),
   apiVersion: "2",
   strictSSL: true,
 });
@@ -65,13 +74,13 @@ function extraJiraId(text) {
  */
 async function convertEmail(email) {
   if (!email) {
-    return systemUser;
+    return systemAccountId;
   }
 
   try {
     // noinspection JSCheckFunctionSignatures - types are wrong, it may be deprecated, but I can't make the new param work
     const res = await jira.searchUsers({
-      username: email,
+      query: email,
       maxResults: 1,
     });
 
@@ -80,10 +89,10 @@ async function convertEmail(email) {
       return undefined;
     }
 
-    return res[0].name;
+    return res[0].accountId || res[0].name;
   } catch (ex) {
     console.log("Querying username failed", ex);
-    return systemUser;
+    return systemAccountId;
   }
 }
 
@@ -291,7 +300,7 @@ async function assignHelpRequest(issueId, email) {
   const user = await convertEmail(email);
 
   try {
-    await jira.updateAssignee(issueId, user);
+    await jira.updateAssigneeWithId(issueId, user);
   } catch (err) {
     console.log("Error assigning help request in jira", issueId, err);
   }
@@ -323,9 +332,7 @@ async function createHelpRequestInJira(
       },
       labels: ["created-from-slack", ...labels],
       description: undefined,
-      reporter: {
-        name: user, // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
-      },
+      ...(user ? { reporter: { accountId: user } } : {}),
     },
   });
 }
@@ -353,11 +360,14 @@ async function createHelpRequest({
       issueType,
     );
   } catch (err) {
-    // in case the user doesn't exist in Jira use the system user
+    if (!systemAccountId) {
+      throw err;
+    }
+
     result = await createHelpRequestInJira(
       summary,
       project,
-      systemUser,
+      systemAccountId,
       labels,
       issueType,
     );
@@ -738,13 +748,16 @@ async function updateIssueStatus(issueId, statusName) {
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
 async function getUserByKey(key) {
   const token = config.get("jira.api_token");
+  const credentials = Buffer.from(
+    `${config.get("jira.username")}:${token}`,
+  ).toString("base64");
   try {
     const response = await fetch(
-      `${jiraBaseUrl.href.replace(/\/+$/, "")}/rest/api/2/user?key=${encodeURIComponent(key)}`,
+      `${jiraApiUrl.href.replace(/\/+$/, "")}/rest/api/2/user?key=${encodeURIComponent(key)}`,
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer: ${token}`,
+          Authorization: `Basic ${credentials}`,
           Accept: "application/json",
         },
       },
