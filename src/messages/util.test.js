@@ -23,7 +23,7 @@ describe("convertJiraKeyToUrl", () => {
   ])("uses the configured base URL %s", (baseUrl, expected) => {
     config.get.mockReturnValue(baseUrl);
     expect(convertJiraKeyToUrl("TEST-1")).toBe(expected);
-    expect(config.get).toHaveBeenCalledWith("jira.base_url");
+    expect(config.get).toHaveBeenCalledWith("jira.browse_url");
   });
 });
 
