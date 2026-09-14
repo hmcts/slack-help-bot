@@ -1,6 +1,7 @@
 const JiraApi = require('jira-client');
 const config = require('config')
 const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
+const {wikiToAdf, adfToText} = require("./adf");
 
 const systemUserEmail = config.get('jira.username')
 
@@ -24,7 +25,7 @@ const jira = new JiraApi({
     host: jiraHost,
     username: config.get('jira.username'),
     password: config.get('jira.api_token'),
-    apiVersion: '2',
+    apiVersion: '3',
     strictSSL: true
 });
 
@@ -97,12 +98,22 @@ async function startHelpRequest(jiraId) {
     }
 }
 
+function isIssueNotFound(err) {
+    const message = (err && (err.message || err)) + ''
+    return /does not exist|not find|not found/i.test(message)
+}
+
 async function getIssueDescription(issueId) {
     try {
-        const issue = await jira.getIssue(issueId, 'description');
-        return issue.fields.description;
-    } catch(err) {
-        if (err.statusCode === 404) {
+        const uri = jira.makeUri({
+            pathname: `/issue/${issueId}`,
+            query: { fields: 'description' }
+        });
+        const issue = await jira.doRequest(jira.makeRequestHeader(uri));
+        const description = issue && issue.fields && issue.fields.description;
+        return description ? adfToText(description) : undefined;
+    } catch (err) {
+        if (isIssueNotFound(err)) {
             return undefined;
         } else {
             throw err
@@ -114,14 +125,26 @@ async function getIssueDescription(issueId) {
 async function searchForUnassignedOpenIssues() {
     const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open and assignee is EMPTY AND labels not in ("Heritage") ORDER BY created ASC`;
     try {
-        return await jira.searchJira(
-            jqlQuery,
-            {
-                // TODO if we moved the slack link out to another field we wouldn't need to request the whole description
-                // which would probably be better for performance
+        const uri = jira.makeUri({ pathname: '/search/jql' });
+        const results = await jira.doRequest(jira.makeRequestHeader(uri, {
+            method: 'POST',
+            body: {
+                jql: jqlQuery,
                 fields: ['created', 'description', 'summary', 'updated']
             }
-        )
+        }))
+
+        const issues = (results.issues || []).map((issue) => ({
+            ...issue,
+            fields: {
+                ...issue.fields,
+                description: adfToText(issue.fields && issue.fields.description)
+            }
+        }))
+
+        return {
+            issues
+        }
     } catch (err) {
         console.log("Error searching for issues in jira", err)
         return {
@@ -312,7 +335,7 @@ async function createHelpRequest({
 }
 
 async function updateHelpRequestDescription(issueId, fields) {
-    const jiraDescription = mapFieldsToDescription(fields);
+    const jiraDescription = wikiToAdf(mapFieldsToDescription(fields));
     try {
         await jira.updateIssue(issueId, {
             update: {
@@ -328,7 +351,7 @@ async function updateHelpRequestDescription(issueId, fields) {
 
 async function addCommentToHelpRequest(externalSystemId, fields) {
     try {
-        await jira.addComment(externalSystemId, createComment(fields))
+        await jira.addComment(externalSystemId, wikiToAdf(createComment(fields)))
         console.log(`Added Jira comment to issue ${externalSystemId}`)
     } catch (err) {
         console.log(`Error creating comment in jira for issue ${externalSystemId}`, {
@@ -340,7 +363,7 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(externalSystemId, { what, where, how} ) {
     try {
-        await jira.addComment(externalSystemId, createResolveComment({what, where, how}))
+        await jira.addComment(externalSystemId, wikiToAdf(createResolveComment({what, where, how})))
     } catch (err) {
         console.log("Error creating comment in jira", err)
     }

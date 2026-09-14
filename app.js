@@ -3,6 +3,9 @@ const setupSecrets = require('./src/setupSecrets');
 // must be called before any config.get calls
 setupSecrets.setup();
 
+const logger = require('./src/modules/logger');
+logger.setup();
+
 const {
     appHomeUnassignedIssues,
     extractSlackLinkFromText,
