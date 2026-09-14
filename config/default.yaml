@@ -6,6 +6,7 @@ slack:
   report_channel_id: C01KHKNJUKE
 
 jira:
+  base_url: https://hmcts.atlassian.net
   start_transition_id: 21
   done_transition_id: 41
   project: SBOX

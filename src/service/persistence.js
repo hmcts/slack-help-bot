@@ -2,7 +2,7 @@ const JiraApi = require('jira-client');
 const config = require('config')
 const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
 
-const systemUser = config.get('jira.username')
+const systemUserEmail = config.get('jira.username')
 
 const issueTypeId = config.get('jira.issue_type_id')
 const issueTypeName = config.get('jira.issue_type_name')
@@ -16,10 +16,14 @@ const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`)
 const DONE_TRANSITION_NAMES = ['Done', 'Resolve Issue', 'Resolved', 'Close Issue', 'Closed']
 const START_TRANSITION_NAMES = ['Start Progress', 'In Progress', 'Start']
 
+const jiraApiUrl = config.get('jira.base_url')
+const jiraHost = new URL(jiraApiUrl).host
+
 const jira = new JiraApi({
     protocol: 'https',
-    host: 'tools.hmcts.net/jira',
-    bearer: config.get('jira.api_token'),
+    host: jiraHost,
+    username: config.get('jira.username'),
+    password: config.get('jira.api_token'),
     apiVersion: '2',
     strictSSL: true
 });
@@ -127,10 +131,20 @@ async function searchForUnassignedOpenIssues() {
 }
 
 async function assignHelpRequest(issueId, email) {
-    const user = await convertEmail(email)
+    let accountId = await convertEmail(email)
+
+    if (!accountId) {
+        console.log(`Could not find Jira account for email ${email}, attempting to assign the system user`)
+        accountId = await getSystemUserAccountId()
+    }
+
+    if (!accountId) {
+        console.log(`Could not resolve system user account for ${systemUserEmail}`)
+        return
+    }
 
     try {
-        await jira.updateAssignee(issueId, user)
+        await jira.updateAssigneeWithId(issueId, accountId)
     } catch(err) {
         console.log("Error assigning help request in jira", err)
     }
@@ -139,7 +153,7 @@ async function assignHelpRequest(issueId, email) {
 /**
  * Extracts a jira ID
  *
- * expected format: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
+ * expected format: 'View on Jira: <https://hmcts.atlassian.net/browse/SBOX-61|SBOX-61>'
  * @param blocks
  */
 function extractJiraIdFromBlocks(blocks) {
@@ -177,44 +191,68 @@ function extraJiraId(text) {
     return extractProjectRegex.exec(text)[1]
 }
 
+let cachedSystemUserAccountId = null
+
+async function getSystemUserAccountId() {
+    if (cachedSystemUserAccountId) {
+        return cachedSystemUserAccountId
+    }
+
+    cachedSystemUserAccountId = await convertEmail(systemUserEmail)
+    return cachedSystemUserAccountId
+}
+
 async function convertEmail(email) {
     if (!email) {
-        return systemUser
+        return null
     }
 
     try {
         const res = await jira.searchUsers({
-            username: email,
+            query: email,
             maxResults: 1
         })
 
-        return res[0].name
+        if (res && res.length > 0 && res[0].accountId) {
+            return res[0].accountId
+        }
+
+        console.log(`No Jira user found for email: ${email}`)
+        return null
     } catch(ex) {
         console.log("Querying username failed: " + ex)
-        return systemUser
+        return null
     }
 }
 
-async function createHelpRequestInJira(summary, project, user, labels) {
-    console.log(`Creating help request in Jira for user: ${user}`)
-    const issue = await jira.addNewIssue({
-        fields: {
-            summary: summary,
-            issuetype: {
-                id: issueTypeId
-            },
-            project: {
-                id: project.id
-            },
-            labels: ['F&PPETTeam', 'created-from-slack', ...labels],
-            description: undefined,
-            reporter: {
-                name: user // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
-            },
-            customfield_10008: 'PAY-6381', // TODO: Probably make configurable
-            fixVersions: [ { name: "F&P No Release Required" } ] // TODO Make this configurable
-        }
-    });
+async function createHelpRequestInJira(summary, project, reporterAccountId, includeCustomField, labels) {
+    console.log(`Creating help request in Jira for reporter account: ${reporterAccountId}`)
+
+    const fields = {
+        summary: summary,
+        issuetype: {
+            id: issueTypeId
+        },
+        project: {
+            id: project.id
+        },
+        labels: ['F&PPETTeam', 'created-from-slack', ...labels],
+        description: undefined,
+        fixVersions: [ { name: "F&P No Release Required" } ] // TODO Make this configurable
+    };
+
+    // reporter defaults to the authenticated user if not provided
+    if (reporterAccountId) {
+        fields.reporter = {
+            accountId: reporterAccountId
+        };
+    }
+
+    if (includeCustomField) {
+        fields.customfield_10008 = 'PAY-6381'; // TODO: Probably make configurable
+    }
+
+    const issue = await jira.addNewIssue({ fields });
 
     try {
         await jira.transitionIssue(issue.key, {
@@ -223,7 +261,15 @@ async function createHelpRequestInJira(summary, project, user, labels) {
             }
         })
     } catch (err) {
-        console.log("Unable to transition new issue", err)
+        console.log("Unable to transition new issue to 'Awaiting Initial Triage'", err)
+
+        try {
+            const transitionsResponse = await jira.listTransitions(issue.key)
+            const availableTransitions = transitionsResponse.transitions || []
+            console.log("Available transitions:", availableTransitions.map(t => `${t.id}:${t.name}`).join(', '))
+        } catch (listErr) {
+            console.log("Could not list transitions", listErr)
+        }
     }
 
     return issue;
@@ -234,7 +280,7 @@ async function createHelpRequest({
                                      userEmail,
                                      labels
                                  }) {
-    const user = await convertEmail(userEmail)
+    const reporterAccountId = await convertEmail(userEmail)
 
     const project = await jira.getProject(jiraProject);
 
@@ -243,14 +289,23 @@ async function createHelpRequest({
 
     let result
     try {
-        result = await createHelpRequestInJira(summary, project, user, labels);
-    } catch(err) {
-        // in case the user doesn't exist in Jira use the system user
-        result = await createHelpRequestInJira(summary, project, systemUser, labels);
+        // customfield_10008 may not exist (or may have a different id) in the cloud instance,
+        // so fall back to creating without it
+        result = await createHelpRequestInJira(summary, project, reporterAccountId, true, labels);
+    } catch (err) {
+        console.log("Error creating issue with customfield_10008, retrying without it", err)
 
-        if (!result.key) {
-            console.log("Error creating help request in jira", JSON.stringify(result));
+        try {
+            result = await createHelpRequestInJira(summary, project, reporterAccountId, false, labels);
+        } catch (err2) {
+            // in case the reporter doesn't exist in Jira, create without a reporter so it defaults to the system user
+            console.log("Error creating help request, falling back to default reporter (system user)", err2)
+            result = await createHelpRequestInJira(summary, project, null, false, labels);
         }
+    }
+
+    if (!result.key) {
+        console.log("Error creating help request in jira", JSON.stringify(result));
     }
 
     return result.key

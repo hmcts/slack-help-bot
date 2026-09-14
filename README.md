@@ -51,6 +51,9 @@ Running the application requires the following tools to be installed in your env
 You need to create a Slack App as detailed in the steps above. For development purposes, this will have to be created in a new Slack workspace.
 You will also need the JIRA details. For development purposes, these values can be found in the "env.template.txt" file for the HMCTS Jira SBOX Project.
 
+The app connects to the Jira Cloud instance defined by `JIRA_BASE_URL` (defaults to `https://hmcts.atlassian.net`).
+Authentication uses basic auth with your email address (`JIRA_USERNAME`) and a Cloud API token (`JIRA_API_TOKEN`). Create an API token here: https://id.atlassian.com/manage-profile/security/api-tokens
+
 Set the relevant environment variables defined in [env.template.txt](env.template.txt) based on above steps.
 
 ## Running the application

@@ -1,25 +1,20 @@
 const jira = require('./persistence')
 const config = require('config')
 
-const systemUser = config.get('jira.username')
+const jiraProject = config.get('jira.project')
 
 describe('convertEmail', () => {
-    it('strips email', () => {
-        expect(jira.convertEmail('bobs.uncle@hmcts.net')).toBe('bobs.uncle')
+    it('returns null if email is null', () => {
+        expect(jira.convertEmail(null)).resolves.toBe(null)
     })
-    it('returns system email if null', () => {
-        expect(jira.convertEmail(null)).toBe(systemUser)
-    })
-    it('returns system email if undefined', () => {
-        expect(jira.convertEmail(null)).toBe(systemUser)
-    })
-    it('returns username if no @ sign in email', () => {
-        expect(jira.convertEmail('bobs.uncle')).toBe('bobs.uncle')
+    it('returns null if email is undefined', () => {
+        expect(jira.convertEmail(undefined)).resolves.toBe(null)
     })
 })
 
 describe('extractJiraId', () => {
     it('extracts the key', () => {
+        const expectedKey = `${jiraProject}-61`
         const actual = jira.extractJiraIdFromBlocks([
             {},
             {},
@@ -28,12 +23,12 @@ describe('extractJiraId', () => {
             {
                 elements: [
                     {
-                        text: 'View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>'
+                        text: `View on Jira: <https://hmcts.atlassian.net/browse/${expectedKey}|${expectedKey}>`
                     }
                 ]
             }
         ])
 
-        expect(actual).toBe('SBOX-61')
+        expect(actual).toBe(expectedKey)
     })
 })
