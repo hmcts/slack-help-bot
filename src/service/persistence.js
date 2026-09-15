@@ -113,13 +113,10 @@ async function convertEmail(email) {
 
 async function resolveHelpRequest(jiraId) {
   try {
-    await jira.transitionIssue(jiraId, {
-      transition: {
-        id: jiraDoneTransitionId,
-      },
-    });
+    await updateIssueStatus(jiraId, "Done");
   } catch (err) {
     console.log("Error resolving help request in jira", err);
+    throw err;
   }
 }
 

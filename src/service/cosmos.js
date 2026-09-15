@@ -140,9 +140,7 @@ async function updateHelpRequestInCosmos(item) {
     .fetchNext();
 
   if (result.resources.length === 0) {
-    console.log("No help request found in Cosmos for key", item.key);
-    // could also create here
-    return;
+    throw new Error(`No help request found in Cosmos for key ${item.key}`);
   }
 
   const { id } = result.resources[0];
@@ -184,6 +182,14 @@ async function updateHelpRequestInCosmos(item) {
       op: "add",
       path: "/ticket_type",
       value: item.ticket_type,
+    });
+  }
+
+  if (item.closed_at) {
+    updateObj.push({
+      op: "add",
+      path: "/closed_at",
+      value: item.closed_at,
     });
   }
 
