@@ -2,10 +2,10 @@ const { convertIso8601ToEpochSeconds } = require('./dateHelper');
 
 const config = require('config')
 
-const jiraBaseUrl = config.get('jira.base_url')
+const jiraBrowseUrl = config.get('jira.browse_url')
 
 function convertJiraKeyToUrl(jiraId) {
-    return `${jiraBaseUrl}/browse/${jiraId}`;
+    return `${jiraBrowseUrl}/browse/${jiraId}`;
 }
 
 const slackChannelId = config.get('slack.report_channel_id')

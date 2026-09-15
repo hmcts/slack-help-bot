@@ -1,9 +1,6 @@
 const JiraApi = require('jira-client');
 const config = require('config')
 const {createComment, mapFieldsToDescription, createResolveComment} = require("./jiraMessages");
-const {wikiToAdf, adfToText} = require("./adf");
-
-const systemUserEmail = config.get('jira.username')
 
 const issueTypeId = config.get('jira.issue_type_id')
 const issueTypeName = config.get('jira.issue_type_name')
@@ -17,16 +14,20 @@ const extractProjectRegex = new RegExp(`(${jiraProject}-[\\d]+)`)
 const DONE_TRANSITION_NAMES = ['Done', 'Resolve Issue', 'Resolved', 'Close Issue', 'Closed']
 const START_TRANSITION_NAMES = ['Start Progress', 'In Progress', 'Start']
 
-const jiraApiUrl = config.get('jira.base_url')
-const jiraHost = new URL(jiraApiUrl).host
+const jiraApiUrl = new URL(config.get('jira.api_url'));
+if (config.has('jira.cloud_id')) {
+  jiraApiUrl.pathname = `${jiraApiUrl.pathname.replace(/\/+$/, '')}/${config.get('jira.cloud_id')}`;
+}
 
 const jira = new JiraApi({
-    protocol: 'https',
-    host: jiraHost,
-    username: config.get('jira.username'),
-    password: config.get('jira.api_token'),
-    apiVersion: '3',
-    strictSSL: true
+  protocol: jiraApiUrl.protocol.replace(':', ''),
+  host: jiraApiUrl.hostname,
+  port: jiraApiUrl.port,
+  base: jiraApiUrl.pathname.replace(/\/+$/, ''),
+  username: config.get('jira.username'),
+  password: config.get('jira.api_token'),
+  apiVersion: '2',
+  strictSSL: true,
 });
 
 function normaliseName(name) {
@@ -111,7 +112,7 @@ async function getIssueDescription(issueId) {
         });
         const issue = await jira.doRequest(jira.makeRequestHeader(uri));
         const description = issue && issue.fields && issue.fields.description;
-        return description ? adfToText(description) : undefined;
+        return description;
     } catch (err) {
         if (isIssueNotFound(err)) {
             return undefined;
@@ -125,7 +126,7 @@ async function getIssueDescription(issueId) {
 async function searchForUnassignedOpenIssues() {
     const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status = Open and assignee is EMPTY AND labels not in ("Heritage") ORDER BY created ASC`;
     try {
-        const uri = jira.makeUri({ pathname: '/search/jql' });
+        const uri = jira.makeUri({ pathname: '/search' });
         const results = await jira.doRequest(jira.makeRequestHeader(uri, {
             method: 'POST',
             body: {
@@ -138,7 +139,7 @@ async function searchForUnassignedOpenIssues() {
             ...issue,
             fields: {
                 ...issue.fields,
-                description: adfToText(issue.fields && issue.fields.description)
+                description: issue.fields && issue.fields.description
             }
         }))
 
@@ -158,11 +159,11 @@ async function assignHelpRequest(issueId, email) {
 
     if (!accountId) {
         console.log(`Could not find Jira account for email ${email}, attempting to assign the system user`)
-        accountId = await getSystemUserAccountId()
+        accountId = await getSystemAccountId()
     }
 
     if (!accountId) {
-        console.log(`Could not resolve system user account for ${systemUserEmail}`)
+        console.log(`Could not resolve system user account for ${config.get('jira.username')}`)
         return
     }
 
@@ -214,15 +215,27 @@ function extraJiraId(text) {
     return extractProjectRegex.exec(text)[1]
 }
 
-let cachedSystemUserAccountId = null
+let cachedSystemAccountId
+let systemAccountIdPromise
 
-async function getSystemUserAccountId() {
-    if (cachedSystemUserAccountId) {
-        return cachedSystemUserAccountId
+async function getSystemAccountId() {
+    if (cachedSystemAccountId) {
+        return cachedSystemAccountId
     }
 
-    cachedSystemUserAccountId = await convertEmail(systemUserEmail)
-    return cachedSystemUserAccountId
+    if (!systemAccountIdPromise) {
+        systemAccountIdPromise = jira.getCurrentUser()
+            .then(user => {
+                cachedSystemAccountId = user && user.accountId
+                return cachedSystemAccountId
+            })
+            .catch(err => {
+                console.log("Unable to resolve Jira system account", err)
+                return undefined
+            })
+    }
+
+    return systemAccountIdPromise
 }
 
 async function convertEmail(email) {
@@ -236,15 +249,15 @@ async function convertEmail(email) {
             maxResults: 1
         })
 
-        if (res && res.length > 0 && res[0].accountId) {
-            return res[0].accountId
+        if (res && res.length > 0 && (res[0].accountId || res[0].name)) {
+            return res[0].accountId || res[0].name
         }
 
         console.log(`No Jira user found for email: ${email}`)
-        return null
+        return getSystemAccountId()
     } catch(ex) {
         console.log("Querying username failed: " + ex)
-        return null
+        return getSystemAccountId()
     }
 }
 
@@ -335,7 +348,7 @@ async function createHelpRequest({
 }
 
 async function updateHelpRequestDescription(issueId, fields) {
-    const jiraDescription = wikiToAdf(mapFieldsToDescription(fields));
+    const jiraDescription = mapFieldsToDescription(fields);
     try {
         await jira.updateIssue(issueId, {
             update: {
@@ -351,7 +364,7 @@ async function updateHelpRequestDescription(issueId, fields) {
 
 async function addCommentToHelpRequest(externalSystemId, fields) {
     try {
-        await jira.addComment(externalSystemId, wikiToAdf(createComment(fields)))
+        await jira.addComment(externalSystemId, createComment(fields))
         console.log(`Added Jira comment to issue ${externalSystemId}`)
     } catch (err) {
         console.log(`Error creating comment in jira for issue ${externalSystemId}`, {
@@ -363,7 +376,7 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(externalSystemId, { what, where, how} ) {
     try {
-        await jira.addComment(externalSystemId, wikiToAdf(createResolveComment({what, where, how})))
+        await jira.addComment(externalSystemId, createResolveComment({what, where, how}))
     } catch (err) {
         console.log("Error creating comment in jira", err)
     }

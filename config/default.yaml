@@ -6,7 +6,9 @@ slack:
   report_channel_id: C01KHKNJUKE
 
 jira:
-  base_url: https://hmcts.atlassian.net
+  api_url: https://api.atlassian.com/ex/jira/
+  browse_url: https://hmcts.atlassian.net
+  # cloud_id: no default
   start_transition_id: 21
   done_transition_id: 41
   project: SBOX
