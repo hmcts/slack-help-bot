@@ -40,6 +40,14 @@ resource "restapi_object" "storage_account_datasource" {
     azurerm_search_service.this, azurerm_role_assignment.search_search_reader,
     azurerm_role_assignment.storage_blob_data_reader_search_service
   ]
+
+  # Azure AI Search redacts credentials.connectionString to null on read, so with
+  # write_returns_object every apply sees a diff and re-issues a no-op update PUT,
+  # which for a blob datasource returns 409 "conflicting update". Ignore post-create
+  # drift; recreate the resource if the datasource definition genuinely changes.
+  lifecycle {
+    ignore_changes = [data]
+  }
 }
 
 # https://learn.microsoft.com/en-us/rest/api/searchservice/create-data-source
@@ -52,4 +60,12 @@ resource "restapi_object" "storage_account_datasource_ops_runbook" {
     azurerm_search_service.this, azurerm_role_assignment.search_search_reader,
     azurerm_role_assignment.storage_blob_data_reader_search_service
   ]
+
+  # Azure AI Search redacts credentials.connectionString to null on read, so with
+  # write_returns_object every apply sees a diff and re-issues a no-op update PUT,
+  # which for a blob datasource returns 409 "conflicting update". Ignore post-create
+  # drift; recreate the resource if the datasource definition genuinely changes.
+  lifecycle {
+    ignore_changes = [data]
+  }
 }
