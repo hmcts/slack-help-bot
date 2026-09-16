@@ -230,7 +230,14 @@ async function handleRunbook({ event, client, helpRequestMessages, say }) {
   const summary = cleanSlackMrkdwn(extractSummaryFromBlocks(blocks));
   const jiraId = extractJiraIdFromBlocks(blocks);
 
-  const issueDescription = await getIssueDescription(jiraId);
+  let issueDescription;
+  try {
+    issueDescription = await getIssueDescription(jiraId);
+  } catch (error) {
+    // a Jira lookup failure (e.g. a 401 scope error) shouldn't kill the command;
+    // fall back to the ticket description already present in the Slack thread
+    console.error("Unable to fetch Jira description for runbook lookup", error);
+  }
   const description =
     cleanSlackMrkdwn(
       issueDescription ? extractIssueDescriptionSection(issueDescription) : "",
