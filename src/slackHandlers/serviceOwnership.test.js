@@ -20,7 +20,7 @@ const {
 
 describe("critical service ownership triage", () => {
   const catalogue = {
-    id: "1847019495",
+    id: "273258354",
     updated: "2026-03-12",
     url: "https://example/catalogue",
   };

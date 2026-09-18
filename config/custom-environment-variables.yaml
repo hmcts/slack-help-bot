@@ -40,9 +40,11 @@ search:
   ops_runbook_index_name: AZURE_SEARCH_OPS_RUNBOOK_INDEX_NAME
 
 confluence:
-  base_url: CONFLUENCE_BASE_URL
+  functional_releases_base_url: CONFLUENCE_FUNCTIONAL_RELEASES_BASE_URL
   functional_releases_parent_id: CONFLUENCE_FUNCTIONAL_RELEASES_PARENT_ID
+  service_catalogue_base_url: CONFLUENCE_SERVICE_CATALOGUE_BASE_URL
   service_catalogue_page_id: CONFLUENCE_SERVICE_CATALOGUE_PAGE_ID
+  username: CONFLUENCE_USERNAME
   api_token: CONFLUENCE_API_TOKEN
 
 inactivity:

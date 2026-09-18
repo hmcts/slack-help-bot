@@ -42,9 +42,11 @@ search:
   ops_runbook_index_name: "ops-runbook"
 
 confluence:
-  base_url: "https://tools.hmcts.net/confluence"
-  functional_releases_parent_id: "1933865840"
-  service_catalogue_page_id: "1847019495"
+  functional_releases_base_url: "https://hmcts.atlassian.net/wiki"
+  functional_releases_parent_id: "269147466"
+  service_catalogue_base_url: "https://hmcts.atlassian.net/wiki"
+  service_catalogue_page_id: "273258354"
+  # username: no default; set for Atlassian Cloud Basic authentication
   # api_token: no default
 
 inactivity:

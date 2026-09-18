@@ -1,20 +1,17 @@
 const config = require("config");
 const cajache = require("cajache");
 const { confluenceHtmlToText } = require("./releaseNotes");
+const { confluenceHeaders } = require("./confluenceAuth");
 
 async function getServiceCatalogue() {
-  if (!config.has("confluence.api_token")) {
-    throw new Error("CONFLUENCE_API_TOKEN is not configured");
-  }
-
-  const baseUrl = config.get("confluence.base_url").replace(/\/$/, "");
+  const baseUrl = config
+    .get("confluence.service_catalogue_base_url")
+    .replace(/\/$/, "");
   const pageId = config.get("confluence.service_catalogue_page_id");
   const response = await fetch(
     `${baseUrl}/rest/api/content/${pageId}?expand=body.view,version`,
     {
-      headers: {
-        Authorization: `Bearer ${config.get("confluence.api_token")}`,
-      },
+      headers: confluenceHeaders(),
     },
   );
   if (!response.ok) {

@@ -1,4 +1,5 @@
 const config = require("config");
+const { confluenceHeaders } = require("./confluenceAuth");
 
 const RELEASE_TITLE_PATTERN = /\bCPP\s+(\d{2}\.\d{1,2}(?:\.\d{1,2})?)\b/i;
 
@@ -65,14 +66,13 @@ function extractLinkedReleasePageIds(html = "", requestedVersion) {
   return [...pageIds];
 }
 
-function releasePageUrl(page) {
-  const baseUrl = config.get("confluence.base_url").replace(/\/$/, "");
+function releasePageUrl(baseUrl, page) {
   return `${baseUrl}/pages/viewpage.action?pageId=${page.id}`;
 }
 
 function confluenceWebUrl(baseUrl, details, pageId) {
   const webUi = details._links?.webui;
-  if (!webUi) return releasePageUrl({ id: pageId });
+  if (!webUi) return releasePageUrl(baseUrl, { id: pageId });
   return `${baseUrl}${webUi.startsWith("/") ? "" : "/"}${webUi}`;
 }
 
@@ -80,9 +80,7 @@ async function fetchConfluencePage(baseUrl, pageId) {
   const response = await fetch(
     `${baseUrl}/rest/api/content/${pageId}?expand=body.view,version`,
     {
-      headers: {
-        Authorization: `Bearer ${config.get("confluence.api_token")}`,
-      },
+      headers: confluenceHeaders(),
     },
   );
   if (!response.ok) {
@@ -95,11 +93,9 @@ async function findReleaseFamily(requestedVersion) {
   if (!/^\d{2}\.\d{1,2}$/.test(requestedVersion)) {
     throw new Error(`Invalid release family: ${requestedVersion}`);
   }
-  if (!config.has("confluence.api_token")) {
-    throw new Error("CONFLUENCE_API_TOKEN is not configured");
-  }
-
-  const baseUrl = config.get("confluence.base_url").replace(/\/$/, "");
+  const baseUrl = config
+    .get("confluence.functional_releases_base_url")
+    .replace(/\/$/, "");
   const parentId = config.get("confluence.functional_releases_parent_id");
   const results = [];
   let start = 0;
@@ -113,9 +109,7 @@ async function findReleaseFamily(requestedVersion) {
     const response = await fetch(
       `${baseUrl}/rest/api/content/${parentId}/child/page?${query}`,
       {
-        headers: {
-          Authorization: `Bearer ${config.get("confluence.api_token")}`,
-        },
+        headers: confluenceHeaders(),
       },
     );
     if (!response.ok) {
@@ -134,7 +128,7 @@ async function findReleaseFamily(requestedVersion) {
       title: page.title,
       version: parseReleaseVersion(page.title),
       updated: page.version?.when,
-      url: releasePageUrl(page),
+      url: releasePageUrl(baseUrl, page),
     }))
     .filter((page) => belongsToReleaseFamily(page.version, requestedVersion))
     .sort((left, right) => compareReleaseVersions(left.version, right.version));
