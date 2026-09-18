@@ -1,20 +1,42 @@
-const jira = require("./persistence");
-const config = require("config");
+const mockJiraClient = {
+  getCurrentUser: jest.fn(),
+  searchUsers: jest.fn(),
+};
 
-const systemUser = config.get("jira.username");
+jest.mock("jira-client", () => jest.fn(() => mockJiraClient));
+
+const jira = require("./persistence");
 
 describe("convertEmail", () => {
-  it("strips email", () => {
-    expect(jira.convertEmail("bobs.uncle@hmcts.net")).toBe("bobs.uncle");
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockJiraClient.getCurrentUser.mockResolvedValue({
+      accountId: "service-account-id",
+    });
   });
-  it("returns system email if null", () => {
-    expect(jira.convertEmail(null)).toBe(systemUser);
+
+  it("returns the Jira Cloud account ID for an email", async () => {
+    mockJiraClient.searchUsers.mockResolvedValue([
+      { accountId: "bob-account-id" },
+    ]);
+    await expect(jira.convertEmail("bobs.uncle@hmcts.net")).resolves.toBe(
+      "bob-account-id",
+    );
   });
-  it("returns system email if undefined", () => {
-    expect(jira.convertEmail(null)).toBe(systemUser);
+
+  it("returns the service account ID if null", async () => {
+    await expect(jira.convertEmail(null)).resolves.toBe("service-account-id");
   });
-  it("returns username if no @ sign in email", () => {
-    expect(jira.convertEmail("bobs.uncle")).toBe("bobs.uncle");
+
+  it("returns the service account ID if undefined", async () => {
+    await expect(jira.convertEmail(undefined)).resolves.toBe(
+      "service-account-id",
+    );
+  });
+
+  it("passes a username through Jira's user search", async () => {
+    mockJiraClient.searchUsers.mockResolvedValue([{ accountId: "bob-id" }]);
+    await expect(jira.convertEmail("bobs.uncle")).resolves.toBe("bob-id");
   });
 });
 
@@ -28,12 +50,12 @@ describe("extractJiraId", () => {
       {
         elements: [
           {
-            text: "View on Jira: <https://tools.hmcts.net/jira/browse/SBOX-61|SBOX-61>",
+            text: "View on Jira: <https://hmcts.atlassian.net/browse/DTSPO-61|DTSPO-61>",
           },
         ],
       },
     ]);
 
-    expect(actual).toBe("SBOX-61");
+    expect(actual).toBe("DTSPO-61");
   });
 });

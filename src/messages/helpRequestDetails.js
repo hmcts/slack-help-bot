@@ -15,7 +15,7 @@ function formatFollowUpAnswers(followUpAnswers) {
   return lines.length > 0 ? lines : null;
 }
 
-function helpRequestDetailBlocks({ description, analysis, followUpAnswers }) {
+function helpRequestDetailBlocks({ description, followUpAnswers }) {
   const followUpText = formatFollowUpAnswers(followUpAnswers);
   const blocks = [
     {
@@ -24,17 +24,6 @@ function helpRequestDetailBlocks({ description, analysis, followUpAnswers }) {
         type: "mrkdwn",
         text: stringTrim(
           `:spiral_note_pad: Description: ${description}`,
-          3000,
-          "... [Truncated] see Jira for rest of message.",
-        ),
-      },
-    },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: stringTrim(
-          `:thinking_face: Analysis: ${analysis ?? "None"}`,
           3000,
           "... [Truncated] see Jira for rest of message.",
         ),

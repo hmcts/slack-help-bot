@@ -1,3 +1,10 @@
+jest.mock("../ai/ai", () => ({
+  suggestResolutionDocumentation: jest.fn(),
+}));
+jest.mock("config", () => ({
+  get: jest.fn((key) => key),
+}));
+
 const {
   extractTextFromBlock,
   extractThreadText,
@@ -62,13 +69,31 @@ describe("extractThreadText", () => {
 });
 
 describe("toSuggestedCategory", () => {
-  it("returns null for unknown categories", () => {
+  it("normalizes legacy unknown categories to Other", () => {
     expect(
       toSuggestedCategory({
         category: "Unknown",
         confidence: "low",
       }),
-    ).toBeNull();
+    ).toStrictEqual({
+      category: "Other",
+      subCategory: "Insufficient Evidence",
+      confidence: "low",
+    });
+  });
+
+  it("rejects a sub-category that does not belong to the category", () => {
+    expect(
+      toSuggestedCategory({
+        category: "Platform Access",
+        subCategory: "Database Updates",
+        confidence: "high",
+      }),
+    ).toStrictEqual({
+      category: "Platform Access",
+      subCategory: "Other",
+      confidence: "high",
+    });
   });
 
   it("keeps known categories", () => {
@@ -79,6 +104,7 @@ describe("toSuggestedCategory", () => {
       }),
     ).toStrictEqual({
       category: "Missing / Inadequate Docs",
+      subCategory: "Other",
       confidence: "high",
     });
   });
@@ -100,6 +126,12 @@ describe("updateResolveModal", () => {
       },
       threadTs: "123.456",
       area: "other",
+      suggestedCategory: {
+        category: "Platform One-Off Failure",
+        subCategory: "Application Gateway",
+        confidence: "high",
+      },
+      suggestedSubCategory: "Application Gateway",
       suggestedResolution: "Resolved by updating the pipeline config.",
     });
 
@@ -115,6 +147,9 @@ describe("updateResolveModal", () => {
       ),
     ).toStrictEqual({
       threadTs: "123.456",
+      suggestedCategory: "platform one-off failure",
+      suggestedCategoryLabel: "Platform One-Off Failure",
+      suggestedSubCategory: "Application Gateway",
       suggestedResolution: "Resolved by updating the pipeline config.",
     });
   });

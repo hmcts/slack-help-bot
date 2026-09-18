@@ -37,7 +37,7 @@ function sanitizeFollowUpQuestions(payload) {
       return null;
     })
     .filter((item) => item && item.question.length > 0)
-    .slice(0, 3);
+    .slice(0, 1);
 }
 
 module.exports.mapEnvironments = mapEnvironments;

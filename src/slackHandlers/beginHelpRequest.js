@@ -1,5 +1,4 @@
 const { checkSlackResponseError } = require("./errorHandling");
-const { postHelpForm } = require("./startHelpForm");
 const {
   helpGuidanceBlocks,
   helpGuidanceText,
@@ -24,13 +23,7 @@ async function sendHelpGuidanceMessage(client, channelId, ts) {
   return await client.chat.postMessage(message);
 }
 
-async function beginHelpRequest({
-  userId,
-  client,
-  area,
-  ts,
-  initialDescription,
-}) {
+async function beginHelpRequest({ userId, client }) {
   try {
     const openDmResponse = await client.conversations.open({
       users: userId,
@@ -39,26 +32,9 @@ async function beginHelpRequest({
 
     const channelId = openDmResponse.channel.id;
 
-    if (area && initialDescription) {
-      await postHelpForm({
-        client,
-        channelId,
-        userId,
-        area,
-        helpRequest: {
-          description: initialDescription,
-        },
-        formSource: "knowledge_search",
-      });
-
-      appInsights.trackEvent("Begin Help Request");
-      return;
-    }
-
     const postMessageResponse = await sendHelpGuidanceMessage(
       client,
       channelId,
-      ts,
     );
 
     checkSlackResponseError(

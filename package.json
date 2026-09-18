@@ -4,7 +4,10 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "analyse": "node scripts/analyseTickets.js",
+    "test": "jest",
+    "test:functional": "jest --runInBand src/service/persistence.functional.test.js",
+    "format:check": "prettier --check \"app.js\" \"src/**/*.js\"",
     "start": "node app.js"
   },
   "author": "Platform Operations",
@@ -19,8 +22,9 @@
     "@types/jira-client": "^7.0.0",
     "applicationinsights": "^3.0.0",
     "cajache": "^2.0.2",
-    "config": "^5.0.0",
-    "jira-client": "^7.2.0",
+    "config": "4.1.1",
+    "exceljs": "^4.4.0",
+    "jira-client": "^8.1.0",
     "js-yaml": "^5.0.0",
     "lodash": "^4.17.21",
     "luxon": "^3.4.4",
@@ -36,6 +40,10 @@
   "jest": {
     "setupFilesAfterEnv": [
       "jest-extended"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "persistence\\.functional\\.test\\.js"
     ]
   }
 }

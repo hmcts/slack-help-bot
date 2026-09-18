@@ -122,6 +122,7 @@ dist
 .DS_Store
 
 documents*.json
+analysis-output/
 
 tfplan
 .terraform.lock.hcl

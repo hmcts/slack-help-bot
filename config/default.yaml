@@ -8,20 +8,22 @@ slack:
   bau_user_group_id: S05895026RE
 
 jira:
-  start_transition_id: 21
-  done_transition_id: 41
+  api_url: "https://api.atlassian.com/ex/jira/"
+  browse_url: "https://hmcts.atlassian.net"
+  #cloud_id: no default
+  start_transition_id: 181
+  done_transition_id: 201
   withdrawn_transition_id: 101
-  project: SBOX
-  issue_type_name: Bug
-  issue_type_id: 10900
-  priority_normal_id: "4"
-  priority_high_id: "3"
+  project: DTSPO
+  issue_type_name: Support
+  issue_type_id: 10115
+  support_issue_type_id: 10115
+  task_issue_type_id: 10002
+  priority_normal_id: "3"
+  priority_high_id: "2"
   priority_critical_id: "1"
-  support_issue_type_id: 18400
-  task_issue_type_id: 3
   #username: no default
   #api_token: no default
-
 app_insights:
   #connection_string: no default
   role_name: platops-slack-help-bot
@@ -37,9 +39,15 @@ search:
   endpoint: "https://platops-slack-help-bot-ptl.search.windows.net"
   help_requests_index_name: "help-requests"
   knowledge_store_index_name: "the-hmcts-way"
+  ops_runbook_index_name: "ops-runbook"
 
 confluence:
   base_url: "https://tools.hmcts.net/confluence"
   functional_releases_parent_id: "1933865840"
   service_catalogue_page_id: "1847019495"
   # api_token: no default
+
+inactivity:
+  first_reminder_ms: 864000000
+  second_reminder_ms: 1728000000
+  withdrawal_ms: 2592000000

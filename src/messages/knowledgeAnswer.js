@@ -31,6 +31,8 @@ function removeHelpGuidance(answer) {
 
 function convertMarkdownToSlackMrkdwn(answer) {
   return answer
+    .replace(/^#{1,6}\s+(.+)$/gm, "*$1*")
+    .replace(/\[([^\]]+)]\((https?:\/\/[^)]+)\)/g, "<$2|$1>")
     .replace(/\*\*([^*\n][^*\n]*?)\*\*/g, "*$1*")
     .replace(/__([^_\n][^_\n]*?)__/g, "*$1*");
 }
@@ -60,7 +62,7 @@ function relatedHelpRequestResultsText(relatedIssues) {
         ? stringTrim(issue.resolution.trim(), 400, "...")
         : "Resolution not available.";
 
-      return `${index + 1}. <${convertJiraKeyToUrl(issue.key)}|${issue.key}> - ${title}\n   *Resolution:* ${resolution}`;
+      return `*${index + 1}. <${convertJiraKeyToUrl(issue.key)}|${issue.key}> — ${title}*\n_Resolution:_ ${resolution}`;
     })
     .join("\n\n");
 

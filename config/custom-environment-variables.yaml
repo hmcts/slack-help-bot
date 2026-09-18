@@ -6,6 +6,9 @@ slack:
   bau_user_group_id: SLACK_BAU_USER_GROUP_ID
 
 jira:
+  api_url: JIRA_API_URL
+  browse_url: JIRA_BROWSE_URL
+  cloud_id: JIRA_CLOUD_ID
   start_transition_id: JIRA_START_TRANSITION_ID
   withdrawn_transition_id: JIRA_WITHDRAWN_TRANSITION_ID
   done_transition_id: JIRA_DONE_TRANSITION_ID
@@ -34,9 +37,15 @@ search:
   endpoint: AZURE_SEARCH_ENDPOINT
   help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME
   knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME
+  ops_runbook_index_name: AZURE_SEARCH_OPS_RUNBOOK_INDEX_NAME
 
 confluence:
   base_url: CONFLUENCE_BASE_URL
   functional_releases_parent_id: CONFLUENCE_FUNCTIONAL_RELEASES_PARENT_ID
   service_catalogue_page_id: CONFLUENCE_SERVICE_CATALOGUE_PAGE_ID
   api_token: CONFLUENCE_API_TOKEN
+
+inactivity:
+  first_reminder_ms: INACTIVITY_FIRST_REMINDER_MS
+  second_reminder_ms: INACTIVITY_SECOND_REMINDER_MS
+  withdrawal_ms: INACTIVITY_WITHDRAWAL_MS

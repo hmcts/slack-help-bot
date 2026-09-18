@@ -1,9 +1,4 @@
 const {
-  knowledgeSearchPromptBlocks,
-} = require("../messages/knowledgeSearchPrompt");
-const { setPendingKnowledgeSearch } = require("./utils/pendingKnowledgeSearch");
-const { helpGuidanceBlocks } = require("../messages/helpGuidance");
-const {
   extractJiraIdFromBlocks,
   addCommentToHelpRequest,
 } = require("../service/persistence");
@@ -13,6 +8,7 @@ const { notifyThreadWatchers } = require("./watchHelpRequestThread");
 const { monitorThreadPriority } = require("./helpRequestPriority");
 const { followUpWithReleaseNotes } = require("./releaseFollowUp");
 const { triageCriticalOwnership } = require("./serviceOwnership");
+const { handleAgentMessage } = require("./assistant");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -39,20 +35,6 @@ async function replaceAsync(str, regex, asyncFn) {
   return str.replace(regex, () => data.shift());
 }
 
-async function promptForKnowledgeSearchPlatform(event, say) {
-  const question = event.text.trim();
-  setPendingKnowledgeSearch({
-    channelId: event.channel,
-    userId: event.user,
-    question,
-  });
-
-  await say({
-    text: "Which platform should I search?",
-    blocks: knowledgeSearchPromptBlocks(),
-  });
-}
-
 async function appMessaged(event, context, client, say) {
   try {
     if (event.bot_id || event.subtype === "message_changed") {
@@ -61,23 +43,8 @@ async function appMessaged(event, context, client, say) {
 
     // Filters for direct(instant) messages
     if (event.channel_type === "im") {
-      const text = event.text?.trim();
-
-      if (!text) {
-        return;
-      }
-
-      switch (text.toLowerCase()) {
-        case "help":
-          await say({
-            text: "Send me your question in this DM to get started.",
-            blocks: helpGuidanceBlocks(),
-          });
-          return;
-        default:
-          await promptForKnowledgeSearchPlatform(event, say);
-          return;
-      }
+      await handleAgentMessage({ message: event, client });
+      return;
     }
 
     // filter unwanted channels in case someone invites the bot to it
@@ -188,5 +155,3 @@ async function appMessaged(event, context, client, say) {
 }
 
 module.exports.appMessaged = appMessaged;
-module.exports.promptForKnowledgeSearchPlatform =
-  promptForKnowledgeSearchPlatform;

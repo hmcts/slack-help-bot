@@ -6,7 +6,8 @@ const {
   createResolveComment,
 } = require("./jiraMessages");
 
-const systemUser = config.get("jira.username");
+let systemAccountId;
+let systemAccountIdPromise;
 
 const issueTypeId = config.get("jira.issue_type_id");
 const issueTypeName = config.get("jira.issue_type_name");
@@ -26,15 +27,49 @@ const jiraProject = config.get("jira.project");
 const jiraStartTransitionId = config.get("jira.start_transition_id");
 const jiraWithdrawnTransitionId = config.get("jira.withdrawn_transition_id");
 const jiraDoneTransitionId = config.get("jira.done_transition_id");
+const firstReminderMs = Number(config.get("inactivity.first_reminder_ms"));
+const secondReminderMs = Number(config.get("inactivity.second_reminder_ms"));
+const withdrawalMs = Number(config.get("inactivity.withdrawal_ms"));
+const BOT_UPDATE_TOLERANCE_MS = 2 * 1000;
 const extractProjectRegex = new RegExp(`(${jiraProject}-\\d+)`);
 
+const jiraApiUrl = new URL(config.get("jira.api_url"));
+if (config.has("jira.cloud_id")) {
+  jiraApiUrl.pathname = `${jiraApiUrl.pathname.replace(/\/+$/, "")}/${config.get(
+    "jira.cloud_id",
+  )}`;
+}
 const jira = new JiraApi({
-  protocol: "https",
-  host: "tools.hmcts.net/jira",
-  bearer: config.get("jira.api_token"),
+  protocol: jiraApiUrl.protocol.replace(":", ""),
+  host: jiraApiUrl.hostname,
+  port: jiraApiUrl.port,
+  base: jiraApiUrl.pathname.replace(/\/+$/, ""),
+  username: config.has("jira.username")
+    ? config.get("jira.username")
+    : undefined,
+  password: config.has("jira.api_token")
+    ? config.get("jira.api_token")
+    : undefined,
   apiVersion: "2",
   strictSSL: true,
 });
+
+async function getSystemAccountId() {
+  if (systemAccountId) return systemAccountId;
+  if (!systemAccountIdPromise) {
+    systemAccountIdPromise = jira
+      .getCurrentUser()
+      .then((user) => {
+        systemAccountId = user?.accountId;
+        return systemAccountId;
+      })
+      .catch((err) => {
+        console.log("Unable to resolve Jira service account ID", err);
+        return undefined;
+      });
+  }
+  return systemAccountIdPromise;
+}
 
 /**
  * Extracts a jira ID
@@ -64,13 +99,13 @@ function extraJiraId(text) {
  */
 async function convertEmail(email) {
   if (!email) {
-    return systemUser;
+    return getSystemAccountId();
   }
 
   try {
     // noinspection JSCheckFunctionSignatures - types are wrong, it may be deprecated, but I can't make the new param work
     const res = await jira.searchUsers({
-      username: email,
+      query: email,
       maxResults: 1,
     });
 
@@ -79,22 +114,19 @@ async function convertEmail(email) {
       return undefined;
     }
 
-    return res[0].name;
+    return res[0].accountId || res[0].name;
   } catch (ex) {
     console.log("Querying username failed", ex);
-    return systemUser;
+    return getSystemAccountId();
   }
 }
 
 async function resolveHelpRequest(jiraId) {
   try {
-    await jira.transitionIssue(jiraId, {
-      transition: {
-        id: jiraDoneTransitionId,
-      },
-    });
+    await updateIssueStatus(jiraId, "Done");
   } catch (err) {
     console.log("Error resolving help request in jira", err);
+    throw err;
   }
 }
 
@@ -277,12 +309,20 @@ async function search(jqlQuery, startAt, fields) {
   }
 }
 
+async function searchForAnalysis(jqlQuery, startAt, fields) {
+  return jira.searchJira(jqlQuery, {
+    fields,
+    maxResults: 750,
+    startAt,
+  });
+}
+
 async function assignHelpRequest(issueId, email) {
   /** @type {string} */
   const user = await convertEmail(email);
 
   try {
-    await jira.updateAssignee(issueId, user);
+    await jira.updateAssigneeWithId(issueId, user);
   } catch (err) {
     console.log("Error assigning help request in jira", issueId, err);
   }
@@ -333,9 +373,7 @@ async function createHelpRequestInJira(
       },
       labels: ["created-from-slack", ...labels],
       description: undefined,
-      reporter: {
-        name: user, // API docs say ID, but our jira version doesn't have that field yet, may need to change in future
-      },
+      ...(user ? { reporter: { accountId: user } } : {}),
     },
   });
 }
@@ -364,11 +402,12 @@ async function createHelpRequest({
       issueType,
     );
   } catch (err) {
-    // in case the user doesn't exist in Jira use the system user
+    const fallbackAccountId = await getSystemAccountId();
+
     result = await createHelpRequestInJira(
       summary,
       project,
-      systemUser,
+      fallbackAccountId,
       labels,
       issueType,
     );
@@ -417,19 +456,19 @@ async function addCommentToHelpRequest(externalSystemId, fields) {
 
 async function addCommentToHelpRequestResolve(
   externalSystemId,
-  { category, how },
+  { category, subCategory, how },
 ) {
   try {
     await jira.addComment(
       externalSystemId,
-      createResolveComment({ category, how }),
+      createResolveComment({ category, subCategory, how }),
     );
   } catch (err) {
     console.log("Error creating comment in jira", externalSystemId, err);
   }
 }
 
-async function addLabel(externalSystemId, { category }) {
+async function addLabel(externalSystemId, { category, subCategory }) {
   try {
     await jira.updateIssue(externalSystemId, {
       update: {
@@ -437,6 +476,13 @@ async function addLabel(externalSystemId, { category }) {
           {
             add: `resolution-${category.toLowerCase().replaceAll(" ", "-")}`,
           },
+          ...(subCategory
+            ? [
+                {
+                  add: `resolution-subcategory-${subCategory.toLowerCase().replaceAll(" ", "-")}`,
+                },
+              ]
+            : []),
         ],
       },
     });
@@ -449,10 +495,41 @@ async function addLabel(externalSystemId, { category }) {
   }
 }
 
-async function searchForInactiveIssues() {
-  const jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress") AND updated <= -30d`;
+const withdrawFailedLabel = "auto-withdraw-failed";
+const INACTIVITY_STAGES = Object.freeze({
+  FIRST_WARNING: "first-warning",
+  SECOND_WARNING: "second-warning",
+  WITHDRAWAL: "withdrawal",
+});
+// Local-only override for testing the notify/withdraw process end-to-end against
+// one known issue instead of whatever currently matches the real inactivity criteria
+const testIssueKey = process.env.JIRA_TEST_ISSUE_KEY;
+const debugInactive = (...args) => {
+  if (testIssueKey) console.log("[inactivity-debug]", ...args);
+};
+
+async function searchForInactiveIssues(days, notificationLabel) {
+  let jqlQuery;
+  if (testIssueKey) {
+    jqlQuery = `key = "${testIssueKey}" AND status NOT IN ("Done", "Withdrawn", "Closed", "Resolved")`;
+  } else {
+    const excludedLabels = [withdrawFailedLabel];
+    const labelFilter = ` AND (labels IS EMPTY OR labels NOT IN (${excludedLabels
+      .map((label) => `"${label}"`)
+      .join(", ")}))`;
+    jqlQuery = `project = ${jiraProject} AND type = "${issueTypeName}" AND status IN ("In Progress")${labelFilter}`;
+  }
+  debugInactive("search", {
+    stage: days,
+    notificationLabel,
+    jqlQuery,
+    firstReminderMs,
+    secondReminderMs,
+    withdrawalMs,
+    botUpdateToleranceMs: BOT_UPDATE_TOLERANCE_MS,
+  });
   try {
-    return await jira.searchJira(jqlQuery, {
+    const results = await jira.searchJira(jqlQuery, {
       fields: [
         "created",
         "description",
@@ -460,13 +537,174 @@ async function searchForInactiveIssues() {
         "updated",
         "status",
         "reporter",
+        "labels",
       ],
     });
+
+    const now = Date.now();
+    debugInactive("jira results", {
+      stage: days,
+      count: results.issues.length,
+      issues: results.issues.map(({ key, fields }) => ({
+        key,
+        updated: fields.updated,
+        labels: fields.labels || [],
+        status: fields.status?.name,
+      })),
+    });
+    const firstToSecondMs = secondReminderMs - firstReminderMs;
+    const secondToWithdrawalMs = withdrawalMs - secondReminderMs;
+    const prefix = notificationLabel;
+    results.issues = results.issues.filter((issue) => {
+      const labels = issue.fields.labels || [];
+      if (labels.includes(withdrawFailedLabel)) return false;
+      const statusName = issue.fields.status?.name?.toLowerCase();
+      if (
+        days === INACTIVITY_STAGES.WITHDRAWAL &&
+        (labels.includes("auto-withdrawn") ||
+          ["done", "withdrawn", "closed", "resolved"].includes(statusName))
+      ) {
+        debugInactive("skipping terminal issue", {
+          key: issue.key,
+          status: issue.fields.status?.name,
+        });
+        return false;
+      }
+
+      const updatedAt = new Date(issue.fields.updated).getTime();
+      const age = now - updatedAt;
+      const normalizeLabelPrefix = (labelPrefix) =>
+        labelPrefix.replace(/-+$/, "");
+      const getLabelTime = (labelPrefix) => {
+        const normalizedPrefix = normalizeLabelPrefix(labelPrefix);
+        const timestamps = labels
+          .filter((item) => item.startsWith(`${normalizedPrefix}-`))
+          .map((item) => Number(item.slice(normalizedPrefix.length + 1)))
+          .filter(Number.isFinite);
+        return timestamps.length ? Math.max(...timestamps) : undefined;
+      };
+      const currentNotifiedAt = prefix ? getLabelTime(prefix) : undefined;
+      const currentLabelActive =
+        (prefix && labels.includes(prefix)) ||
+        (currentNotifiedAt !== undefined &&
+          updatedAt <= currentNotifiedAt + BOT_UPDATE_TOLERANCE_MS);
+
+      if (days === INACTIVITY_STAGES.FIRST_WARNING) {
+        const eligible =
+          !currentLabelActive &&
+          age >= firstReminderMs &&
+          age < secondReminderMs;
+        debugInactive("eligibility", {
+          key: issue.key,
+          stage: days,
+          ageMs: age,
+          ageMinutes: Math.round(age / 60000),
+          updated: issue.fields.updated,
+          labels,
+          currentLabelActive,
+          eligible,
+        });
+        return eligible;
+      }
+
+      const previousPrefix =
+        days === INACTIVITY_STAGES.SECOND_WARNING
+          ? "inactivity-notified-first-warning"
+          : "inactivity-notified-second-warning";
+      const previousLabelTime = getLabelTime(previousPrefix);
+      const previousLabelActive =
+        previousLabelTime !== undefined &&
+        updatedAt <= previousLabelTime + BOT_UPDATE_TOLERANCE_MS;
+      const notifiedAt = previousLabelActive ? previousLabelTime : undefined;
+      const baselineAge = notifiedAt === undefined ? age : now - notifiedAt;
+      const unchangedSinceNotification =
+        notifiedAt === undefined ||
+        updatedAt <= notifiedAt + BOT_UPDATE_TOLERANCE_MS;
+
+      if (days === INACTIVITY_STAGES.SECOND_WARNING) {
+        // If the first reminder label is missing, use the issue age directly.
+        const eligible =
+          !currentLabelActive &&
+          unchangedSinceNotification &&
+          ((notifiedAt !== undefined &&
+            baselineAge >= firstToSecondMs &&
+            baselineAge < withdrawalMs - firstReminderMs) ||
+            (notifiedAt === undefined &&
+              age >= secondReminderMs &&
+              age < withdrawalMs));
+        debugInactive("eligibility", {
+          key: issue.key,
+          stage: days,
+          ageMs: age,
+          ageMinutes: Math.round(age / 60000),
+          updated: issue.fields.updated,
+          labels,
+          previousLabelTime,
+          baselineAge,
+          currentLabelActive,
+          unchangedSinceNotification,
+          eligible,
+        });
+        return eligible;
+      }
+
+      // Reminder labels are useful anchors when a cron run was missed, but
+      // they must not be required for the withdrawal stage. Fall back to the
+      // issue's current age when no prior reminder label exists.
+      const eligible =
+        unchangedSinceNotification &&
+        ((notifiedAt !== undefined && baselineAge >= secondToWithdrawalMs) ||
+          (notifiedAt === undefined && age >= withdrawalMs));
+      debugInactive("eligibility", {
+        key: issue.key,
+        stage: days,
+        ageMs: age,
+        ageMinutes: Math.round(age / 60000),
+        now,
+        updated: issue.fields.updated,
+        labels,
+        previousLabelTime,
+        baselineAge,
+        botUpdateToleranceMs: BOT_UPDATE_TOLERANCE_MS,
+        secondToWithdrawalMs,
+        unchangedSinceNotification,
+        eligible,
+      });
+      return eligible;
+    });
+    return results;
   } catch (err) {
     console.log("Error searching for issues in jira", err);
     return {
       issues: [],
     };
+  }
+}
+
+async function addInactivityNotificationLabel(
+  issueId,
+  label,
+  existingLabels = [],
+) {
+  try {
+    const labelPrefix = label.replace(/-\d+$/, "");
+    const labelsToReplace = existingLabels.filter(
+      (item) => item === labelPrefix || item.startsWith(`${labelPrefix}-`),
+    );
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          ...labelsToReplace.map((item) => ({ remove: item })),
+          {
+            add: label,
+          },
+        ],
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log(`Error adding label to issue ${issueId} in jira`, err);
+    return false;
   }
 }
 
@@ -511,16 +749,61 @@ async function withdrawIssue(issueId) {
   });
 }
 
+// Marks an issue so it's excluded from future withdrawal attempts, since a failed
+// transition (e.g. a Jira workflow config error) will otherwise be retried every run
+async function addWithdrawFailedLabel(issueId) {
+  try {
+    await jira.updateIssue(issueId, {
+      update: {
+        labels: [
+          {
+            add: withdrawFailedLabel,
+          },
+        ],
+      },
+    });
+  } catch (err) {
+    console.log(
+      `Error adding withdraw-failed label to issue ${issueId} in jira`,
+      err,
+    );
+  }
+}
+
+async function updateIssueStatus(issueId, statusName) {
+  const transitions = await jira.listTransitions(issueId);
+  const transition = transitions.transitions?.find(
+    ({ to }) => to?.name?.toLowerCase() === statusName.toLowerCase(),
+  );
+
+  if (!transition) {
+    const availableStatuses = (transitions.transitions ?? [])
+      .map(({ to }) => to?.name)
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `Status "${statusName}" is not available for ${issueId}. Available: ${availableStatuses || "none"}`,
+    );
+  }
+
+  await jira.transitionIssue(issueId, {
+    transition: { id: transition.id },
+  });
+}
+
 // Using fetch to hit API as getUser in jira-client uses different api version with different parameters
 async function getUserByKey(key) {
   const token = config.get("jira.api_token");
+  const credentials = Buffer.from(
+    `${config.get("jira.username")}:${token}`,
+  ).toString("base64");
   try {
     const response = await fetch(
-      `https://tools.hmcts.net/jira/rest/api/2/user?key=${key}`,
+      `${jiraApiUrl.href.replace(/\/+$/, "")}/rest/api/2/user?key=${encodeURIComponent(key)}`,
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer: ${token}`,
+          Authorization: `Basic ${credentials}`,
           Accept: "application/json",
         },
       },
@@ -559,8 +842,13 @@ module.exports.getIssueDescription = getIssueDescription;
 module.exports.markAsDuplicate = markAsDuplicate;
 module.exports.updateHelpRequestType = updateHelpRequestType;
 module.exports.search = search;
+module.exports.searchForAnalysis = searchForAnalysis;
 module.exports.searchForInactiveIssues = searchForInactiveIssues;
+module.exports.INACTIVITY_STAGES = INACTIVITY_STAGES;
+module.exports.addInactivityNotificationLabel = addInactivityNotificationLabel;
 module.exports.withdrawIssue = withdrawIssue;
+module.exports.updateIssueStatus = updateIssueStatus;
 module.exports.addWithdrawnLabel = addWithdrawnLabel;
+module.exports.addWithdrawFailedLabel = addWithdrawFailedLabel;
 module.exports.removeWithdrawnLabel = removeWithdrawnLabel;
 module.exports.getUserByKey = getUserByKey;

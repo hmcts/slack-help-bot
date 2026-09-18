@@ -32,7 +32,6 @@ function mapFieldsToDescription({
   prBuildUrl,
   environment,
   description,
-  analysis,
   followUpAnswers,
   checkedWithTeam,
   slackLink,
@@ -49,8 +48,6 @@ ${optionalField("Environment", environment.text.text)}
 
 ${description}
 
-*Analysis done so far*: ${analysis ?? "None"}
-
 ${formatFollowUpAnswers(followUpAnswers)}
 `;
 }
@@ -64,12 +61,15 @@ ${message}
 `;
 }
 
-function createResolveComment({ category, how }) {
+function createResolveComment({ category, subCategory, how }) {
   return `
 h6. _Ticket resolved - see documented resolution:_
 
 h6. Issue type: 
 ${category}
+
+h6. Sub-category:
+${subCategory || "Other"}
 
 h6. How it was resolved: 
 ${how}

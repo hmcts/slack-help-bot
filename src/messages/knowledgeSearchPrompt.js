@@ -1,10 +1,13 @@
-function knowledgeSearchPromptBlocks() {
+function knowledgeSearchPromptBlocks(
+  promptText = "Which platform do you need support with?",
+) {
   return [
     {
       type: "section",
+      block_id: "knowledge_search_conversation_platform_prompt",
       text: {
         type: "mrkdwn",
-        text: "*In order to give you the best guidance, I need to know what area you need help in.*\n\nPlease select which Platform / area you require assistance in:\n\n• *Crime / CPP* - Crime / Common Platform - CPP\n• *Cloud Native / Other* - Cloud Native Platform (CFT, SDS) - Heritage & All Other Requests",
+        text: promptText,
       },
     },
     {
@@ -12,21 +15,13 @@ function knowledgeSearchPromptBlocks() {
       elements: [
         {
           type: "button",
-          text: {
-            type: "plain_text",
-            text: "Crime / CPP",
-            emoji: true,
-          },
-          action_id: "search_knowledge_store_crime",
+          text: { type: "plain_text", text: "Crime / CPP" },
+          action_id: "knowledge_search_conversation_platform_crime",
         },
         {
           type: "button",
-          text: {
-            type: "plain_text",
-            text: "Cloud Native / Other",
-            emoji: true,
-          },
-          action_id: "search_knowledge_store_non_crime",
+          text: { type: "plain_text", text: "Cloud Native / Other" },
+          action_id: "knowledge_search_conversation_platform_other",
         },
       ],
     },
