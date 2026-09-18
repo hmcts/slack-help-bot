@@ -110,6 +110,34 @@ describe("getDocumentationFromView", () => {
       how: "User was shown the existing self-service route.",
     });
   });
+
+  it("reads a category-specific sub-category action", () => {
+    expect(
+      getDocumentationFromView({
+        private_metadata: "123.456",
+        state: {
+          values: {
+            category_block: {
+              category: {
+                selected_option: {
+                  value: "platform-access",
+                  text: { text: "Platform Access" },
+                },
+              },
+            },
+            subcategory_block_platform_access: {
+              subcategory_platform_access: {
+                selected_option: {
+                  value: "github",
+                  text: { text: "GitHub" },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ).toMatchObject({ category: "Platform Access", subCategory: "GitHub" });
+  });
 });
 
 describe("getDocumentRequestKey", () => {
@@ -158,6 +186,10 @@ describe("updateResolutionSubcategories", () => {
     );
     expect(labels).toContain("Application Gateway");
     expect(labels).not.toContain("Database Updates");
+    expect(updatedView.blocks[0].element.action_id).toBe(
+      "subcategory_platform_one_off_failure",
+    );
+    expect(updatedView.blocks[0].element.initial_option).toBeUndefined();
     expect(updatedView.private_metadata).toContain(
       '"suggested_category_label":"Platform One-Off Failure"',
     );

@@ -125,6 +125,7 @@ function categoryInputBlock({
   return {
     type: "input",
     block_id: isPending ? CATEGORY_PENDING_BLOCK_ID : CATEGORY_BLOCK_ID,
+    dispatch_action: true,
     element: {
       type: "static_select",
       placeholder: {
