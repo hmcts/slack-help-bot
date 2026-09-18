@@ -92,10 +92,36 @@ async function postMarker({
   });
 }
 
+function isSubstantiveUserQuestion(value) {
+  const text = String(value ?? "").trim();
+  return Boolean(
+    text &&
+    !/^(hi|hello|hey|hiya|good morning|good afternoon|good evening)[!.\s]*$/i.test(
+      text,
+    ) &&
+    !/^(crime|cpp|crime\s*\/\s*cpp|cloud native|other|cft|sds)$/i.test(text),
+  );
+}
+
 function originalQuestion(messages, beforeIndex) {
-  return messages
-    .slice(0, beforeIndex)
-    .find((message) => !isBotMessage(message) && messageText(message))
+  const earlierMessages = messages.slice(0, beforeIndex);
+  const platformSelectedIndex = earlierMessages.reduce(
+    (latest, message, index) =>
+      message.metadata?.event_type === "platform_selected" ||
+      message.blocks?.some((block) =>
+        block.block_id?.startsWith("knowledge_search_platform_selected_"),
+      )
+        ? index
+        : latest,
+    -1,
+  );
+  const candidates = earlierMessages.slice(platformSelectedIndex + 1);
+
+  return candidates
+    .find((message) => {
+      if (isBotMessage(message)) return false;
+      return isSubstantiveUserQuestion(messageText(message));
+    })
     ?.text.trim();
 }
 
@@ -433,13 +459,12 @@ function activeClarification(messages) {
     `^${CLARIFICATION_START_PREFIX}(crime|other)(?:_d([01])_j([01]))?$`,
   ).exec(startId);
   const area = payload.area ?? savedState?.[1];
+  const question = isSubstantiveUserQuestion(payload.question)
+    ? payload.question.trim()
+    : originalQuestion(messages, startIndex);
   return {
     startIndex,
-    question:
-      payload.question ??
-      messages.find((message) => !isBotMessage(message) && messageText(message))
-        ?.text ??
-      "",
+    question: question ?? "",
     area,
     docsHadResults:
       payload.docs_had_results === true ||
