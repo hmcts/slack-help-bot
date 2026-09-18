@@ -92,17 +92,6 @@ async function postMarker({
   });
 }
 
-function isSubstantiveUserQuestion(value) {
-  const text = String(value ?? "").trim();
-  return Boolean(
-    text &&
-    !/^(hi|hello|hey|hiya|good morning|good afternoon|good evening)[!.\s]*$/i.test(
-      text,
-    ) &&
-    !/^(crime|cpp|crime\s*\/\s*cpp|cloud native|other|cft|sds)$/i.test(text),
-  );
-}
-
 function originalQuestion(messages, beforeIndex) {
   const earlierMessages = messages.slice(0, beforeIndex);
   const platformSelectedIndex = earlierMessages.reduce(
@@ -118,10 +107,7 @@ function originalQuestion(messages, beforeIndex) {
   const candidates = earlierMessages.slice(platformSelectedIndex + 1);
 
   return candidates
-    .find((message) => {
-      if (isBotMessage(message)) return false;
-      return isSubstantiveUserQuestion(messageText(message));
-    })
+    .find((message) => !isBotMessage(message) && messageText(message))
     ?.text.trim();
 }
 
@@ -459,9 +445,8 @@ function activeClarification(messages) {
     `^${CLARIFICATION_START_PREFIX}(crime|other)(?:_d([01])_j([01]))?$`,
   ).exec(startId);
   const area = payload.area ?? savedState?.[1];
-  const question = isSubstantiveUserQuestion(payload.question)
-    ? payload.question.trim()
-    : originalQuestion(messages, startIndex);
+  const question =
+    payload.question?.trim() || originalQuestion(messages, startIndex);
   return {
     startIndex,
     question: question ?? "",
