@@ -125,6 +125,9 @@ function categoryInputBlock({
   return {
     type: "input",
     block_id: isPending ? CATEGORY_PENDING_BLOCK_ID : CATEGORY_BLOCK_ID,
+    // Emit a block_actions payload immediately when the category changes so
+    // the dependent sub-category select can be rebuilt.
+    dispatch_action: true,
     element: {
       type: "static_select",
       placeholder: {

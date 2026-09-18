@@ -60,16 +60,20 @@ function getSelectedSubCategoryFromView(view) {
     blockId.startsWith(SUBCATEGORY_BLOCK_ID),
   )?.[1];
 
-  return (
-    subCategoryState?.[SUBCATEGORY_ACTION_ID]?.selected_option ||
-    subCategoryState?.[SUBCATEGORY_PENDING_ACTION_ID]?.selected_option
-  );
+  const selectedAction = Object.entries(subCategoryState || {}).find(
+    ([actionId]) =>
+      actionId === SUBCATEGORY_ACTION_ID ||
+      actionId.startsWith(`${SUBCATEGORY_ACTION_ID}_`) ||
+      actionId === SUBCATEGORY_PENDING_ACTION_ID ||
+      actionId.startsWith(`${SUBCATEGORY_PENDING_ACTION_ID}_`),
+  )?.[1];
+
+  return selectedAction?.selected_option;
 }
 
 function getDocumentationFromView(view) {
   const metadata = parseResolvePrivateMetadata(view.private_metadata);
   const selectedCategory = getSelectedCategoryFromView(view);
-  const selectedSubCategory = getSelectedSubCategoryFromView(view);
   const howValue = getHowValueFromView(view);
   const category =
     selectedCategory?.text?.text ||
@@ -77,6 +81,7 @@ function getDocumentationFromView(view) {
     selectedCategory?.value ||
     metadata.suggestedCategory ||
     "Other";
+  const selectedSubCategory = getSelectedSubCategoryFromView(view);
   const requestedSubCategory =
     selectedSubCategory?.text?.text ||
     metadata.suggestedSubCategory ||
@@ -122,6 +127,7 @@ async function updateResolutionSubcategories({ body, action, client }) {
     // Slack preserves input state when block_id and action_id are unchanged.
     // A category-specific block ID forces the subcategory select to refresh.
     subCategoryBlock.block_id = `${subCategoryBlock.block_id}_${categoryId}`;
+    subCategoryBlock.element.action_id = `${subCategoryBlock.element.action_id}_${categoryId}`;
     return subCategoryBlock;
   });
 
