@@ -3,6 +3,7 @@ slack:
   app_token: SLACK_APP_TOKEN
   report_channel_id: SLACK_REPORT_CHANNEL_ID
   report_channel_crime_id: SLACK_REPORT_CHANNEL_CRIME_ID
+  bau_user_group_id: SLACK_BAU_USER_GROUP_ID
 
 jira:
   api_url: JIRA_API_URL
@@ -18,6 +19,9 @@ jira:
   task_issue_type_id: JIRA_TASK_ISSUE_TYPE_ID
   username: JIRA_USERNAME
   api_token: JIRA_API_TOKEN
+  priority_normal_id: JIRA_PRIORITY_NORMAL_ID
+  priority_high_id: JIRA_PRIORITY_HIGH_ID
+  priority_critical_id: JIRA_PRIORITY_CRITICAL_ID
 
 app_insights:
   connection_string: APP_INSIGHTS_CONNECTION_STRING
@@ -34,6 +38,14 @@ search:
   help_requests_index_name: AZURE_SEARCH_HELP_REQUESTS_INDEX_NAME
   knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME
   ops_runbook_index_name: AZURE_SEARCH_OPS_RUNBOOK_INDEX_NAME
+
+confluence:
+  functional_releases_base_url: CONFLUENCE_FUNCTIONAL_RELEASES_BASE_URL
+  functional_releases_parent_id: CONFLUENCE_FUNCTIONAL_RELEASES_PARENT_ID
+  service_catalogue_base_url: CONFLUENCE_SERVICE_CATALOGUE_BASE_URL
+  service_catalogue_page_id: CONFLUENCE_SERVICE_CATALOGUE_PAGE_ID
+  username: CONFLUENCE_USERNAME
+  api_token: CONFLUENCE_API_TOKEN
 
 inactivity:
   first_reminder_ms: INACTIVITY_FIRST_REMINDER_MS

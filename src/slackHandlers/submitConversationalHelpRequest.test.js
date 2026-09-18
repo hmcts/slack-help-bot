@@ -7,6 +7,15 @@ jest.mock("config", () => ({
 jest.mock("../service/persistence", () => ({
   createHelpRequest: jest.fn(),
   updateHelpRequestDescription: jest.fn(),
+  addCommentToHelpRequest: jest.fn(),
+}));
+
+jest.mock("../ai/ai", () => ({
+  assessPriority: jest.fn(),
+}));
+
+jest.mock("./serviceOwnership", () => ({
+  triageCriticalOwnership: jest.fn(),
 }));
 
 jest.mock("../service/cosmos", () => ({
@@ -29,12 +38,18 @@ const {
 } = require("../service/persistence");
 const { createHelpRequestInCosmos } = require("../service/cosmos");
 const { lookupUsersEmail } = require("./utils/lookupUser");
+const { assessPriority } = require("../ai/ai");
 const {
   submitConversationalHelpRequest,
 } = require("./submitConversationalHelpRequest");
 
 describe("submitConversationalHelpRequest", () => {
   it("creates the Jira request, operations thread and conversational receipt", async () => {
+    assessPriority.mockResolvedValue({
+      priority: "normal",
+      confidence: "high",
+      reasons: [],
+    });
     lookupUsersEmail.mockResolvedValue("user@example.com");
     createHelpRequest.mockResolvedValue("DTSPO-123");
     createHelpRequestInCosmos.mockResolvedValue(undefined);
@@ -76,7 +91,13 @@ describe("submitConversationalHelpRequest", () => {
     expect(createHelpRequest).toHaveBeenCalledWith({
       summary: "Preview unavailable",
       userEmail: "user@example.com",
-      labels: ["area-aks", "team-ccd", "platform-area-non-crime"],
+      labels: [
+        "area-aks",
+        "team-ccd",
+        "priority-normal",
+        "platform-area-non-crime",
+      ],
+      priority: "normal",
     });
     expect(updateHelpRequestDescription).toHaveBeenCalledWith(
       "DTSPO-123",

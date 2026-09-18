@@ -5,6 +5,7 @@ const {
 const {
   createHelpRequest,
   updateHelpRequestDescription,
+  addCommentToHelpRequest,
 } = require("../service/persistence");
 const { lookupUsersEmail } = require("./utils/lookupUser");
 const { createHelpRequestInCosmos } = require("../service/cosmos");
@@ -13,6 +14,8 @@ const { checkSlackResponseError } = require("./errorHandling");
 const { uuidv7 } = require("uuidv7");
 const config = require("config");
 const appInsights = require("../modules/appInsights");
+const { assessPriority } = require("../ai/ai");
+const { triageCriticalOwnership } = require("./serviceOwnership");
 
 const reportChannelId = config.get("slack.report_channel_id");
 const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
@@ -29,6 +32,33 @@ async function submitConversationalHelpRequest({
   platformArea,
   helpRequest,
 }) {
+  let priorityAssessment = {
+    priority: "normal",
+    confidence: "low",
+    reasons: [],
+  };
+  try {
+    priorityAssessment = await assessPriority(
+      `${helpRequest.summary}\n${helpRequest.description}\n${helpRequest.analysis || ""}`,
+    );
+  } catch (error) {
+    console.error("Unable to assess conversational request priority", {
+      message: error.message,
+    });
+  }
+  const priority = priorityAssessment.priority;
+  const priorityOption = {
+    value: priority,
+    text: {
+      type: "plain_text",
+      text: priority.charAt(0).toUpperCase() + priority.slice(1),
+    },
+  };
+  const enrichedHelpRequest = {
+    ...helpRequest,
+    priority: priorityOption,
+    priorityReasons: priorityAssessment.reasons,
+  };
   const userEmail = await lookupUsersEmail({ user: userId, client });
   const jiraId = await createHelpRequest({
     summary: helpRequest.summary,
@@ -36,10 +66,12 @@ async function submitConversationalHelpRequest({
     labels: [
       cleanLabel(`area-${helpRequest.area.value}`),
       cleanLabel(`team-${helpRequest.team.value}`),
+      cleanLabel(`priority-${priority}`),
       platformArea === "crime"
         ? "platform-area-crime"
         : "platform-area-non-crime",
     ],
+    priority,
   });
 
   const reportChannel =
@@ -48,7 +80,7 @@ async function submitConversationalHelpRequest({
     channel: reportChannel,
     text: "New platform help request raised",
     blocks: helpRequestMainBlocks({
-      ...helpRequest,
+      ...enrichedHelpRequest,
       user: userId,
       jiraId,
       area: platformArea,
@@ -63,7 +95,7 @@ async function submitConversationalHelpRequest({
     channel: reportChannel,
     thread_ts: mainRes.message.ts,
     text: "Help request details",
-    blocks: helpRequestDetailBlocks(helpRequest),
+    blocks: helpRequestDetailBlocks(enrichedHelpRequest),
   });
   checkSlackResponseError(
     detailsRes,
@@ -78,7 +110,7 @@ async function submitConversationalHelpRequest({
   ).permalink;
 
   await updateHelpRequestDescription(jiraId, {
-    ...helpRequest,
+    ...enrichedHelpRequest,
     slackLink: permalink,
   });
 
@@ -104,6 +136,7 @@ async function submitConversationalHelpRequest({
       created_at: new Date(),
       key: jiraId,
       status: "Open",
+      priority,
       area: platformArea,
       title: helpRequest.summary,
       description: helpRequest.description,
@@ -115,6 +148,23 @@ async function submitConversationalHelpRequest({
       "Help request was created but could not be recorded in Cosmos",
       error,
     );
+  }
+
+  if (priority === "critical") {
+    await triageCriticalOwnership({
+      event: { channel: mainRes.channel, text: helpRequest.description },
+      rootMessage: mainRes.message,
+      threadMessages: [
+        {
+          bot_id: "slack-help-bot",
+          blocks: helpRequestDetailBlocks(enrichedHelpRequest),
+        },
+      ],
+      client,
+      jiraId,
+      slackLink: permalink,
+      addJiraComment: addCommentToHelpRequest,
+    });
   }
 
   appInsights.trackEvent("Submitted help request", { key: jiraId });

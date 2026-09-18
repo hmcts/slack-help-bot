@@ -16,6 +16,15 @@ jest.mock("./utils/lookupUser", () => ({
   lookupUsersName: jest.fn(),
 }));
 
+jest.mock("./helpRequestPriority", () => ({
+  monitorThreadPriority: jest.fn(),
+}));
+jest.mock("./releaseFollowUp", () => ({
+  followUpWithReleaseNotes: jest.fn(),
+}));
+jest.mock("./serviceOwnership", () => ({
+  triageCriticalOwnership: jest.fn(),
+}));
 jest.mock("./assistant", () => ({
   handleAgentMessage: jest.fn(),
 }));

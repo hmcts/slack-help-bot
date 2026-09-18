@@ -1,6 +1,7 @@
 const {
   helpFormMainBlocks,
   helpFormRelatedIssuesBlocks,
+  helpFormAnalyticsBlocks,
 } = require("./helpFormMain");
 
 describe("helpFormMainBlocks", () => {
@@ -12,6 +13,30 @@ describe("helpFormMainBlocks", () => {
     });
 
     expect(blocks[0].block_id).toBe("help_form_source_knowledge_search");
+  });
+});
+
+describe("helpFormAnalyticsBlocks priority", () => {
+  it("shows the AI suggestion and allows it to be changed", () => {
+    const blocks = helpFormAnalyticsBlocks({
+      area: "other",
+      helpRequest: {
+        priority: "high",
+        priorityReasons: ["multiple services are affected"],
+      },
+      isAdvanced: true,
+    });
+    const priority = blocks.find(
+      (block) => block.element?.action_id === "priority",
+    );
+
+    expect(priority.element.initial_option.value).toBe("high");
+    expect(priority.element.options.map((option) => option.value)).toEqual([
+      "normal",
+      "high",
+      "critical",
+    ]);
+    expect(priority.hint.text).toContain("multiple services are affected");
   });
 });
 
