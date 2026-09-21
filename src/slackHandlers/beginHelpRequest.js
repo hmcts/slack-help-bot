@@ -4,8 +4,6 @@ const {
   helpGuidanceText,
 } = require("../messages/helpGuidance");
 
-const appInsights = require("../modules/appInsights");
-
 async function sendHelpGuidanceMessage(client, channelId, ts) {
   const message = {
     channel: channelId,
@@ -41,8 +39,6 @@ async function beginHelpRequest({ userId, client }) {
       postMessageResponse,
       "An error occurred when posting a direct message",
     );
-
-    appInsights.trackEvent("Help guidance shown");
   } catch (error) {
     console.error(error);
   }

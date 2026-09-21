@@ -1,8 +1,8 @@
 const { environments, teams, areas } = require("../messages/helpFormData");
+const { recordAnalyticsEvent } = require("../service/analyticsMetrics");
 const {
   submitConversationalHelpRequest,
 } = require("./submitConversationalHelpRequest");
-const appInsights = require("../modules/appInsights");
 
 const START_BLOCK_PREFIX = "help_request_conversation_start_";
 const PROMPT_BLOCK_PREFIX = "help_request_conversation_prompt_";
@@ -820,9 +820,6 @@ async function startConversationalHelpRequest({
       state: draftState,
     });
   }
-  appInsights.trackEvent("Conversational help request started", {
-    area: area ?? "unselected",
-  });
 }
 
 async function handleConversationalHelpReply({ message, client, messages }) {
@@ -834,15 +831,17 @@ async function handleConversationalHelpReply({ message, client, messages }) {
   if (!answer) return true;
 
   if (/^cancel$/i.test(answer)) {
+    await recordAnalyticsEvent({
+      sessionId: `${message.channel}:${threadTs}`,
+      userId: message.user,
+      step: "cancelled",
+    });
     await postMarkedMessage({
       client,
       channelId: message.channel,
       threadTs,
       blockId: "help_request_conversation_cancelled",
       text: "No problem — I cancelled this help request and closed the thread. Start a new message whenever you need help.",
-    });
-    appInsights.trackEvent("Conversational help request cancelled", {
-      area: session.platformArea,
     });
     return true;
   }
@@ -922,11 +921,23 @@ async function handleConversationalHelpReply({ message, client, messages }) {
   }
   const selectedPlatformArea =
     state.platformArea?.value ?? session.platformArea;
-  appInsights.trackEvent("Conversational help request step completed", {
+  const sessionId = `${message.channel}:${threadTs}`;
+  await recordAnalyticsEvent({
+    sessionId,
+    userId: message.user,
+    step: "field_completed",
+    stepValue: step,
     area: selectedPlatformArea,
-    step,
   });
   const followingStep = nextStep(state) ?? "confirmation";
+  if (followingStep === "confirmation") {
+    await recordAnalyticsEvent({
+      sessionId,
+      userId: message.user,
+      step: "review_shown",
+      area: selectedPlatformArea,
+    });
+  }
   await postPrompt({
     client,
     channelId: message.channel,

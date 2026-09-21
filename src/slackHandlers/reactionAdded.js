@@ -1,5 +1,4 @@
 const { feedback } = require("./appMention");
-const appInsights = require("../modules/appInsights");
 
 const positiveReactions = ["thumbsup", "+1"];
 const negativeReactions = ["thumbsdown", "-1"];
@@ -22,11 +21,6 @@ async function reactionAdded(event, client) {
       const result = await client.bots.info({ bot: message.bot_profile.id });
 
       if (message.bot_profile.id === result.bot.id) {
-        if (positiveReactions.includes(event.reaction)) {
-          appInsights.trackEvent("Thread summary positive feedback");
-        } else if (negativeReactions.includes(event.reaction)) {
-          appInsights.trackEvent("Thread summary negative feedback");
-        }
       }
     }
   } catch (err) {

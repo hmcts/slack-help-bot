@@ -18,7 +18,6 @@ const config = require("config");
 const { createHelpRequestInCosmos } = require("../service/cosmos");
 const { uuidv7 } = require("uuidv7");
 const { deleteCacheEntry } = require("./utils/aiCache");
-const appInsights = require("../modules/appInsights");
 
 /** @type {string} */
 const reportChannelId = config.get("slack.report_channel_id");
@@ -349,8 +348,6 @@ async function submitHelpRequest(body, client, area) {
       ticket_type: "support",
       url: permaLink,
     });
-
-    appInsights.trackEvent("Submitted help request", { key: jiraId });
 
     deleteCacheEntry(helpRequest, area);
   } catch (error) {

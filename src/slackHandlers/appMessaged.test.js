@@ -1,7 +1,3 @@
-jest.mock("../modules/appInsights", () => ({
-  trackEvent: jest.fn(),
-}));
-
 jest.mock("config", () => ({
   get: jest.fn((key) => key),
 }));

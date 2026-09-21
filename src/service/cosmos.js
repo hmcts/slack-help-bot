@@ -129,6 +129,12 @@ async function createHelpRequestInCosmos(item) {
   await container.items.create(truncateSearchableFields(item));
 }
 
+async function upsertAnalyticsEventInCosmos(item) {
+  const container = getContainer();
+
+  await container.items.upsert(item);
+}
+
 async function updateHelpRequestInCosmos(item) {
   const container = getContainer();
 
@@ -199,4 +205,5 @@ async function updateHelpRequestInCosmos(item) {
 module.exports.load = load;
 module.exports.updateHelpRequestInCosmos = updateHelpRequestInCosmos;
 module.exports.createHelpRequestInCosmos = createHelpRequestInCosmos;
+module.exports.upsertAnalyticsEventInCosmos = upsertAnalyticsEventInCosmos;
 module.exports.truncateUtf8Bytes = truncateUtf8Bytes;

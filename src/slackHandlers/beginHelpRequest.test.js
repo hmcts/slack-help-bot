@@ -1,7 +1,3 @@
-jest.mock("../modules/appInsights", () => ({
-  trackEvent: jest.fn(),
-}));
-
 const { beginHelpRequest } = require("./beginHelpRequest");
 
 describe("beginHelpRequest", () => {
