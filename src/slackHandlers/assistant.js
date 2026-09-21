@@ -18,6 +18,7 @@ const {
   handleDocumentationFeedback,
   handleJiraFeedback,
 } = require("./conversationEscalation");
+const { recordAnalyticsEvent } = require("../service/analyticsMetrics");
 
 const HISTORY_WINDOW_MS = 30 * 60 * 1000;
 const MAX_HISTORY_TURNS = 8;
@@ -341,12 +342,25 @@ async function handleConversationMessage({
 
   try {
     const threadMessages = await getThreadMessages(client, message);
-    if (isClosedConversation(threadMessages)) {
-      return;
-    }
+    const threadTs = message.thread_ts ?? message.ts;
     const currentIndex = threadMessages.findIndex(
       (item) => item.ts === message.ts,
     );
+    const sessionId = `${message.channel}:${threadTs}`;
+    if (
+      !threadMessages
+        .slice(0, currentIndex < 0 ? threadMessages.length : currentIndex)
+        .some((item) => !isBotMessage(item))
+    ) {
+      await recordAnalyticsEvent({
+        sessionId,
+        userId: message.user,
+        step: "conversation_started",
+      });
+    }
+    if (isClosedConversation(threadMessages)) {
+      return;
+    }
     if (
       currentIndex >= 0 &&
       threadMessages.slice(currentIndex + 1).some(isBotMessage)
@@ -432,6 +446,13 @@ async function handleConversationMessage({
     }
 
     if (pendingPlatform && selectedPlatformArea && !pendingPlatform.question) {
+      await recordAnalyticsEvent({
+        sessionId,
+        userId: message.user,
+        step: "platform_selected",
+        stepValue: selectedPlatformArea,
+        area: selectedPlatformArea,
+      });
       await say({
         text: "What issue can I help with?",
         blocks: [
@@ -466,6 +487,11 @@ async function handleConversationMessage({
         question,
       )
     ) {
+      await recordAnalyticsEvent({
+        sessionId,
+        userId: message.user,
+        step: "help_request_started",
+      });
       await setTitle("Platform help request");
       await startConversationalHelpRequest({
         client,
@@ -506,6 +532,12 @@ async function handleConversationMessage({
     });
 
     if (result.resultCount === 0) {
+      await recordAnalyticsEvent({
+        sessionId,
+        userId: message.user,
+        step: "documentation_no_results",
+        area,
+      });
       await say({
         text: "I couldn’t find a relevant answer in HMCTS documentation. I’ll check similar JIRA tickets next.",
         blocks: [
@@ -526,10 +558,18 @@ async function handleConversationMessage({
         question: searchQuestion,
         area,
         docsHadResults: false,
+        userId: message.user,
       });
       return;
     }
 
+    await recordAnalyticsEvent({
+      sessionId,
+      userId: message.user,
+      step: "documentation_results_shown",
+      stepValue: String(result.resultCount),
+      area,
+    });
     await streamKnowledgeAnswer({
       client,
       channel: message.channel,

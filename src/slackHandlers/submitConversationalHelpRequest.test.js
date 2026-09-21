@@ -11,14 +11,11 @@ jest.mock("../service/persistence", () => ({
 
 jest.mock("../service/cosmos", () => ({
   createHelpRequestInCosmos: jest.fn(),
+  upsertAnalyticsEventInCosmos: jest.fn(),
 }));
 
 jest.mock("./utils/lookupUser", () => ({
   lookupUsersEmail: jest.fn(),
-}));
-
-jest.mock("../modules/appInsights", () => ({
-  trackEvent: jest.fn(),
 }));
 
 jest.mock("uuidv7", () => ({ uuidv7: () => "uuid-1" }));
