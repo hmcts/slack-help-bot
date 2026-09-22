@@ -117,8 +117,15 @@ async function submitConversationalHelpRequest({
     );
   }
 
+  const sessionId = `${channelId}:${threadTs}`;
   await recordAnalyticsEvent({
-    sessionId: `${channelId}:${threadTs}`,
+    sessionId,
+    userId,
+    step: "review_shown",
+    area: platformArea,
+  });
+  await recordAnalyticsEvent({
+    sessionId,
     userId,
     step: "ticket_created",
     area: platformArea,
