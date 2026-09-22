@@ -445,7 +445,7 @@ async function handleConversationMessage({
       return;
     }
 
-    if (pendingPlatform && selectedPlatformArea && !pendingPlatform.question) {
+    if (pendingPlatform && selectedPlatformArea) {
       await recordAnalyticsEvent({
         sessionId,
         userId: message.user,
