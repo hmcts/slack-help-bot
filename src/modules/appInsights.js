@@ -19,17 +19,4 @@ const enableAppInsights = () => {
   }
 };
 
-const client = () => {
-  return appInsights.defaultClient;
-};
-
-const trackEvent = (eventName, properties) => {
-  if (isEnabled()) {
-    appInsights.defaultClient.trackEvent({
-      name: eventName,
-      properties: properties,
-    });
-  }
-};
-
-module.exports = { enableAppInsights, client, trackEvent };
+module.exports = { enableAppInsights };

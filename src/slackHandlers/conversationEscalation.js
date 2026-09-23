@@ -13,6 +13,7 @@ const { stringTrim } = require("../messages/util");
 const {
   startConversationalHelpRequest,
 } = require("./conversationalHelpRequest");
+const { recordAnalyticsEvent } = require("../service/analyticsMetrics");
 
 const DOCUMENTATION_FEEDBACK_PREFIX = "knowledge_search_conversation_feedback_";
 const JIRA_FEEDBACK_PREFIX = "jira_search_conversation_feedback_";
@@ -357,6 +358,7 @@ async function askNextQuestion({
   threadTs,
   session,
   answers,
+  userId,
 }) {
   if (answers.length >= MAX_CLARIFICATION_QUESTIONS) {
     await retrySearchesAndStartTicket({
@@ -365,6 +367,7 @@ async function askNextQuestion({
       threadTs,
       session,
       answers,
+      userId,
     });
     return;
   }
@@ -397,6 +400,7 @@ async function askNextQuestion({
       threadTs,
       session,
       answers,
+      userId,
     });
     return;
   }
@@ -527,6 +531,7 @@ async function retrySearchesAndStartTicket({
   threadTs,
   session,
   answers,
+  userId,
 }) {
   await postMarker({
     client,
@@ -639,6 +644,12 @@ async function retrySearchesAndStartTicket({
     initialRecommendations,
     followUpAnswers: answers,
   });
+  await recordAnalyticsEvent({
+    sessionId: `${channelId}:${threadTs}`,
+    userId,
+    step: "help_request_started",
+    area: session.area,
+  });
 }
 
 async function searchJiraOrClarify({
@@ -648,6 +659,7 @@ async function searchJiraOrClarify({
   question,
   area,
   docsHadResults,
+  userId,
 }) {
   let issues = [];
   try {
@@ -663,6 +675,12 @@ async function searchJiraOrClarify({
   }
 
   if (issues.length === 0) {
+    await recordAnalyticsEvent({
+      sessionId: `${channelId}:${threadTs}`,
+      userId,
+      step: "jira_no_results",
+      area,
+    });
     await postMarker({
       client,
       channelId,
@@ -683,6 +701,13 @@ async function searchJiraOrClarify({
   }
 
   const text = relatedHelpRequestResultsText(issues);
+  await recordAnalyticsEvent({
+    sessionId: `${channelId}:${threadTs}`,
+    userId,
+    step: "jira_results_shown",
+    stepValue: String(issues.length),
+    area,
+  });
   await client.chat.postMessage({
     channel: channelId,
     thread_ts: threadTs,
@@ -707,6 +732,7 @@ async function continueAfterDocumentation({
   question,
   area,
   docsHadResults,
+  userId,
 }) {
   await searchJiraOrClarify({
     client,
@@ -715,6 +741,7 @@ async function continueAfterDocumentation({
     question,
     area,
     docsHadResults,
+    userId,
   });
 }
 
@@ -753,6 +780,7 @@ async function handleDocumentationFeedback({ message, client, messages }) {
       payload.question ?? originalQuestion(messages, stage.index) ?? answer,
     area: payload.area ?? stage.area,
     docsHadResults: (payload.result_count ?? 1) > 0,
+    userId: message.user,
   });
   return true;
 }
@@ -874,6 +902,7 @@ async function handleClarificationReply({ message, client, messages }) {
       threadTs: message.thread_ts ?? message.ts,
       session,
       answers: previousAnswers,
+      userId: message.user,
     });
     return true;
   }
@@ -891,6 +920,7 @@ async function handleClarificationReply({ message, client, messages }) {
     threadTs: message.thread_ts ?? message.ts,
     session,
     answers,
+    userId: message.user,
   });
   return true;
 }

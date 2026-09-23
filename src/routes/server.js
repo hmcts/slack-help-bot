@@ -1,11 +1,4 @@
 const http = require("http");
-const fastStartup = process.env.FAST_STARTUP === "true";
-
-let appInsights;
-if (!fastStartup) {
-  appInsights = require("../modules/appInsights");
-}
-
 function requestListener(app) {
   return (req, res) => {
     if (req.method !== "GET") {

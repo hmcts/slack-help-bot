@@ -12,7 +12,7 @@ const { convertJiraKeyToUrl } = require("../messages/util");
 const { checkSlackResponseError } = require("./errorHandling");
 const { uuidv7 } = require("uuidv7");
 const config = require("config");
-const appInsights = require("../modules/appInsights");
+const { recordAnalyticsEvent } = require("../service/analyticsMetrics");
 
 const reportChannelId = config.get("slack.report_channel_id");
 const reportChannelCrimeId = config.get("slack.report_channel_crime_id");
@@ -117,7 +117,20 @@ async function submitConversationalHelpRequest({
     );
   }
 
-  appInsights.trackEvent("Submitted help request", { key: jiraId });
+  const sessionId = `${channelId}:${threadTs}`;
+  await recordAnalyticsEvent({
+    sessionId,
+    userId,
+    step: "review_shown",
+    area: platformArea,
+  });
+  await recordAnalyticsEvent({
+    sessionId,
+    userId,
+    step: "ticket_created",
+    area: platformArea,
+    ticketKey: jiraId,
+  });
   return { jiraId, permalink };
 }
 
