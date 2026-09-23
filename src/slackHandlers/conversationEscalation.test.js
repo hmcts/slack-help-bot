@@ -384,6 +384,63 @@ describe("conversation escalation funnel", () => {
     );
   });
 
+  it("skips an opening greeting when recovering the issue description", async () => {
+    followUpQuestions.mockResolvedValue([
+      { question: "Which service is affected?", placeholder: "Service" },
+    ]);
+    const messages = [
+      user("1", "Hi"),
+      {
+        ts: "2",
+        bot_id: "B1",
+        metadata: {
+          event_type: "platform_selected",
+          event_payload: { area: "other" },
+        },
+        blocks: [
+          {
+            type: "context",
+            block_id: "knowledge_search_platform_selected_other",
+          },
+        ],
+      },
+      user("3", "Preview deployment for payments returns HTTP 503"),
+      {
+        ts: "4",
+        bot_id: "B1",
+        text: "I need some further information to help you.",
+        blocks: [
+          { type: "section", block_id: "help_clarification_start_other" },
+        ],
+      },
+      {
+        ts: "5",
+        bot_id: "B1",
+        text: "What have you already checked or tried?",
+        blocks: [
+          { type: "section", block_id: "help_clarification_question_1" },
+        ],
+      },
+      user("6", "Checked the deployment logs"),
+    ];
+    const slack = client();
+
+    await handleClarificationReply({
+      message: { ...messages.at(-1), channel: "D1", thread_ts: "1" },
+      client: slack,
+      messages,
+    });
+
+    expect(followUpQuestions).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Preview deployment for payments returns HTTP 503",
+      ),
+    );
+    expect(followUpQuestions).not.toHaveBeenCalledWith(
+      expect.stringContaining("Original request:\nHi"),
+    );
+  });
+
   it("stops at three questions, retries only empty sources, then starts ticket intake", async () => {
     searchHelpRequests.mockResolvedValue([
       { key: "DTSPO-2", title: "Matching issue", resolution: "Known fix" },
