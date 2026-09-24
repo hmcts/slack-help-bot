@@ -453,33 +453,35 @@ async function handleConversationMessage({
         stepValue: selectedPlatformArea,
         area: selectedPlatformArea,
       });
-      await say({
-        text: "What issue can I help with?",
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "What issue can I help with?",
-            },
-          },
-          {
-            type: "context",
-            block_id: `knowledge_search_platform_selected_${selectedPlatformArea}`,
-            elements: [
-              {
+      if (!pendingPlatform.question) {
+        await say({
+          text: "What issue can I help with?",
+          blocks: [
+            {
+              type: "section",
+              text: {
                 type: "mrkdwn",
-                text: `Platform selected: *${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}*`,
+                text: "What issue can I help with?",
               },
-            ],
+            },
+            {
+              type: "context",
+              block_id: `knowledge_search_platform_selected_${selectedPlatformArea}`,
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: `Platform selected: *${selectedPlatformArea === "crime" ? "Crime / CPP" : "Cloud Native / Other"}*`,
+                },
+              ],
+            },
+          ],
+          metadata: {
+            event_type: "platform_selected",
+            event_payload: { area: selectedPlatformArea },
           },
-        ],
-        metadata: {
-          event_type: "platform_selected",
-          event_payload: { area: selectedPlatformArea },
-        },
-      });
-      return;
+        });
+        return;
+      }
     }
 
     if (

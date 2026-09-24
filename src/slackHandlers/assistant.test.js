@@ -2,6 +2,20 @@ jest.mock("../service/conversationKnowledge", () => ({
   answerConversation: jest.fn(),
 }));
 
+jest.mock("../messages/knowledgeSearchAnswer", () => ({
+  knowledgeSearchAnswerBlocks: jest.fn(({ answer, area }) => [
+    {
+      type: "section",
+      block_id: `knowledge_search_context_${area}`,
+      text: { type: "mrkdwn", text: answer },
+    },
+  ]),
+}));
+
+jest.mock("../service/analyticsMetrics", () => ({
+  recordAnalyticsEvent: jest.fn(),
+}));
+
 jest.mock("../service/conversationOrchestrator", () => ({
   orchestrateConversation: jest
     .fn()
@@ -226,6 +240,62 @@ describe("Slack assistant", () => {
     expect(client.chat.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ text: "Check the deployment logs." }),
     );
+    expect(client.chat.postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ text: "What issue can I help with?" }),
+    );
+  });
+
+  it("searches the original question after a typed platform selection", async () => {
+    answerConversation.mockResolvedValue({
+      text: "Follow the deployment guide.",
+      resultCount: 1,
+      requiresReadConfirmation: true,
+    });
+    const messages = [
+      { ts: "100.000", user: "U1", text: "How do I deploy my service?" },
+      {
+        ts: "101.000",
+        bot_id: "B1",
+        text: "Which platform do you need support with?",
+        blocks: [
+          {
+            block_id: "knowledge_search_conversation_platform_prompt",
+          },
+        ],
+      },
+      { ts: "102.000", user: "U1", text: "Cloud Native / Other" },
+    ];
+    const say = jest.fn();
+    const client = {
+      conversations: {
+        replies: jest.fn().mockResolvedValue({ messages }),
+      },
+    };
+
+    await handleConversationMessage({
+      message: {
+        ...messages.at(-1),
+        channel: "D1",
+        thread_ts: "100.000",
+      },
+      client,
+      say,
+      setStatus: jest.fn(),
+      setTitle: jest.fn(),
+    });
+
+    expect(answerConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        question: "How do I deploy my service?",
+        area: "other",
+      }),
+    );
+    expect(say).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Follow the deployment guide." }),
+    );
+    expect(say).not.toHaveBeenCalledWith(
+      expect.objectContaining({ text: "What issue can I help with?" }),
+    );
   });
 
   it("answers a follow-up using recent thread history and the saved area", async () => {
@@ -333,6 +403,7 @@ describe("Slack assistant", () => {
       question: "Why is preview failing?",
       area: "other",
       docsHadResults: false,
+      userId: "U1",
     });
     expect(say).toHaveBeenCalledWith(
       expect.objectContaining({
