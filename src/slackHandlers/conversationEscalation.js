@@ -20,7 +20,6 @@ const JIRA_FEEDBACK_PREFIX = "jira_search_conversation_feedback_";
 const CLARIFICATION_START_PREFIX = "help_clarification_start_";
 const CLARIFICATION_QUESTION_PREFIX = "help_clarification_question_";
 const MAX_CLARIFICATION_QUESTIONS = 3;
-const FIRST_CLARIFICATION_QUESTION = "What have you already checked or tried?";
 
 function blockId(message, prefix) {
   return message.blocks?.find((block) => block.block_id?.startsWith(prefix))
@@ -44,6 +43,17 @@ function clarificationQuestion(message) {
     .replace(/^\*?\d+\/\d+\*?\s*·\s*/i, "")
     .split("\n")[0]
     .trim();
+}
+
+function documentationContext(messages, beforeIndex = messages.length) {
+  for (let index = beforeIndex - 1; index >= 0; index -= 1) {
+    const contextBlock = messages[index].blocks?.find((block) =>
+      block.block_id?.startsWith("knowledge_search_context_"),
+    );
+    const text = contextBlock?.text?.text?.trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 function isYes(answer) {
@@ -271,6 +281,8 @@ async function beginClarification({
   area,
   docsHadResults,
   jiraHadResults,
+  documentation,
+  userId,
 }) {
   await postMarker({
     client,
@@ -289,19 +301,19 @@ async function beginClarification({
     },
   });
 
-  await postMarker({
+  await askNextQuestion({
     client,
     channelId,
     threadTs,
-    id: `${CLARIFICATION_QUESTION_PREFIX}1`,
-    text: FIRST_CLARIFICATION_QUESTION,
-    metadata: {
-      event_type: "help_clarification_question",
-      event_payload: {
-        number: 1,
-        question: FIRST_CLARIFICATION_QUESTION,
-      },
+    session: {
+      question,
+      area,
+      docsHadResults,
+      jiraHadResults,
+      documentation,
     },
+    answers: [],
+    userId,
   });
 }
 
@@ -314,6 +326,9 @@ function clarificationInput(session, answers) {
     .join("\n\n");
   return [
     `Original request:\n${session.question}`,
+    session.documentation
+      ? `Documentation already suggested (the user said it did not solve the issue):\n${session.documentation}`
+      : undefined,
     details ? `Information already collected:\n${details}` : undefined,
     "Return only questions whose answers are still missing. Do not repeat any question already asked.",
   ]
@@ -455,6 +470,7 @@ function activeClarification(messages) {
     startIndex,
     question: question ?? "",
     area,
+    documentation: documentationContext(messages, startIndex),
     docsHadResults:
       payload.docs_had_results === true ||
       savedState?.[2] === "1" ||
@@ -659,6 +675,7 @@ async function searchJiraOrClarify({
   question,
   area,
   docsHadResults,
+  documentation,
   userId,
 }) {
   let issues = [];
@@ -696,6 +713,8 @@ async function searchJiraOrClarify({
       area,
       docsHadResults,
       jiraHadResults: false,
+      documentation,
+      userId,
     });
     return;
   }
@@ -732,6 +751,7 @@ async function continueAfterDocumentation({
   question,
   area,
   docsHadResults,
+  documentation,
   userId,
 }) {
   await searchJiraOrClarify({
@@ -741,6 +761,7 @@ async function continueAfterDocumentation({
     question,
     area,
     docsHadResults,
+    documentation,
     userId,
   });
 }
@@ -780,6 +801,7 @@ async function handleDocumentationFeedback({ message, client, messages }) {
       payload.question ?? originalQuestion(messages, stage.index) ?? answer,
     area: payload.area ?? stage.area,
     docsHadResults: (payload.result_count ?? 1) > 0,
+    documentation: documentationContext(messages, stage.index + 1),
     userId: message.user,
   });
   return true;
@@ -820,6 +842,8 @@ async function handleJiraFeedback({ message, client, messages }) {
         .slice(0, stage.index)
         .some((item) => blockId(item, DOCUMENTATION_FEEDBACK_PREFIX)),
     jiraHadResults: true,
+    documentation: documentationContext(messages, stage.index),
+    userId: message.user,
   });
   return true;
 }
@@ -933,4 +957,3 @@ module.exports.searchJiraOrClarify = searchJiraOrClarify;
 module.exports.activeClarification = activeClarification;
 module.exports.collectedClarificationAnswers = collectedClarificationAnswers;
 module.exports.extractUserLinks = extractUserLinks;
-module.exports.INVESTIGATION_QUESTION = FIRST_CLARIFICATION_QUESTION;

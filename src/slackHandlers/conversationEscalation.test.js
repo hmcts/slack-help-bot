@@ -10,6 +10,17 @@ jest.mock("../service/conversationKnowledge", () => ({
 jest.mock("../service/searchHelpRequests", () => ({
   searchHelpRequests: jest.fn(),
 }));
+jest.mock("../messages/knowledgeAnswer", () => ({
+  relatedHelpRequestResultsText: jest.fn(
+    (issues) => `Related tickets: ${issues.map(({ key }) => key).join(", ")}`,
+  ),
+}));
+jest.mock("../messages/util", () => ({
+  stringTrim: jest.fn((value) => value),
+}));
+jest.mock("../service/analyticsMetrics", () => ({
+  recordAnalyticsEvent: jest.fn(),
+}));
 jest.mock("./conversationalHelpRequest", () => ({
   startConversationalHelpRequest: jest.fn(),
 }));
@@ -58,6 +69,11 @@ describe("conversation escalation funnel", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     classifyClarificationReply.mockResolvedValue("answer");
+    answerConversation.mockResolvedValue({
+      text: "No results",
+      resultCount: 0,
+    });
+    searchHelpRequests.mockResolvedValue([]);
     generateTicketSummary.mockResolvedValue(
       "Preview deployment returns HTTP 503",
     );
@@ -172,7 +188,7 @@ describe("conversation escalation funnel", () => {
 
     expect(slack.chat.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining("already checked or tried"),
+        text: "What exact error message do you see?",
         blocks: [
           expect.objectContaining({
             block_id: "help_clarification_question_1",
@@ -180,7 +196,63 @@ describe("conversation escalation funnel", () => {
         ],
       }),
     );
-    expect(followUpQuestions).not.toHaveBeenCalled();
+    expect(followUpQuestions).toHaveBeenCalledWith(
+      expect.stringContaining("Original request:\nPreview is broken"),
+    );
+  });
+
+  it("uses unsuccessful documentation results to generate the first question", async () => {
+    followUpQuestions.mockResolvedValue([
+      { question: "What happened when you ran the documented Flux command?" },
+    ]);
+    const messages = [
+      user("1", "Why is my deployment not reconciling?"),
+      {
+        ts: "2",
+        bot_id: "B1",
+        text: "The documentation recommends reconciling Flux manually.",
+        blocks: [
+          {
+            type: "section",
+            block_id: "knowledge_search_context_other",
+            text: {
+              type: "mrkdwn",
+              text: "The documentation recommends reconciling Flux manually.",
+            },
+          },
+          {
+            type: "section",
+            block_id: "knowledge_search_conversation_feedback_other",
+          },
+        ],
+        metadata: {
+          event_payload: {
+            question: "Why is my deployment not reconciling?",
+            area: "other",
+            result_count: 1,
+          },
+        },
+      },
+      user("3", "no"),
+    ];
+    const slack = client();
+
+    await handleDocumentationFeedback({
+      message: { ...messages.at(-1), channel: "D1", thread_ts: "1" },
+      client: slack,
+      messages,
+    });
+
+    expect(followUpQuestions).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Documentation already suggested (the user said it did not solve the issue):\nThe documentation recommends reconciling Flux manually.",
+      ),
+    );
+    expect(slack.chat.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "What happened when you ran the documented Flux command?",
+      }),
+    );
   });
 
   it("asks AI for the next question after each typed answer", async () => {

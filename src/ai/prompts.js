@@ -173,6 +173,7 @@ Rules:
 - Ask only one thing per question; do not combine multiple requests with "and" or "also".
 - Avoid redundant questions; ask at most one question per category (error text, repro steps, permissions/context, environment etc).
 - Treat the original request and information already collected as known. Do not repeat or rephrase an earlier question.
+- When a documentation answer is supplied, treat it as guidance the user has already seen and said did not solve the issue. Use it to ask a specific question about a relevant prerequisite, mismatch, or observed outcome when that would help diagnose why the guidance did not work. Do not merely ask whether they followed or read the documentation.
 - Before returning a question, compare it with the questions already asked and skip it if it seeks substantially the same information.
 - If no materially new detail is needed, return an empty questions array rather than asking a generic question.
 - If the request is very unclear or high-level, ask what exact action they took and what they expected to happen vs what actually happened.
