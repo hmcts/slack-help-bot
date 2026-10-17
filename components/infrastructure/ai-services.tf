@@ -35,6 +35,12 @@ resource "azapi_resource" "AIServicesConnection" {
   response_export_values = ["*"]
 }
 
+resource "azurerm_key_vault_secret" "jenkins_explain_error_api_key" {
+  name         = "slack-help-bot-ai-services-key"
+  value        = azurerm_ai_services.AIServices.primary_access_key
+  key_vault_id = data.azurerm_key_vault.mgmt_kv.id
+}
+
 removed {
   from = azapi_resource.AIServices
   lifecycle {
