@@ -5,6 +5,13 @@ resource "azurerm_role_assignment" "identity_access_to_ai_services" {
   role_definition_name = "Cognitive Services OpenAI User"
 }
 
+resource "azurerm_role_assignment" "search_identity_access_to_ai_services" {
+  principal_id = azurerm_search_service.this.identity[0].principal_id
+  scope        = azurerm_ai_services.AIServices.id
+
+  role_definition_name = "Cognitive Services User"
+}
+
 data "azuread_group" "platops" {
   display_name     = "DTS Platform Operations"
   security_enabled = true
