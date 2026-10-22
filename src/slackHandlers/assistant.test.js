@@ -128,6 +128,88 @@ describe("Slack assistant", () => {
     expect(answerConversation).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["How do I deploy to the Crime / CPP platform?", "crime"],
+    ["How do I deploy to CloudNative?", "other"],
+  ])(
+    "searches directly when the initial query identifies %s",
+    async (question, area) => {
+      answerConversation.mockResolvedValue({
+        text: "Follow the deployment guide.",
+        resultCount: 1,
+      });
+      const say = jest.fn();
+      const client = {
+        conversations: {
+          replies: jest.fn().mockResolvedValue({
+            messages: [{ ts: "100.000", user: "U1", text: question }],
+          }),
+        },
+      };
+
+      await handleConversationMessage({
+        message: {
+          channel: "D1",
+          thread_ts: "100.000",
+          ts: "100.000",
+          text: question,
+        },
+        client,
+        say,
+        setStatus: jest.fn(),
+        setTitle: jest.fn(),
+      });
+
+      expect(answerConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ question, area }),
+      );
+      expect(say).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "Follow the deployment guide." }),
+      );
+      expect(say).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining(
+            "Which platform do you need support with?",
+          ),
+        }),
+      );
+    },
+  );
+
+  it("asks for a platform when the initial query names conflicting platforms", async () => {
+    const question = "How do I deploy to CPP and Cloud Native?";
+    const say = jest.fn();
+    const client = {
+      conversations: {
+        replies: jest.fn().mockResolvedValue({
+          messages: [{ ts: "100.000", user: "U1", text: question }],
+        }),
+      },
+    };
+
+    await handleConversationMessage({
+      message: {
+        channel: "D1",
+        thread_ts: "100.000",
+        ts: "100.000",
+        text: question,
+      },
+      client,
+      say,
+      setStatus: jest.fn(),
+      setTitle: jest.fn(),
+    });
+
+    expect(answerConversation).not.toHaveBeenCalled();
+    expect(say).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          "Which platform do you need support with?",
+        ),
+      }),
+    );
+  });
+
   it("turns a root agent-view DM into a titled thread", async () => {
     const client = {
       assistant: {
