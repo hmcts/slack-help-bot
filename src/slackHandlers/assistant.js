@@ -316,6 +316,19 @@ function parsePlatformArea(answer) {
   return undefined;
 }
 
+function inferPlatformArea(question) {
+  const crimeMentioned =
+    /\bcrime\s*(?:\/|&|and)\s*cpp\b|\bcpp\b|\bcommon\s+platform\b|\bcrime\s+platform\b/i.test(
+      question,
+    );
+  const otherMentioned = /\bcloud[\s-]*native(?:\s*\/\s*other)?\b/i.test(
+    question,
+  );
+
+  if (crimeMentioned === otherMentioned) return undefined;
+  return crimeMentioned ? "crime" : "other";
+}
+
 async function getThreadMessages(client, message) {
   const threadTs = message.thread_ts ?? message.ts;
   const result = await client.conversations.replies({
@@ -505,7 +518,10 @@ async function handleConversationMessage({
 
     await setStatus("Reading the conversation…");
     const messages = recentMessages(threadMessages);
-    const area = selectedPlatformArea ?? extractAreaFromHistory(messages);
+    const area =
+      selectedPlatformArea ??
+      extractAreaFromHistory(messages) ??
+      (!pendingPlatform ? inferPlatformArea(question) : undefined);
     const searchQuestion = pendingPlatform?.question ?? question;
     if (greetingShown && isGreetingMessage(question)) {
       await say({
