@@ -35,6 +35,7 @@ const {
     getIssueDescription, markAsDuplicate
 } = require("./src/service/persistence");
 const appInsights = require('./src/modules/appInsights')
+const { handleFeePayAgentMessage } = require('./src/slackHandlers/feePayAgent')
 
 appInsights.enableAppInsights()
 
@@ -317,7 +318,12 @@ async function reopenAppHome(client, userId) {
 
 // Publish a App Home
 app.event('app_home_opened', async ({ event, client }) => {
-    await reopenAppHome(client, event.user);
+    // In the Agent messaging experience Slack emits this event for both the
+    // Home and Messages tabs. Keep the Jira dashboard on Home; Messages is the
+    // free-text FeePay Agent surface.
+    if (event.tab === 'home') {
+        await reopenAppHome(client, event.user);
+    }
 });
 
 // Message Shortcut example
@@ -772,6 +778,13 @@ app.event('message', async ({ event, context, client, say }) => {
             bot_id: event.bot_id,
             text: event.text
         }));
+
+        // Agent DMs accept free-text questions. Keep the existing channel
+        // thread mirroring path below for Jira help requests.
+        if (event.channel_type === 'im') {
+            await handleFeePayAgentMessage({ event, client });
+            return;
+        }
 
         // filter unwanted channels in case someone invites the bot to it
         // and only look at threaded messages
