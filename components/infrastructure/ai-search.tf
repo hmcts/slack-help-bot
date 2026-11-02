@@ -45,3 +45,11 @@ resource "azurerm_role_assignment" "github_sync_data_contributor" {
   role_definition_name = "Search Index Data Contributor"
   principal_id         = azurerm_user_assigned_identity.github_sync.principal_id
 }
+
+resource "azurerm_key_vault_access_policy" "github_sync_secrets_reader" {
+  key_vault_id = data.azurerm_key_vault.mgmt_kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_user_assigned_identity.github_sync.principal_id
+
+  secret_permissions = ["Get"]
+}

@@ -27,24 +27,41 @@ jobs:
       - name: "Az CLI login"
         uses: azure/login@v2
         with:
-          client-id: b5e07540-9063-466a-b209-205566156f3e # DTS Developers GitHub Actions ACR Publisher 1
-          tenant-id: 531ff96d-0ae9-462a-8d2d-bec7c0b42082 # HMCTS.NET
+          client-id: ${{ vars.AZURE_SEARCH_SYNC_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - task: AzureKeyVault@2
-        displayName: "Secrets from Key Vault"
-        inputs:
-          runAsPreJob: false
-          ConnectedServiceName: "DTS-CFTPTL-INTSVC"
-          keyVaultName: "cftptl-intsvc"
-          secretsFilter: "jira-cloud-id,jira-username,jira-api-token"
-        uses: azure/secure-file@v1
+      - name: Read Jira credentials from Azure Key Vault
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_secret() {
+            local secret_name="$1"
+            local environment_name="$2"
+            local secret_value
+
+            secret_value="$(az keyvault secret show \
+              --vault-name cftptl-intsvc \
+              --name "$secret_name" \
+              --query value \
+              --output tsv)"
+
+            if [[ -z "$secret_value" ]]; then
+              echo "::error::Azure Key Vault returned an empty value for $secret_name"
+              exit 1
+            fi
+
+            echo "::add-mask::$secret_value"
+            printf '%s=%s\n' "$environment_name" "$secret_value" >> "$GITHUB_ENV"
+          }
+
+          read_secret jira-cloud-id JIRA_CLOUD_ID
+          read_secret jira-username JIRA_USERNAME
+          read_secret jira-api-token JIRA_API_TOKEN
 
       - name: Sync Jira, Confluence, and GitHub sources to Azure AI Search
         run: npm run sync:knowledge
         env:
-          JIRA_CLOUD_ID: $(jira-cloud-id)
-          JIRA_USERNAME: $(jira-username)
-          JIRA_API_TOKEN: $(jira-api-token)
           AZURE_SEARCH_ENDPOINT: ${{ vars.AZURE_SEARCH_ENDPOINT }}
           AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME: ${{ vars.AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME || 'feepay-knowledge-index' }}
