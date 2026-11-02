@@ -164,15 +164,14 @@ async function loadConfluencePages() {
   const cql = `space="${spaceKey}" AND type=page AND status=current AND label="${label}"`;
   const pages = [];
   const headers = atlassianHeaders();
-  let start = 0;
+  let url = `${base}/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=100&expand=body.storage,version`;
 
   while (true) {
-    const url = `${base}/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=100&start=${start}&expand=body.storage,version`;
     const page = await getJson(url, headers);
-    const results = page.results || [];
-    pages.push(...results);
-    if (results.length === 0) break;
-    start += results.length;
+    pages.push(...(page.results || []));
+    const next = page._links?.next;
+    if (!next) break;
+    url = new URL(next.startsWith("/rest/") ? `/wiki${next}` : next, url).href;
   }
 
   return pages.flatMap((page) => {
