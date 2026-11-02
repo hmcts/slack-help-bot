@@ -100,21 +100,21 @@ async function loadJiraIssues() {
   const project = sources.atlassian.jiraProjectKey;
   const label = sources.atlassian.jiraIssueLabel;
   const issues = [];
-  let startAt = 0;
-  let total = 0;
+  let nextPageToken;
   do {
-    const page = await jira.searchJira(
-      `project = ${project} AND labels = "${label}" ORDER BY updated DESC`,
-      {
-        startAt,
+    const uri = jira.makeUri({ pathname: "/search/jql" });
+    const page = await jira.doRequest(jira.makeRequestHeader(uri, {
+      method: "POST",
+      body: {
+        jql: `project = ${project} AND labels = "${label}" ORDER BY updated DESC`,
         maxResults: 100,
         fields: ["summary", "description", "comment", "status", "issuetype", "created", "updated"],
+        ...(nextPageToken ? { nextPageToken } : {}),
       },
-    );
+    }));
     issues.push(...(page.issues || []));
-    total = page.total || 0;
-    startAt += (page.issues || []).length;
-  } while (startAt < total && startAt > 0);
+    nextPageToken = page.nextPageToken;
+  } while (nextPageToken);
 
   const browseUrl = trimTrailingSlash(requiredConfig("jira.browse_url"));
   return issues.flatMap((issue) => {
