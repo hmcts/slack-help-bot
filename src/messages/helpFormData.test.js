@@ -55,6 +55,17 @@ describe("lookupTeam", () => {
       value: "am",
     });
   });
+
+  it("finds Pre-Recorded Evidence for the other platform", () => {
+    expect(lookupTeam("Pre-Recorded Evidence", "other")).toStrictEqual({
+      text: {
+        type: "plain_text",
+        text: "Pre-Recorded Evidence",
+        emoji: true,
+      },
+      value: "pre-recorded-evidence",
+    });
+  });
 });
 
 describe("lookupArea", () => {

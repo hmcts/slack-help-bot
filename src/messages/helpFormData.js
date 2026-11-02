@@ -68,6 +68,7 @@ const teams = (area) => {
     optionBlock("PayBubble"),
     optionBlock("PDDA"),
     optionBlock("PET"),
+    optionBlock("Pre-Recorded Evidence", "pre-recorded-evidence"),
     optionBlock("Private Law", "private-law"),
     optionBlock("Probate"),
     optionBlock("Reference Data", "refdata"),
