@@ -10,12 +10,6 @@ permissions:
 jobs:
   sync-knowledge:
     runs-on: ubuntu-latest
-    env:
-      JIRA_CLOUD_ID: ${{ vars.JIRA_CLOUD_ID }}
-      JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
-      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-      AZURE_SEARCH_ENDPOINT: ${{ vars.AZURE_SEARCH_ENDPOINT }}
-      AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME: ${{ vars.AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME || 'feepay-knowledge-index' }}
 
     steps:
       - name: Check out repository
@@ -37,5 +31,20 @@ jobs:
           tenant-id: 531ff96d-0ae9-462a-8d2d-bec7c0b42082 # HMCTS.NET
           allow-no-subscriptions: true
 
+      - task: AzureKeyVault@2
+        displayName: "Secrets from Key Vault"
+        inputs:
+          runAsPreJob: false
+          ConnectedServiceName: "DTS-CFTPTL-INTSVC"
+          keyVaultName: "cftptl-intsvc"
+          secretsFilter: "jira-cloud-id,jira-username,jira-api-token"
+        uses: azure/secure-file@v1
+
       - name: Sync Jira, Confluence, and GitHub sources to Azure AI Search
         run: npm run sync:knowledge
+        env:
+          JIRA_CLOUD_ID: $(jira-cloud-id)
+          JIRA_USERNAME: $(jira-username)
+          JIRA_API_TOKEN: $(jira-api-token)
+          AZURE_SEARCH_ENDPOINT: ${{ vars.AZURE_SEARCH_ENDPOINT }}
+          AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME: ${{ vars.AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME || 'feepay-knowledge-index' }}
