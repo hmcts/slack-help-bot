@@ -6,12 +6,19 @@ function textOf(message) {
 
 async function loadConversation(client, message, threadTs) {
   try {
-    const response = await client.conversations.replies({
-      channel: message.channel,
-      ts: threadTs,
-      limit: 30,
-    });
-    return (response.messages || [])
+    const messages = [];
+    let cursor;
+    do {
+      const response = await client.conversations.replies({
+        channel: message.channel,
+        ts: threadTs,
+        limit: 30,
+        ...(cursor ? { cursor } : {}),
+      });
+      messages.push(...(response.messages || []));
+      cursor = response.response_metadata?.next_cursor;
+    } while (cursor);
+    return messages
       .filter((item) => item.ts !== message.ts && textOf(item))
       .slice(-8)
       .map((item) => ({
