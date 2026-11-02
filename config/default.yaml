@@ -20,3 +20,12 @@ jira:
 app_insights:
   # instrumentation_key: no default
   role_name: ccpay-slack-help-bot
+
+openai:
+  # endpoint: no default
+  # deployment_name: no default
+
+search:
+  # endpoint: no default
+  knowledge_store_index_name: feepay-knowledge-index
+  semantic_configuration: feepay-knowledge

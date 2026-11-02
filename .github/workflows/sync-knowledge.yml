@@ -1,0 +1,41 @@
+name: Sync FeePay knowledge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sync-knowledge:
+    runs-on: ubuntu-latest
+    env:
+      JIRA_CLOUD_ID: ${{ vars.JIRA_CLOUD_ID }}
+      JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      AZURE_SEARCH_ENDPOINT: ${{ vars.AZURE_SEARCH_ENDPOINT }}
+      AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME: ${{ vars.AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME || 'feepay-knowledge-index' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sign in to Azure with OpenID Connect
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_SEARCH_SYNC_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Sync Jira, Confluence, and GitHub sources to Azure AI Search
+        run: npm run sync:knowledge

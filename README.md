@@ -38,6 +38,26 @@ Listens for new posts in a designated Slack channel and raises a coresponding re
 
 </details>
 
+## Enabling the FeePay help Agent
+
+The existing global help-request shortcut and Jira ticket workflow should remain
+enabled. To configure the Agent messaging experience in the same Slack app, follow
+the [FeePay Agent setup guide](docs/slack-agent-setup.md). The guide adds the
+Agent settings alongside the existing shortcuts and workflow.
+
+The initial knowledge-source allow-list is recorded in
+[`config/knowledge-sources.json`](config/knowledge-sources.json). It covers the
+Fee & Payments Confluence space, Jira project, and repositories supplied by the
+team. Broader HMCTS Reform repositories should be added as an explicit curated
+list.
+
+To include Jira issues from project `PAY` or Confluence pages from space
+`DTSFP` in the chatbot's knowledge source, add the `fee-pay-help-bot` label to
+each issue or page. Only labeled Jira issues and Confluence pages are included
+in the knowledge sync. Apply the label only to content approved for the Agent's
+audience, then run the **Sync FeePay knowledge** workflow in GitHub Actions to
+refresh the index.
+
 ## Getting Started with the Bot
 
 ### Prerequisites

@@ -18,3 +18,11 @@ jira:
 
 app_insights:
   instrumentation_key: APP_INSIGHTS_INSTRUMENTATION_KEY
+
+openai:
+  endpoint: AZURE_OPENAI_ENDPOINT
+  deployment_name: AZURE_OPENAI_DEPLOYMENT_NAME
+
+search:
+  endpoint: AZURE_SEARCH_ENDPOINT
+  knowledge_store_index_name: AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME

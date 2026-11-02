@@ -1,0 +1,29 @@
+{
+  "atlassian": {
+    "confluenceSpaceKey": "DTSFP",
+    "jiraProjectKey": "PAY",
+    "confluencePageLabel": "fee-pay-help-bot",
+    "jiraIssueLabel": "fee-pay-help-bot"
+  },
+  "github": {
+    "feeAndPaymentsRepositories": [
+      "hmcts/ccpay-bubble",
+      "hmcts/ccfr-fees-register-admin-web",
+      "hmcts/ccpay-web-component",
+      "hmcts/ccpay-paymentoutcome-web",
+      "hmcts/ccpay-functions-node",
+      "hmcts/ccpay-payment-app",
+      "hmcts/ccpay-refunds-app",
+      "hmcts/ccpay-bulkscanning-app",
+      "hmcts/ccfr-fees-register-app",
+      "hmcts/ccpay-notifications-service",
+      "hmcts/ccpay-service-request-cpo-update-service",
+      "hmcts/ccpay-scheduled-jobs",
+      "hmcts/cpo-case-payment-orders-api",
+      "hmcts/payments-java-client",
+      "hmcts/ccpayfr-shared-infrastructure",
+      "hmcts/ccpay-payment-api-gateway"
+    ],
+    "hmctsReformRepositories": []
+  }
+}
