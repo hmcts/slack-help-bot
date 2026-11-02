@@ -245,6 +245,7 @@ async function loadGithubRepository(repository) {
           }
           continue;
         }
+        if (!entry.isFile()) continue;
         const absolutePath = path.join(directory, entry.name);
         const relativePath = path.relative(repositoryDirectory, absolutePath).split(path.sep).join("/");
         if (
