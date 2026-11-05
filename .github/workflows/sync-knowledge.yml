@@ -7,6 +7,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: feepay-knowledge-sync
+  cancel-in-progress: false
+
 jobs:
   sync-knowledge:
     runs-on: ubuntu-latest

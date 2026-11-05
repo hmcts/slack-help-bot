@@ -67,12 +67,12 @@ Run the sync manually from GitHub Actions using **Sync FeePay knowledge** in
 configured environment. The workflow uses Azure OIDC; its federated identity
 needs **Search Service Contributor** and **Search Index Data Contributor** on
 the search service. Configure these GitHub Actions repository variables:
-`JIRA_CLOUD_ID`, `AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_SYNC_CLIENT_ID`, and
-`AZURE_TENANT_ID`. The index name defaults to `feepay-knowledge-index`; set
+`AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_SYNC_CLIENT_ID`, and `AZURE_TENANT_ID`.
+The index name defaults to `feepay-knowledge-index`; set
 `AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME` as a repository variable only to
-override it. Configure repository secrets `JIRA_USERNAME` and
-`JIRA_API_TOKEN` for an Atlassian account that can read the approved labeled
-content in Jira project `PAY` and Confluence space `DTSFP`.
+override it. Populate the `jira-cloud-id`, `jira-username`, and `jira-api-token`
+secrets in the `cftptl-intsvc` Azure Key Vault. The Atlassian account must be able
+to read approved labeled content in Jira project `PAY` and Confluence space `DTSFP`.
 
 The sync job creates the index using `config/knowledge-index.json`, uploads
 documents, and removes stale chunks. It shallow-clones the configured GitHub
