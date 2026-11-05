@@ -1,5 +1,5 @@
 resource "azurerm_search_service" "feepay" {
-  name                = "ccpay-feepay-help-${var.env}"
+  name                = "ccpay-slack-help-bot-${var.env}"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
   sku                 = "basic"
