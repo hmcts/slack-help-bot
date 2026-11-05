@@ -1,10 +1,11 @@
 # FeePay Azure AI Search infrastructure
 
 This Terraform component creates the Azure AI Search service used by the
-FeePay Slack Agent and a user-assigned identity for the GitHub Actions
-knowledge-sync workflow. The sync identity is federated to the configured GitHub
-repository and branch with OpenID Connect, so the workflow does not need a
-client secret.
+FeePay Slack Agent, a runtime user-assigned identity, and a separate identity
+for the GitHub Actions knowledge-sync workflow. The runtime identity has
+**Search Index Data Reader** access to the FeePay Search service. The sync
+identity is federated to the configured GitHub repository and branch with
+OpenID Connect, so the workflow does not need a client secret.
 
 After the infrastructure pipeline applies this component, copy these Terraform
 outputs into GitHub Actions repository variables:
@@ -14,6 +15,11 @@ outputs into GitHub Actions repository variables:
 | `azure_search_endpoint` | `AZURE_SEARCH_ENDPOINT` |
 | `azure_search_sync_client_id` | `AZURE_SEARCH_SYNC_CLIENT_ID` |
 | `azure_tenant_id` | `AZURE_TENANT_ID` |
+
+Configure the `azure_app_runtime_client_id` output as the client ID for the
+FeePay Slack bot's workload identity in its deployment configuration. The
+runtime identity is separate from the sync identity and is not used by GitHub
+Actions.
 
 The workflow's federated identity credential is restricted to
 `repo:hmcts/ccpay-slack-help-bot:ref:refs/heads/main` by default. Run the

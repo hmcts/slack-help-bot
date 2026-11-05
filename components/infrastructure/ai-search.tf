@@ -17,6 +17,20 @@ resource "azurerm_search_service" "feepay" {
   tags = module.tags.common_tags
 }
 
+resource "azurerm_user_assigned_identity" "app_runtime" {
+  name                = "${var.product}-${var.long_environment}-mi"
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+
+  tags = module.tags.common_tags
+}
+
+resource "azurerm_role_assignment" "app_runtime_search_reader" {
+  scope                = azurerm_search_service.feepay.id
+  role_definition_name = "Search Index Data Reader"
+  principal_id         = azurerm_user_assigned_identity.app_runtime.principal_id
+}
+
 resource "azurerm_user_assigned_identity" "github_sync" {
   name                = "${var.product}-${var.long_environment}-sync-mi"
   resource_group_name = azurerm_resource_group.this.name
