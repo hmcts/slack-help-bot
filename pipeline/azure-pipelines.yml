@@ -36,8 +36,6 @@ parameters:
     type: object
     default:
       - environment: "cftptl"
-        storageAccountName: "cftptlintsvc"
-        storageAccountRg: "core-infra-intsvc-rg"
         dependsOn: "Precheck"
 
 stages:
