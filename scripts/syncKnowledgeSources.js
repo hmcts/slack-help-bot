@@ -117,6 +117,23 @@ async function loadJiraIssues() {
   } while (nextPageToken);
 
   const browseUrl = trimTrailingSlash(requiredConfig("jira.browse_url"));
+  for (const issue of issues) {
+    const comments = [];
+    let startAt = 0;
+    while (true) {
+      const uri = jira.makeUri({
+        pathname: `/issue/${issue.key}/comment`,
+        query: { startAt, maxResults: 100 },
+      });
+      const page = await jira.doRequest(jira.makeRequestHeader(uri));
+      const pageComments = page.comments || [];
+      comments.push(...pageComments);
+      startAt += pageComments.length;
+      if (pageComments.length === 0 || startAt >= page.total) break;
+    }
+    issue.fields = issue.fields || {};
+    issue.fields.comment = { ...(issue.fields.comment || {}), comments };
+  }
   return issues.flatMap((issue) => {
     const fields = issue.fields || {};
     const comments = fields.comment?.comments || [];
