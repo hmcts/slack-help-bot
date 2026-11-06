@@ -1,0 +1,23 @@
+{
+  "name": "feepay-knowledge",
+  "fields": [
+    { "name": "id", "type": "Edm.String", "key": true, "searchable": false },
+    { "name": "title", "type": "Edm.String", "searchable": true, "retrievable": true },
+    { "name": "url", "type": "Edm.String", "searchable": false, "retrievable": true },
+    { "name": "content", "type": "Edm.String", "searchable": true, "retrievable": true },
+    { "name": "sourceType", "type": "Edm.String", "filterable": true, "retrievable": true },
+    { "name": "sourceName", "type": "Edm.String", "searchable": true, "filterable": true, "retrievable": true }
+  ],
+  "semantic": {
+    "configurations": [
+      {
+        "name": "feepay-knowledge",
+        "prioritizedFields": {
+          "titleField": { "fieldName": "title" },
+          "prioritizedContentFields": [{ "fieldName": "content" }],
+          "prioritizedKeywordsFields": [{ "fieldName": "sourceName" }]
+        }
+      }
+    ]
+  }
+}

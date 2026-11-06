@@ -1,0 +1,71 @@
+name: Sync FeePay knowledge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: feepay-knowledge-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-knowledge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: "Az CLI login"
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_SEARCH_SYNC_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Read Jira credentials from Azure Key Vault
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_secret() {
+            local secret_name="$1"
+            local environment_name="$2"
+            local secret_value
+
+            secret_value="$(az keyvault secret show \
+              --vault-name cftptl-intsvc \
+              --name "$secret_name" \
+              --query value \
+              --output tsv)"
+
+            if [[ -z "$secret_value" ]]; then
+              echo "::error::Azure Key Vault returned an empty value for $secret_name"
+              exit 1
+            fi
+
+            echo "::add-mask::$secret_value"
+            printf '%s=%s\n' "$environment_name" "$secret_value" >> "$GITHUB_ENV"
+          }
+
+          read_secret jira-cloud-id JIRA_CLOUD_ID
+          read_secret jira-username JIRA_USERNAME
+          read_secret jira-api-token JIRA_API_TOKEN
+
+      - name: Sync Jira, Confluence, and GitHub sources to Azure AI Search
+        run: npm run sync:knowledge
+        env:
+          AZURE_SEARCH_ENDPOINT: ${{ vars.AZURE_SEARCH_ENDPOINT }}
+          AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME: ${{ vars.AZURE_SEARCH_KNOWLEDGE_STORE_INDEX_NAME || 'feepay-knowledge-index' }}
