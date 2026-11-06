@@ -175,13 +175,15 @@ async function getJson(url, headers) {
 }
 
 async function loadConfluencePages() {
-  const base = `${trimTrailingSlash(requiredConfig("jira.browse_url"))}/wiki`;
+  const siteBase = trimTrailingSlash(requiredConfig("jira.browse_url"));
+  const cloudId = requiredConfig("jira.cloud_id");
+  const apiBase = `https://api.atlassian.com/ex/confluence/${encodeURIComponent(cloudId)}/wiki`;
   const spaceKey = sources.atlassian.confluenceSpaceKey;
   const label = sources.atlassian.confluencePageLabel;
   const cql = `space="${spaceKey}" AND type=page AND status=current AND label="${label}"`;
   const pages = [];
   const headers = atlassianHeaders();
-  let url = `${base}/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=100&expand=body.storage,version`;
+  let url = `${apiBase}/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=100&expand=body.storage,version`;
 
   while (true) {
     const page = await getJson(url, headers);
@@ -193,9 +195,13 @@ async function loadConfluencePages() {
 
   return pages.flatMap((page) => {
     const content = cleanHtml(page.body?.storage?.value);
+    const webui = page._links?.webui || `/spaces/${spaceKey}`;
+    const pageUrl = /^https?:\/\//i.test(webui)
+      ? webui
+      : `${siteBase}/wiki${webui.startsWith("/") ? webui : `/${webui}`}`;
     return toSearchDocuments({
       title: page.title || "Untitled Confluence page",
-      url: page._links?.webui ? `${base}${page._links.webui}` : `${base}/spaces/${spaceKey}`,
+      url: pageUrl,
       content,
       sourceType: "confluence",
       sourceName: `Confluence ${spaceKey}`,
